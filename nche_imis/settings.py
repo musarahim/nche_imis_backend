@@ -219,12 +219,12 @@ UNFOLD = {
             "950": "2, 7, 12"   
         },
         "font": {
-            "subtle-light": "var(--color-base-500)",  # text-base-500
-            "subtle-dark": "var(--color-base-400)",  # text-base-400
-            "default-light": "var(--color-base-600)",  # text-base-600
-            "default-dark": "var(--color-base-300)",  # text-base-300
-            "important-light": "var(--color-base-900)",  # text-base-900
-            "important-dark": "var(--color-base-100)",  # text-base-100
+            "subtle-light": "var(--color-base-600)",  # text-base-500
+            "subtle-dark": "var(--color-base-500)",  # text-base-400
+            "default-light": "var(--color-base-700)",  # text-base-600
+            "default-dark": "var(--color-base-400)",  # text-base-300
+            "important-light": "var(--color-base-950)",  # text-base-900
+            "important-dark": "var(--color-base-200)",  # text-base-100
         },
    
     },
@@ -250,6 +250,11 @@ UNFOLD = {
                         "icon": "people",
                         "link": reverse_lazy("admin:accounts_user_changelist"),
                     },
+                    {
+                        "title": _("Groups"),
+                        "icon": "groups",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                    }
                 ],
             },
         ],
