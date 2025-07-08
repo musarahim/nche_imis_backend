@@ -41,16 +41,16 @@ class CustomUserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     '''Custom user model'''
-    username = models.CharField(max_length=30, unique=True)
+    username = models.CharField(max_length=50, unique=True)
     email = models.EmailField(unique=True, verbose_name='email address')
-    first_name = models.CharField(max_length=30, blank=True)
-    last_name = models.CharField(max_length=30, blank=True)
+    first_name = models.CharField(max_length=50, blank=True)
+    last_name = models.CharField(max_length=50, blank=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(default=timezone.now)
     account_expiry_date = models.DateTimeField(null=True, blank=True)
-    phone = models.CharField(max_length=10, blank=True)
-    alternative_phone_number = models.CharField(max_length=10, blank=True)
+    phone = models.CharField(max_length=14, blank=True)
+    alternative_phone_number = models.CharField(max_length=14, blank=True)
 
     objects = CustomUserManager()
 

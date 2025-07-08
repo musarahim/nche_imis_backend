@@ -5,8 +5,8 @@ from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
 UNFOLD = {
-    "SITE_TITLE": "NCHE IMIS",
-    "SITE_HEADER": "NCHE IMIS",
+    "SITE_TITLE": "UNCHE IMIS",
+    "SITE_HEADER": "UNCHE IMIS",
     "SITE_SUBHEADER": "Admin Portal",
     "SITE_DROPDOWN": [
         {
@@ -24,8 +24,8 @@ UNFOLD = {
     },
     # "SITE_LOGO": lambda request: static("logo.svg"),  # both modes, optimise for 32px height
     "SITE_LOGO": {
-        "light": lambda request: static("logo-light.svg"),  # light mode
-        "dark": lambda request: static("logo-dark.svg"),  # dark mode
+        "light": lambda request: static("images/logo.png"),  # light mode
+        "dark": lambda request: static("images/logo.png"),  # dark mode
     },
     "SITE_SYMBOL": "speed",  # symbol from icon set
     "SITE_FAVICONS": [

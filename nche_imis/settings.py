@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import string
+from datetime import timedelta
 from pathlib import Path
 
 from common.unfoldsettings import *
@@ -52,6 +54,8 @@ INSTALLED_APPS = [
     "django.contrib.admin",  # required
     'rest_framework',
     'corsheaders',
+    "trench",
+    "djoser",
     # my apps 
     'accounts',
 ]
@@ -59,6 +63,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -125,7 +130,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Africa/Nairobi'
 
 USE_I18N = True
 
@@ -148,4 +153,110 @@ else:
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+REST_FRAMEWORK = {
+    "DEFAULT_PAGINATION_CLASS": "common.pagination.StandardResultsSetPagination",
+    "PAGE_SIZE": 10,
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "accounts.authentication.CustomJWTAuthentication",
+        "rest_framework.authentication.BasicAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "DEFAULT_PARSER_CLASSES": (
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.FormParser",
+        "rest_framework.parsers.MultiPartParser",
+    ),
+    "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
+}
+CORS_ALLOWED_ORIGINS = ['http://localhost:3000',
+                        'http://127.0.0.1:81']
 
+CORS_ALLOW_CREDENTIALS = True
+
+# auth cookie settings
+AUTH_COOKIE = 'access'
+AUTH_COOKIE_ACCESS_MAX_AGES = 60 * 10 # expire after 10 minutes
+AUTH_COOKIE_REFRESH_MAX_AGES = 60 * 60 * 24 * 365 # expire after 1 year
+AUTH_COOKIE_SECURE = os.environ.get('AUTH_COOKIE_SECURE',False) # set to True in production
+AUTH_COOKIE_HTTP_ONLY = True 
+AUTH_COOKIE_SAMESITE = 'None'
+AUTH_COOKIE_PATH = '/'
+AUTH_COOKIE_DOMAIN = None
+
+# Email settings
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.environ.get("EMAIL_HOST")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_PORT = os.environ.get("EMAIL_PORT", 587)  # Default SMTP port for TLS
+EMAIL_USE_SSL = False
+EMAIL_USE_TLS = True
+
+
+TRENCH_AUTH = {
+    "USER_MFA_MODEL": "trench.MFAMethod",
+    "USER_ACTIVE_FIELD": "is_active",
+    "BACKUP_CODES_QUANTITY": 5,
+    "BACKUP_CODES_LENGTH": 12,
+    "BACKUP_CODES_CHARACTERS": (string.ascii_letters + string.digits),
+    "SECRET_KEY_LENGTH": 32,
+    "DEFAULT_VALIDITY_PERIOD": 30,
+    "CONFIRM_DISABLE_WITH_CODE": False,
+    "CONFIRM_BACKUP_CODES_REGENERATION_WITH_CODE": True,
+    "ALLOW_BACKUP_CODES_REGENERATION": True,
+    "ENCRYPT_BACKUP_CODES": True,
+    "APPLICATION_ISSUER_NAME": "Uganda National Council for Higher Education",
+    "MFA_METHODS": {
+        "email": {
+            "VERBOSE_NAME": _("email"),
+            "VALIDITY_PERIOD": 60 * 10,
+            "HANDLER": "trench.backends.basic_mail.SendMailMessageDispatcher",
+            "SOURCE_FIELD": "email",
+            "EMAIL_SUBJECT": _("Your verification code"),
+            "EMAIL_PLAIN_TEMPLATE": "trench/backends/email/code.txt",
+            "EMAIL_HTML_TEMPLATE": "trench/backends/email/code.html",
+        },
+        # Your other backends here
+    }
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN':True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUTH_HEADER_TYPES': ('JWT',),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+}
+
+DJOSER ={
+    'PASSWORD_RESET_CONFIRM_URL': 'password-reset/{uid}/{token}',
+    'SEND_ACTIVATION_EMAIL': True,
+    'SEND_CONFIRMATION_EMAIL': True,
+    'ACTIVATION_URL': 'activation/{uid}/{token}',
+    'USER_CREATE_PASSWORD_RETYPE': True,
+    'SET_PASSWORD_RETYPE': True,
+    'PASSWORD_RESET_CONFIRM_RETYPE': True,
+    'PASSWORD_RESET_SHOW_EMAIL_NOT_FOUND': True,
+    'TOKEN_MODEL': None,
+    'SERIALIZERS': {
+        'current_user': 'accounts.serializers.UserSerializer',
+        'user': 'accounts.serializers.UserSerializer',
+        'user_create_password_retype': 'accounts.serializers.UserRegistrationSerializer',
+    },
+    'EMAIL': {
+        'activation': 'accounts.email.ActivationEmail',
+        'confirmation': 'accounts.email.ConfirmationEmail',
+       #'password_reset': 'accounts.email.PasswordResetEmail',
+    },
+}
