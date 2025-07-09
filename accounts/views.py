@@ -50,7 +50,6 @@ class CustomTokenRefreshView(TokenRefreshView):
 
     def post(self, request, *args, **kwargs):
         '''set the access token as a cookie'''
-       
         refresh_token = request.COOKIES.get('refresh')
         print(refresh_token, 'refresh token')
         if refresh_token:

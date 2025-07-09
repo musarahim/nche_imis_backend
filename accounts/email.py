@@ -20,3 +20,17 @@ class ActivationEmail(BaseDjoserEmail):
 class ConfirmationEmail(BaseDjoserEmail):
     '''Confirmation email for account activation'''
     template_name = "confirmation_email.html"
+
+class PasswordResetEmail(BaseDjoserEmail):
+    '''Password reset email'''
+    template_name = "password_reset_email.html"
+
+    def get_context_data(self):
+        # PasswordResetEmail can be deleted
+        context = super().get_context_data()
+
+        user = context.get("user")
+        context["uid"] = utils.encode_uid(user.pk)
+        context["token"] = default_token_generator.make_token(user)
+        context["url"] = settings.PASSWORD_RESET_CONFIRM_URL.format(**context)
+        return context

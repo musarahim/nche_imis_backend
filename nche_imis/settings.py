@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "unfold.contrib.simple_history",  # optional, if django-simple-history package is used
     "django.contrib.admin",  # required
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     "trench",
     "djoser",
@@ -257,6 +258,6 @@ DJOSER ={
     'EMAIL': {
         'activation': 'accounts.email.ActivationEmail',
         'confirmation': 'accounts.email.ConfirmationEmail',
-       #'password_reset': 'accounts.email.PasswordResetEmail',
+       'password_reset': 'accounts.email.PasswordResetEmail',
     },
 }
