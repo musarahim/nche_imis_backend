@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'corsheaders',
     "trench",
     "djoser",
+    'drf_yasg',
     # my apps 
     'accounts',
 ]

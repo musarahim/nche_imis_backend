@@ -59,10 +59,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(max_length=50, blank=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
-    date_joined = models.DateTimeField(default=timezone.now)
+    m = models.DateTimeField(default=timezone.now)
     account_expiry_date = models.DateTimeField(null=True, blank=True)
     phone = models.CharField(max_length=14, blank=True)
-    alternative_phone_number = models.CharField(max_length=14, blank=True)
+    alternative_phone_number = models.CharField(max_length=14, blank=True, null=True)
 
     objects = CustomUserManager()
 
