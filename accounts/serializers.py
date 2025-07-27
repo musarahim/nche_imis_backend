@@ -1,6 +1,8 @@
 from django.contrib.auth.models import Group
 from django.utils.translation import gettext_lazy as _
 from djoser.serializers import UserCreatePasswordRetypeSerializer
+from institutions.models import Institution
+from institutions.serializers import InstitutionSerializer
 from rest_framework import serializers
 
 from .models import User
@@ -49,3 +51,22 @@ class UserRegistrationSerializer(UserCreatePasswordRetypeSerializer):
 
         }
         
+
+class RegisterInstitutionSerializer(serializers.ModelSerializer):
+    '''Serializer for Institution registration'''
+    institution = InstitutionSerializer()
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'phone', 'alternative_phone_number',
+                  'institution']
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'institution': {'required': True}
+        }
+    
+    def create(self, validated_data):
+        institution_data = validated_data.pop('institution')
+        user = User.objects.create_user(**validated_data)
+        Institution.objects.create(user=user, **institution_data)
+        return user

@@ -22,11 +22,11 @@ from rest_framework import permissions
 
 schema_view = get_schema_view(
    openapi.Info(
-      title="Ruforum API",
+      title="UNCHE IMIS API",
       default_version='v3',
-      description="Ruforum API",
+      description="Uganda API",
       terms_of_service="https://www.google.com/policies/terms/",
-      contact=openapi.Contact(email="musarahim13@gmail.com"),
+      contact=openapi.Contact(email="rwandera@unche.or.ug"),
       license=openapi.License(name="BSD License"),
    ),
    public=True,

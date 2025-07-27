@@ -3,6 +3,7 @@ from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager,
                                         PermissionsMixin)
 from django.db import models
 from django.utils import timezone
+from simple_history.models import HistoricalRecords
 from trench.models import MFAMethod
 
 # Create your models here.
@@ -22,6 +23,7 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('The Email must be set')
         email = self.normalize_email(email)
         user = self.model(email=email,username=username, **extra_fields)
+        user.is_active = False
         user.set_password(password)
         user.save(using=self._db)
         
@@ -59,13 +61,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(max_length=50, blank=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
-    m = models.DateTimeField(default=timezone.now)
+    date_joined = models.DateTimeField(default=timezone.now)
     account_expiry_date = models.DateTimeField(null=True, blank=True)
     phone = models.CharField(max_length=14, blank=True)
     alternative_phone_number = models.CharField(max_length=14, blank=True, null=True)
 
     objects = CustomUserManager()
-
+    history = HistoricalRecords()
     USERNAME_FIELD = 'username' # This tells Django to use email for authentication
     REQUIRED_FIELDS = ["email"] # No other fields required at creation besides email and password
 

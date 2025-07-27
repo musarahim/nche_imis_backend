@@ -9,11 +9,14 @@ cffi==1.17.1
 charset-normalizer==3.4.2
 cryptography==45.0.5
 defusedxml==0.7.1
+diff-match-patch==20241021
 Django==5.2.3
 django-cors-headers==4.7.0
 django-filter==25.1
+django-import-export==4.3.9
+django-simple-history==3.10.1
 django-trench==0.3.1
-django-unfold==0.60.0
+django-unfold==0.63.0
 djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.0
 djoser==2.3.1
@@ -25,6 +28,7 @@ Markdown==3.8.2
 multidict==6.6.3
 oauthlib==3.3.1
 packaging==25.0
+pillow==11.3.0
 propcache==0.3.2
 psycopg==3.2.9
 pycparser==2.22
@@ -39,6 +43,7 @@ smsapi-client==2.9.6
 social-auth-app-django==5.5.1
 social-auth-core==4.7.0
 sqlparse==0.5.3
+tablib==3.8.0
 twilio==9.6.4
 typing_extensions==4.14.0
 tzdata==2025.2

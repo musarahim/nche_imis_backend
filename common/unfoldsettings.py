@@ -94,34 +94,70 @@ UNFOLD = {
     "EXTENSIONS": {
     },
     "SIDEBAR": {
-        "show_search": False,  # Search in applications and models names
-        "show_all_applications": False,  # Dropdown with all applications and models
-        "navigation": [
-            {
-                "title": _("Navigation"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
-                "items": [
-                    {
-                        "title": _("Dashboard"),
-                        "icon": "dashboard",  # Supported icon set: https://fonts.google.com/icons
-                        "link": reverse_lazy("admin:index"),
-                        "permission": lambda request: request.user.is_superuser,
-                    },
-                    {
-                        "title": _("Users"),
-                        "icon": "people",
-                        "link": reverse_lazy("admin:accounts_user_changelist"),
-                    },
-                    {
-                        "title": _("Groups"),
-                        "icon": "groups",
-                        "link": reverse_lazy("admin:auth_group_changelist"),
-                    }
-                ],
-            },
-        ],
-    },
+    "show_search": True,
+    "show_all_applications": False,
+    "navigation": [
+        # GROUP 1: Main Navigation Links
+        {
+            "title": None,
+            "separator": True,
+            "items": [
+                {
+                    "title": _("Dashboard"),
+                    "icon": "dashboard",
+                    "link": reverse_lazy("admin:index"),
+                    "permission": lambda request: request.user.is_superuser,
+                },
+                {
+                    "title": _("SystemUsers"),
+                    "icon": "people",
+                    "link": reverse_lazy("admin:accounts_user_changelist"),
+                },
+                {
+                    "title": _("Groups"),
+                    "icon": "groups",
+                    "link": reverse_lazy("admin:auth_group_changelist"),
+                },
+            ],
+        },
+
+        # GROUP 2: The Configurations Dropdown
+        {
+            "title": _("Configurations"),
+            "icon": "manage_accounts",
+            "collapsible": True,
+            "permission": lambda request: request.user.is_superuser,
+            "items": [
+                {
+                    "title": _("Districts"),
+                    "link": reverse_lazy("admin:common_district_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "location_on",
+                },
+               
+                # ... add your other uncommented configuration items here
+            ],
+        },
+
+        {
+            "title": _("Institutions"),
+            "icon": "manage_accounts",
+            "collapsible": True,
+            "permission": lambda request: request.user.is_superuser,
+            "items": [
+                {
+                    "title": _("Institutions"),
+                    "link": reverse_lazy("admin:institutions_institution_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "apartment",
+                },
+                
+                # ... add your other uncommented configuration items here
+            ],
+        },
+    ],
+},
+  
     "TABS": [
        
     ],

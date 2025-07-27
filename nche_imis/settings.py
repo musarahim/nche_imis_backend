@@ -52,7 +52,9 @@ INSTALLED_APPS = [
     "unfold.contrib.guardian",  # optional, if django-guardian package is used
     "unfold.contrib.simple_history",  # optional, if django-simple-history package is used
     "django.contrib.admin",  # required
+    'import_export',
     'rest_framework',
+    'simple_history',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     "trench",
@@ -60,6 +62,8 @@ INSTALLED_APPS = [
     'drf_yasg',
     # my apps 
     'accounts',
+    'common',
+    'institutions',
 ]
 
 MIDDLEWARE = [
@@ -71,6 +75,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'simple_history.middleware.HistoryRequestMiddleware',
 ]
 
 ROOT_URLCONF = 'nche_imis.urls'
@@ -254,7 +259,7 @@ DJOSER ={
     'SERIALIZERS': {
         'current_user': 'accounts.serializers.UserSerializer',
         'user': 'accounts.serializers.UserSerializer',
-        'user_create_password_retype': 'accounts.serializers.UserRegistrationSerializer',
+        'user_create_password_retype': 'accounts.serializers.RegisterInstitutionSerializer',
     },
     'EMAIL': {
         'activation': 'accounts.email.ActivationEmail',
