@@ -10,7 +10,7 @@ class InstitutionSerializer(serializers.ModelSerializer):
         '''Meta class for Institution Serializer'''
         model = Institution
         fields = [
-            'id', 'user', 'name', 'district', 'institution_type',
+            'id', 'user', 'name', 'district', 'institution_type',"alternative_email",
             'landline', 'contact_person', 'contact_person_phone',
             'alternative_contact_person', 'alternative_contact_person_phone',
             'logo'

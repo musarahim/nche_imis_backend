@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from common.views import HomePageView
 from django.contrib import admin
 from django.urls import include, path
 from drf_yasg import openapi
@@ -37,7 +38,9 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     path('portal/', admin.site.urls),
+    path('home/', HomePageView.as_view(), name='home'),
     path("api/accounts/", include("accounts.urls", namespace="accounts")),
     path('api/auth/', include('trench.urls.jwt')),
     path('api/', include('djoser.urls')),
+    path('api/common/', include('common.urls', namespace='common')),
 ]

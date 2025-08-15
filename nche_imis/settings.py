@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "trench",
     "djoser",
     'drf_yasg',
+    'phonenumber_field',
     # my apps 
     'accounts',
     'common',
@@ -83,7 +84,9 @@ ROOT_URLCONF = 'nche_imis.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+             os.path.join(BASE_DIR, "templates"),
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

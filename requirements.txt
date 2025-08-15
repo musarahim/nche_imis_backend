@@ -14,6 +14,7 @@ Django==5.2.3
 django-cors-headers==4.7.0
 django-filter==25.1
 django-import-export==4.3.9
+django-phonenumber-field==8.1.0
 django-simple-history==3.10.1
 django-trench==0.3.1
 django-unfold==0.63.0
@@ -28,6 +29,7 @@ Markdown==3.8.2
 multidict==6.6.3
 oauthlib==3.3.1
 packaging==25.0
+phonenumbers==9.0.11
 pillow==11.3.0
 propcache==0.3.2
 psycopg==3.2.9
