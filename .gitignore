@@ -50,3 +50,4 @@ coverage.xml
 !.vscode/launch.json 
 !.vscode/extensions.json 
 .history
+uploads/

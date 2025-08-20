@@ -1,3 +1,4 @@
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
 from .models import Institution
@@ -5,7 +6,9 @@ from .models import Institution
 
 class InstitutionSerializer(serializers.ModelSerializer):
     '''Serializer for Institution model.'''
-    
+    logo = Base64ImageField(
+        max_length=None, use_url=True, required=True, allow_null=True
+    )
     class Meta:
         '''Meta class for Institution Serializer'''
         model = Institution
