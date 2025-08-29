@@ -31,7 +31,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-d(hh7k%@r^o$mp-t_lrcb)z#pfc+9+(!4x_npo6wk6au!qc!&v'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "False").lower() in ("true", "1", "yes")
+print(DEBUG)
 #localhost,127.0.0.1
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS").split(",")
 
@@ -151,17 +152,18 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 if DEBUG:
-    STATIC_URL='/static/'
-    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'),]
+    # Development settings
+    STATIC_URL = '/static/'
+    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
     MEDIA_URL = '/uploads/'
-    MEDIA_ROOT = os.path.join(BASE_DIR, "uploads")
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads')
 else:
-
+    # Production settings
     STATIC_URL = '/staticfiles/'
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'),]
     MEDIA_URL = '/uploads/'
-    MEDIA_ROOT = '/uploads'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads')
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
