@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "djoser",
     'drf_yasg',
     'phonenumber_field',
+    'tinymce',
     # my apps 
     'accounts',
     'common',

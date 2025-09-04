@@ -2,6 +2,7 @@ from accounts.models import User
 from common.models import District, TimeStampedModel
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
+from tinymce.models import HTMLField
 
 # Create your models here.
 
@@ -36,6 +37,7 @@ class PublicationYear(TimeStampedModel):
         return str(self.year)
 
 class CertificationAndClassification(TimeStampedModel):
+    '''Certification and Classification model to represent an institution. '''
     institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='certifications', blank=False)
     institution_name = models.CharField(max_length=255, unique=True, null=False, blank=False)
     acronym = models.CharField(max_length=255, unique=True, null=False, blank=False)
@@ -100,13 +102,73 @@ class CertificationAndClassification(TimeStampedModel):
     student_facilities = models.TextField(null=False, blank=False)
     # academic staff
     full_time_staff = models.IntegerField(null=False, blank=False)
+    intended_full_time_staff = models.IntegerField(null=False, blank=False)
+    full_time_staff_qualification = models.FileField(null=False, blank=False)
     part_time_staff = models.IntegerField(null=False, blank=False)
-    academic_staff_qualification = models.FileField(null=False, blank=False)
-    optional_staff = models.IntegerField(null=False, blank=False)
     part_time_staff_qualification = models.FileField(null=False, blank=False)
-    
-    
+    phd_holders = models.IntegerField(null=False, blank=False)
+    phd_holder_discipline = models.FileField(null=False, blank=False)
+    masters_holders = models.IntegerField(null=False, blank=False)
+    masters_holders_discipline = models.FileField(null=False, blank=False)
+    bachelor_holders = models.IntegerField(null=False, blank=False)
+    bachelor_holders_discipline = models.FileField(null=False, blank=False)
+    diploma_holders = models.IntegerField(null=False, blank=False)
+    diploma_holders_discipline = models.FileField(null=False, blank=False)
+    average_staff_student_ratio = models.IntegerField(null=False, blank=False)
+    programme_staff_student_ratio = models.FileField(null=False, blank=False)
+    staff_overload = models.IntegerField(null=False, blank=False)
+    # administrative and support staff
+    administrative_staff = models.IntegerField(null=False, blank=False)
+    support_staff = models.IntegerField(null=False, blank=False)
+    # names, qualifications and gender
+    council_members = models.FileField(null=False, blank=False)
+    senate_members = models.FileField(null=False, blank=False)
+    # other infor
+    governing_council_chairperson = models.CharField(max_length=255, null=False, blank=False)
+    governing_council_vice = models.CharField(max_length=255, null=False, blank=False)
+    principal = models.CharField(max_length=255, null=False, blank=False)
+    academic_registrar = models.CharField(max_length=255, null=False, blank=False)
+    heads_of_academic_divisions = HTMLField(null=True, blank=False)
+    academic_board_members = HTMLField(null=True, blank=False)
+    institution_ownership = HTMLField(null=True, blank=False)
+    # Financial Management
+    other_assets = models.FileField(null=False, blank=False)
+    anual_budget = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+    previous_financial_year_accounts = models.FileField(null=False, blank=False)
+    fee_structure = models.FileField(null=False, blank=False)
+    fees_percent_budget = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+    other_institution_income = models.TextField(null=False, blank=False)
+    # How much of the budget will be given to:
+    infrastructure_development = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+    research_development = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+    computer_hardware_software = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+    science_lab_equipment = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+    library_equipment = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+    staff_development = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+    staff_salaries = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+    current_bankers = models.TextField(null=False, blank=False)
+    # vision and mission
+    vision = models.TextField(null=False, blank=False)
+    mission = models.TextField(null=False, blank=False)
+    specific_objectives = models.TextField(null=False, blank=False)
+    logo = models.ImageField(blank=False, null=True)
+    stractegic_plan = models.FileField(null=False, blank=False)
+    current_programmes = HTMLField(null=True, blank=False)
+    area_of_competence = HTMLField(null=True, blank=False)
+    feature_programmes = HTMLField(null=True, blank=False)
+    # student population
+    total_number_of_students = models.IntegerField(null=False, blank=False)
+    programme_distribution = HTMLField(null=True, blank=False)
+    # Regions distribution
+    eastern_students = models.IntegerField(null=False, blank=False)
+    central_students = models.IntegerField(null=False, blank=False)
+    northern_students = models.IntegerField(null=False, blank=False)
+    western_students = models.IntegerField(null=False, blank=False)
+    # Non Ugandan Students
+    east_africans_students = models.IntegerField(null=False, blank=False)
+    other_students = models.IntegerField(null=False, blank=False)
 
+    # payment, integrate URA
     def __str__(self):
         """
         Returns the institution name as a string representation of the model.
@@ -124,12 +186,16 @@ class InstitutionVehicle(TimeStampedModel):
         return self.vehicle_name
     
 
-class AcademicStaff(TimeStampedModel):
-    """Academic Staff"""
-    institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='academic_staff', blank=False)
-    name = models.CharField(max_length=255, null=False, blank=False)
-    position = models.CharField(max_length=255, null=False, blank=False)
-    email = models.EmailField(max_length=255, null=False, blank=False)
+
+class OtherDocuments(TimeStampedModel):
+    """Other Documents"""
+    institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='other_documents', blank=False)
+    document_name = models.CharField(max_length=255, unique=True, null=False, blank=False)
+    document = models.FileField(null=False, blank=False)
+
+    def __str__(self):
+        return self.document_name
+
 
 
 
