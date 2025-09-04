@@ -45,5 +45,6 @@ urlpatterns = [
     path('api/auth/', include('trench.urls.jwt')),
     path('api/', include('djoser.urls')),
     path('api/common/', include('common.urls', namespace='common')),
+    path('api/institutions/', include('institutions.urls', namespace='institutions')),
     path('tinymce/', include('tinymce.urls')),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,7 +1,8 @@
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from .models import Institution
+from .models import (CertificationAndClassification, Institution,
+                     OtherDocuments, PublicationYear)
 
 
 class InstitutionSerializer(serializers.ModelSerializer):
@@ -19,3 +20,36 @@ class InstitutionSerializer(serializers.ModelSerializer):
             'logo'
         ]
         read_only_fields = ['id', 'user']
+
+    def to_representation(self, instance):
+        '''Override to_representation method for proper representation of data'''
+        representation = super().to_representation(instance)
+        representation['district'] = instance.district.name
+        return representation
+
+
+class PublicationYearSerializer(serializers.ModelSerializer):
+    '''Serializer for PublicationYear model.'''
+    class Meta:
+        '''Meta class for PublicationYear Serializer'''
+        model = PublicationYear
+        fields = ['id', 'year']
+        read_only_fields = ['id']
+
+
+class OtherDocumentsSerializer(serializers.ModelSerializer):
+    '''Serializer for OtherDocuments model.'''
+    class Meta:
+        '''Meta class for OtherDocuments Serializer'''
+        model = OtherDocuments
+        fields = ['id', 'document_name', 'document']
+        read_only_fields = ['id']
+
+
+class CertificationAndClassificationSerializer(serializers.ModelSerializer):
+    '''Serializer for CertificationAndClassification model.'''
+    class Meta:
+        '''Meta class for CertificationAndClassification Serializer'''
+        model = CertificationAndClassification
+        fields = "__all__"
+        read_only_fields = ['id']

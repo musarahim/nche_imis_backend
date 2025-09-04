@@ -31,6 +31,7 @@ class Institution(TimeStampedModel):
         ordering = ['name']
 
 class PublicationYear(TimeStampedModel):
+    '''Publication Year model. '''
     year = models.IntegerField(null=False, blank=False)
 
     def __str__(self):
