@@ -2,7 +2,7 @@ from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 from unfold.admin import ModelAdmin
 
-from .models import District
+from .models import District, EducationLevel, Religion, Title
 
 # Register your models here.
 
@@ -28,3 +28,33 @@ class DistrictAdmin(SimpleHistoryAdmin,ModelAdmin):
         Override to ensure that only active districts are shown.
         """
         return super().get_queryset(request).filter(deleted_at__isnull=True)
+    
+
+@admin.register(EducationLevel)
+class EducationLevelAdmin(SimpleHistoryAdmin,ModelAdmin):
+    '''Admin interface for District model.'''
+    list_display = ('name', 'created', 'modified')
+    fields = ('name',)
+    search_fields = ('name',)
+    ordering = ('name',)
+    readonly_fields = ('created', 'modified','deleted_at')
+
+
+@admin.register(Title)
+class TitleAdmin(SimpleHistoryAdmin,ModelAdmin):
+    '''Admin interface for District model.'''
+    list_display = ('name', 'created', 'modified')
+    fields = ('name',)
+    search_fields = ('name',)
+    ordering = ('name',)
+    readonly_fields = ('created', 'modified','deleted_at')
+
+
+@admin.register(Religion)
+class ReligionAdmin(SimpleHistoryAdmin,ModelAdmin):
+    '''Admin interface for District model.'''
+    list_display = ('name', 'created', 'modified')
+    fields = ('name',)
+    search_fields = ('name',)
+    ordering = ('name',)
+    readonly_fields = ('created', 'modified','deleted_at')

@@ -39,6 +39,10 @@ class PublicationYear(TimeStampedModel):
 
 class CertificationAndClassification(TimeStampedModel):
     '''Certification and Classification model to represent an institution. '''
+    STATUS_CHOICES=(
+        ('draft', 'Draft'),
+        ('Submitted', 'Submitted'),
+    )
     institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='certifications', blank=False)
     institution_name = models.CharField(max_length=255, unique=True, null=False, blank=False)
     acronym = models.CharField(max_length=255, unique=True, null=False, blank=False)
@@ -168,6 +172,7 @@ class CertificationAndClassification(TimeStampedModel):
     # Non Ugandan Students
     east_africans_students = models.IntegerField(null=False, blank=False)
     other_students = models.IntegerField(null=False, blank=False)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', blank=False)
 
     # payment, integrate URA
     def __str__(self):
@@ -198,5 +203,12 @@ class OtherDocuments(TimeStampedModel):
         return self.document_name
 
 
+class ProvisionalLicense(TimeStampedModel):
+    """Provisional License"""
+    institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='provisional_licenses', blank=False)
+    institution_name = models.CharField(max_length=255, unique=True, null=False, blank=False)
+    acronym = models.CharField(max_length=255, unique=True, null=False, blank=False)
 
+    def __str__(self):
+        return self.license_number
 

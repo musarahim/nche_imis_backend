@@ -60,12 +60,15 @@ INSTALLED_APPS = [
     "trench",
     "djoser",
     'drf_yasg',
+    "crispy_forms",
     'phonenumber_field',
     'tinymce',
     # my apps 
     'accounts',
     'common',
     'institutions',
+    'license',
+    'hr',
 ]
 
 MIDDLEWARE = [
@@ -147,7 +150,9 @@ USE_I18N = True
 
 USE_TZ = True
 
+CRISPY_TEMPLATE_PACK = "unfold_crispy"
 
+CRISPY_ALLOWED_TEMPLATE_PACKS = ["unfold_crispy"]
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 

@@ -41,3 +41,27 @@ class District(TimeStampedModel):
     class Meta:
         verbose_name_plural = "Districts"
         ordering = ['name']
+
+
+
+
+class EducationLevel(TimeStampedModel):
+    '''Educational Level'''
+    name = models.CharField(max_length=50, null=False, blank=False)
+
+    def __str__(self):
+        return self.name
+    
+class Title(TimeStampedModel):
+    '''Title'''
+    name = models.CharField(max_length=50, null=False, blank=False)
+
+    def __str__(self):
+        return self.name
+    
+class Religion(TimeStampedModel):
+    '''Religion'''
+    name = models.CharField(max_length=50, null=False, blank=False)
+
+    def __str__(self):
+        return self.name

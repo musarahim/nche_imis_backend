@@ -16,6 +16,11 @@ UNFOLD = {
         },
         
     ],
+        "COMMAND": {
+        "search_models": True,  # Default: False
+        "search_callback": "utils.search_callback",
+        "show_history": True,  # Enable history
+    },
     "SITE_URL": "/",
     # "SITE_ICON": lambda request: static("icon.svg"),  # both modes, optimise for 32px height
     "SITE_ICON": {
@@ -108,15 +113,27 @@ UNFOLD = {
                     "link": reverse_lazy("admin:index"),
                     "permission": lambda request: request.user.is_superuser,
                 },
+               
+            ],
+        },
+
+        {
+            "title": _("Users"),
+            "icon": "manage_accounts",
+            "collapsible": True,
+            "permission": lambda request: request.user.is_superuser,
+            "items": [
                 {
-                    "title": _("SystemUsers"),
-                    "icon": "people",
+                    "title": _("Users"),
                     "link": reverse_lazy("admin:accounts_user_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "manage_accounts",
                 },
                 {
                     "title": _("Groups"),
-                    "icon": "groups",
                     "link": reverse_lazy("admin:auth_group_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "manage_accounts",
                 },
             ],
         },
@@ -133,8 +150,26 @@ UNFOLD = {
                     "link": reverse_lazy("admin:common_district_changelist"),
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "location_on",
+                },               
+                  {
+                    "title": _("Education Levels"),
+                    "link": reverse_lazy("admin:common_educationlevel_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "cast_for_education",
                 },
-               
+                  {
+                    "title": _("Titles"),
+                    "link": reverse_lazy("admin:common_title_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "title",
+                },
+                  {
+                    "title": _("Religions"),
+                    "link": reverse_lazy("admin:common_religion_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "folded_hands",
+                },
+                
                 # ... add your other uncommented configuration items here
             ],
         },
@@ -151,6 +186,34 @@ UNFOLD = {
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "apartment",
                 },
+                {
+                    "title": _("Certificates & Classifications"),
+                    "link": reverse_lazy("admin:institutions_certificationandclassification_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "contract",
+                },
+                
+                # ... add your other uncommented configuration items here
+            ],
+        },
+        {
+            "title": _("Licenses"),
+            "icon": "contract",
+            "collapsible": True,
+            "permission": lambda request: request.user.is_superuser,
+            "items": [
+                {
+                    "title": _("License Types"),
+                    "link": reverse_lazy("admin:license_licensetype_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "rule_settings",
+                },
+                # {
+                #     "title": _("Certificates & Classifications"),
+                #     "link": reverse_lazy("admin:institutions_certificationandclassification_changelist"),
+                #     "permission": lambda request: request.user.is_superuser,
+                #     "icon": "contract",
+                # },
                 
                 # ... add your other uncommented configuration items here
             ],
