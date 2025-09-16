@@ -42,6 +42,53 @@ class District(TimeStampedModel):
         verbose_name_plural = "Districts"
         ordering = ['name']
 
+class County(TimeStampedModel):
+    '''District model to represent a counties in the system.'''
+    code = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, unique=True)
+    district = models.ForeignKey(District, on_delete=models.CASCADE, null=False, blank=False)
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Counties"
+        ordering = ['name']
+
+class SubCounty(TimeStampedModel):
+    '''District model to represent a counties in the system.'''
+    code = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, unique=True)
+    county = models.ForeignKey(District, on_delete=models.CASCADE, null=False, blank=False)
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Sub Counties"
+        ordering = ['name']
+
+class Parish(TimeStampedModel):
+    '''District model to represent a counties in the system.'''
+    code = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, unique=True)
+    sub_county = models.ForeignKey(District, on_delete=models.CASCADE, null=False, blank=False)
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Parishes"
+        ordering = ['name']
+
+class Village(TimeStampedModel):
+    '''District model to represent a counties in the system.'''
+    code = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, unique=True)
+    parish = models.ForeignKey(District, on_delete=models.CASCADE, null=False, blank=False)
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Villages"
+        ordering = ['name']
 
 
 
@@ -61,6 +108,13 @@ class Title(TimeStampedModel):
     
 class Religion(TimeStampedModel):
     '''Religion'''
+    name = models.CharField(max_length=50, null=False, blank=False)
+
+    def __str__(self):
+        return self.name
+    
+class Tribe(TimeStampedModel):
+    '''Tribe'''
     name = models.CharField(max_length=50, null=False, blank=False)
 
     def __str__(self):

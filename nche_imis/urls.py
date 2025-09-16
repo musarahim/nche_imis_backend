@@ -46,5 +46,6 @@ urlpatterns = [
     path('api/', include('djoser.urls')),
     path('api/common/', include('common.urls', namespace='common')),
     path('api/institutions/', include('institutions.urls', namespace='institutions')),
+    path('api/licenses/', include('license.urls', namespace='licenses')),
     path('tinymce/', include('tinymce.urls')),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

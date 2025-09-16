@@ -1,6 +1,7 @@
 from accounts.models import User
 from common.choices import GENDER, MARITAL_STATUS, PARENT_STATUS
-from common.models import TimeStampedModel, Title
+from common.models import (County, District, Parish, Religion, SubCounty,
+                           TimeStampedModel, Title, Tribe, Village)
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 
@@ -36,6 +37,17 @@ class Employee(TimeStampedModel):
     mother_name = models.CharField(max_length=200, null=True, blank=True)
     mother_status = models.CharField(max_length=20, choices=PARENT_STATUS, null=True, blank=False)
     mother_phone = PhoneNumberField(region='UG', blank=True, null=True)
+    religion = models.ForeignKey(Religion,on_delete=models.SET_NULL, null=True, blank=False)
+    national_Id = models.CharField(max_length=14, null=True, blank=False)
+    tribe = models.ForeignKey(Tribe, on_delete=models.SET_NULL, null=True, blank=False)
+    district = models.ForeignKey(District, on_delete=models.DO_NOTHING, null=True, blank=False)
+    county = models.ForeignKey(County, on_delete=models.DO_NOTHING, null=True, blank=False)
+    sub_county = models.ForeignKey(SubCounty, on_delete=models.DO_NOTHING, null=True, blank=False)
+    parish = models.ForeignKey(Parish, on_delete=models.DO_NOTHING, null=True, blank=False)
+    village = models.ForeignKey(Village, on_delete=models.DO_NOTHING, null=True, blank=False)
+    office_phone = models.CharField(max_length=10, null=True, blank=True)
+    office_extension = models.CharField(max_length=10, null=True, blank=True)
+    
 
     def __str__(self):
         return self.system_account

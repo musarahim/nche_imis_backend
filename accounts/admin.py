@@ -14,10 +14,16 @@ admin.site.unregister(Group)
 @admin.register(User)
 class UserAdmin(ModelAdmin, BaseUserAdmin):
     # Forms loaded from `unfold.forms`
-   # list_display = ('username', 'email', 'first_name', 'last_name', 'is_superuser')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')
     form = UserChangeForm
     add_form = UserCreationForm
     change_password_form = AdminPasswordChangeForm
+    fieldsets = (
+        (None, {'fields': ('username', 'password', 'email')}),
+        ('Personal info', {'fields': ('first_name', 'last_name','other_names','phone','alternative_phone_number','profile_pic')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined','account_expiry_date')}),
+    )
 
 @admin.register(Group)
 class GroupAdmin(BaseGroupAdmin, ModelAdmin):

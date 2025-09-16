@@ -1,8 +1,7 @@
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from .models import (CertificationAndClassification, Institution,
-                     OtherDocuments, PublicationYear)
+from .models import Institution, OtherDocuments, PublicationYear
 
 
 class InstitutionSerializer(serializers.ModelSerializer):
@@ -43,13 +42,4 @@ class OtherDocumentsSerializer(serializers.ModelSerializer):
         '''Meta class for OtherDocuments Serializer'''
         model = OtherDocuments
         fields = ['id', 'document_name', 'document']
-        read_only_fields = ['id']
-
-
-class CertificationAndClassificationSerializer(serializers.ModelSerializer):
-    '''Serializer for CertificationAndClassification model.'''
-    class Meta:
-        '''Meta class for CertificationAndClassification Serializer'''
-        model = CertificationAndClassification
-        fields = "__all__"
         read_only_fields = ['id']

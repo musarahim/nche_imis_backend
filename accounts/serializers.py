@@ -23,7 +23,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username','email','first_name','last_name',
-                  'account_expiry_date','phone','alternative_phone_number',
+                  'account_expiry_date','phone','alternative_phone_number','profile_pic',
                   'groups']
         ref_name='user'
 
@@ -38,7 +38,7 @@ class UserRegistrationSerializer(UserCreatePasswordRetypeSerializer):
         '''Meta class for UserRegistrationSerializer'''
         model = User
         fields = ['username','email','first_name','last_name',
-                  'account_expiry_date','phone','alternative_phone_number',
+                  'account_expiry_date','phone','alternative_phone_number','profile_pic',
                     'groups','password']
         ref_name='user registration'
         extra_kwargs = {
@@ -59,7 +59,7 @@ class RegisterInstitutionSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'phone', 'alternative_phone_number',
-                  'institution']
+                  'institution','password']
         extra_kwargs = {
             'password': {'write_only': True},
             'institution': {'required': True}

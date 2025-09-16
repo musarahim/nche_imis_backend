@@ -186,12 +186,7 @@ UNFOLD = {
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "apartment",
                 },
-                {
-                    "title": _("Certificates & Classifications"),
-                    "link": reverse_lazy("admin:institutions_certificationandclassification_changelist"),
-                    "permission": lambda request: request.user.is_superuser,
-                    "icon": "contract",
-                },
+               
                 
                 # ... add your other uncommented configuration items here
             ],
@@ -208,12 +203,12 @@ UNFOLD = {
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "rule_settings",
                 },
-                # {
-                #     "title": _("Certificates & Classifications"),
-                #     "link": reverse_lazy("admin:institutions_certificationandclassification_changelist"),
-                #     "permission": lambda request: request.user.is_superuser,
-                #     "icon": "contract",
-                # },
+                {
+                    "title": _("Intrim Authority"),
+                    "link": reverse_lazy("admin:license_intrimauthority_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "contract",
+                },
                 
                 # ... add your other uncommented configuration items here
             ],

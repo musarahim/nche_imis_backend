@@ -66,7 +66,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     account_expiry_date = models.DateTimeField(null=True, blank=True)
     phone = PhoneNumberField(region='UG', blank=True, null=True)
     alternative_phone_number = PhoneNumberField(region='UG', blank=True, null=True)
-
+    profile_pic = models.ImageField(blank=True, null=True)
     objects = CustomUserManager()
     history = HistoricalRecords()
     USERNAME_FIELD = 'username' # This tells Django to use email for authentication
