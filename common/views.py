@@ -2,8 +2,8 @@ from django.shortcuts import render
 from django.views.generic import TemplateView
 from rest_framework import permissions, viewsets
 
-from .models import District
-from .serializers import DistrictSerializer
+from .models import District, Region
+from .serializers import DistrictSerializer, RegionSerializer
 
 # Create your views here.
 
@@ -16,7 +16,15 @@ class HomePageView(TemplateView):
         context['message'] = "Welcome to our website!"
         return context
     
-
+class RegionViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing Region instances.
+    """
+    queryset = Region.objects.order_by('name')
+    serializer_class = RegionSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  
+    pagination_class = None
+    
 class DistrictViewSet(viewsets.ModelViewSet):
     """
     A viewset for viewing and editing District instances.

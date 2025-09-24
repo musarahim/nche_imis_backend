@@ -29,9 +29,18 @@ class TimeStampedModel(models.Model):
         Hard delete the model instance.
         """
         super().delete()
+
+class Region(TimeStampedModel):
+    '''Region model to represent a region in the system.'''
+    name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=100, unique=True)
+    history = HistoricalRecords()
+    def __str__(self):
+        return self.name
     
 class District(TimeStampedModel):
     '''District model to represent a district in the system.'''
+    region = models.ForeignKey(Region, on_delete=models.CASCADE, null=True, blank=False)
     name = models.CharField(max_length=100, unique=True)
     code = models.CharField(max_length=100, unique=True)
     history = HistoricalRecords()

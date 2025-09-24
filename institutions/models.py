@@ -14,6 +14,7 @@ class Institution(TimeStampedModel):
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='institution')
     name = models.CharField(max_length=255, unique=True, null=False, blank=False)
+    acroynm = models.CharField(max_length=50, unique=True, null=False, blank=False)
     alternative_email = models.EmailField(max_length=255, blank=True, null=True)
     district = models.ForeignKey(District, on_delete=models.CASCADE, related_name='institutions', blank=False)
     institution_type = models.CharField(max_length=20, choices=INSTITUTION_TYPE_CHOICES, default='public', blank=False)

@@ -316,6 +316,7 @@ class IntrimAuthority(TimeStampedModel):
     promoters = models.FileField(null=True, blank=False)
     project_proposal = models.FileField(null=True, blank=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', blank=False)
+    application_date = models.DateField(null=True, blank=True, auto_now=True)
     
 
     def __str__(self):
@@ -323,3 +324,12 @@ class IntrimAuthority(TimeStampedModel):
         Returns the institution name as a string representation of the model.
         """
         return self.institution
+    
+class IntrimAuthorityDocument(TimeStampedModel):
+    '''Documents for Intrim Authority'''
+    intrim_authority = models.ForeignKey(IntrimAuthority, on_delete=models.CASCADE, related_name='documents', blank=False)
+    title = models.CharField(max_length=255, null=False, blank=False)
+    document = models.FileField(upload_to='intrim_authority_documents/', null=False, blank=False)
+
+    def __str__(self):
+        return f"{self.name} - {self.intrim_authority.institution.name}"

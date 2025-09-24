@@ -7,6 +7,7 @@ app_name = 'license'
 # Create a router and register our viewset with it.
 router = DefaultRouter()
 router.register(r'certification-and-classification', views.CertificationAndClassificationViewset)
+router.register(r'intrim-authority', views.IntrimAuthorityViewset)
 
 
 urlpatterns = [
