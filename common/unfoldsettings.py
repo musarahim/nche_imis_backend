@@ -145,6 +145,12 @@ UNFOLD = {
             "collapsible": True,
             "permission": lambda request: request.user.is_superuser,
             "items": [
+                 {
+                    "title": _("Regions"),
+                    "link": reverse_lazy("admin:common_region_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "location_on",
+                },  
                 {
                     "title": _("Districts"),
                     "link": reverse_lazy("admin:common_district_changelist"),

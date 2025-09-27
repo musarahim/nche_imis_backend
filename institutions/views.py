@@ -18,10 +18,8 @@ class InstitutionViewSet(viewsets.ModelViewSet):
         '''Return only active institutions'''
         queryset = Institution.objects.all().order_by('name')
         if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
-            if hasattr(self.request.user, 'institution'):
-                data = queryset
-            else:
-                data = None
+            data = queryset
+            
         else:
             data = queryset.filter(user=self.request.user)
         return data

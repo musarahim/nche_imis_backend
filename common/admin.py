@@ -2,7 +2,7 @@ from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 from unfold.admin import ModelAdmin
 
-from .models import District, EducationLevel, Religion, Title
+from .models import District, EducationLevel, Region, Religion, Title
 
 # Register your models here.
 
@@ -58,3 +58,18 @@ class ReligionAdmin(SimpleHistoryAdmin,ModelAdmin):
     search_fields = ('name',)
     ordering = ('name',)
     readonly_fields = ('created', 'modified','deleted_at')
+
+@admin.register(Region)
+class RegionAdmin(SimpleHistoryAdmin,ModelAdmin):
+    '''Admin interface for Region model.'''
+    list_display = ('name', 'code', 'created', 'modified')
+    fields = ('name', 'code')
+    search_fields = ('name', 'code')
+    ordering = ('name',)
+    readonly_fields = ('created', 'modified','deleted_at')
+    
+    def get_queryset(self, request):
+        """
+        Override to ensure that only active regions are shown.
+        """
+        return super().get_queryset(request).filter(deleted_at__isnull=True)

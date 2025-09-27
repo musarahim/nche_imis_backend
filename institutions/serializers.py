@@ -13,9 +13,9 @@ class InstitutionSerializer(serializers.ModelSerializer):
         '''Meta class for Institution Serializer'''
         model = Institution
         fields = [
-            'id', 'user', 'name','acroynm', 'district', 'institution_type',"alternative_email",
-            'landline', 'contact_person', 'contact_person_phone',
-            'alternative_contact_person', 'alternative_contact_person_phone',
+            'id', 'user', 'name','acroynm','region', 'district', 'institution_type',"alternative_email",
+            'landline','website','postal_address', 'contact_person', 'contact_person_phone',
+            'alternative_contact_person', 'alternative_contact_person_phone','location',
             'logo'
         ]
         read_only_fields = ['id', 'user']
@@ -24,6 +24,9 @@ class InstitutionSerializer(serializers.ModelSerializer):
         '''Override to_representation method for proper representation of data'''
         representation = super().to_representation(instance)
         representation['district'] = instance.district.name
+        representation['region'] = instance.region.name if instance.region else None
+        representation['institution_type'] = instance.get_institution_type_display()
+        representation['phone'] = instance.user.phone.raw_input if instance.user else ''
         return representation
 
 

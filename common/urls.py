@@ -7,6 +7,7 @@ app_name = 'common'
 # Create a router and register our viewset with it.
 router = DefaultRouter()
 router.register(r'districts', views.DistrictViewSet)
+router.register(r'regions', views.RegionViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

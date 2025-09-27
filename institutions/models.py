@@ -1,5 +1,5 @@
 from accounts.models import User
-from common.models import District, TimeStampedModel
+from common.models import District, Region, TimeStampedModel
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 from tinymce.models import HTMLField
@@ -14,8 +14,9 @@ class Institution(TimeStampedModel):
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='institution')
     name = models.CharField(max_length=255, unique=True, null=False, blank=False)
-    acroynm = models.CharField(max_length=50, unique=True, null=False, blank=False)
+    acroynm = models.CharField(max_length=50, unique=True, null=True, blank=False)
     alternative_email = models.EmailField(max_length=255, blank=True, null=True)
+    region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name='institutions', blank=False, null=True)
     district = models.ForeignKey(District, on_delete=models.CASCADE, related_name='institutions', blank=False)
     institution_type = models.CharField(max_length=20, choices=INSTITUTION_TYPE_CHOICES, default='public', blank=False)
     landline = PhoneNumberField(region='UG', blank=True, null=True)
@@ -24,7 +25,7 @@ class Institution(TimeStampedModel):
     alternative_contact_person = models.CharField(max_length=100, blank=False, null=True)
     alternative_contact_person_phone = PhoneNumberField(region='UG', blank=True, null=True)
     logo = models.ImageField(upload_to='institutions/logos/', blank=False, null=True)
-    post_address = models.CharField(null=True, blank=True)
+    postal_address = models.CharField(null=True, blank=True)
     website = models.URLField(null=True, blank=True)
     location = models.TextField(null=True, blank=True)
     def __str__(self):
