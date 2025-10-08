@@ -2,8 +2,8 @@ from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 from unfold.admin import ModelAdmin
 
-from .models import (District, EducationLevel, Nationality, Region, Religion,
-                     Title)
+from .models import (County, District, EducationLevel, Nationality, Parish,
+                     Region, Religion, SubCounty, Title, Tribe, Village)
 
 # Register your models here.
 
@@ -30,6 +30,46 @@ class DistrictAdmin(SimpleHistoryAdmin,ModelAdmin):
         """
         return super().get_queryset(request).filter(deleted_at__isnull=True)
     
+@admin.register(County)
+class CountyAdmin(SimpleHistoryAdmin,ModelAdmin):
+    '''Admin interface for District model.'''
+    list_display = ('code', 'name', 'district', 'modified')
+    fields = ('code','name', 'district' )
+    search_fields = ('name', 'code')
+    ordering = ('name',)
+    filter_fields = ('district',)
+    readonly_fields = ('created', 'modified','deleted_at')
+
+@admin.register(SubCounty)
+class SubCountyAdmin(SimpleHistoryAdmin,ModelAdmin):
+    '''Admin interface for District model.'''
+    list_display = ('name', 'code', 'county', 'created', 'modified')
+    fields = ('name', 'code', 'county')
+    search_fields = ('name', 'code')
+    ordering = ('name',)
+    filter_fields = ('county',)
+    readonly_fields = ('created', 'modified','deleted_at')
+
+@admin.register(Parish)
+class ParishAdmin(SimpleHistoryAdmin,ModelAdmin):
+    '''Admin interface for District model.'''
+    list_display = ('name', 'code', 'sub_county', 'created', 'modified')
+    fields = ('name', 'code', 'sub_county')
+    search_fields = ('name', 'code')
+    ordering = ('name',)
+    filter_fields = ('sub_county',)
+    readonly_fields = ('created', 'modified','deleted_at')
+    
+@admin.register(Village)
+class VillageAdmin(SimpleHistoryAdmin,ModelAdmin):
+    '''Admin interface for District model.'''
+    list_display = ('name', 'code', 'parish', 'created', 'modified')
+    fields = ('name', 'code', 'parish')
+    search_fields = ('name', 'code')
+    ordering = ('name',)
+    filter_fields = ('parish',)
+    readonly_fields = ('created', 'modified','deleted_at')
+    
 
 @admin.register(EducationLevel)
 class EducationLevelAdmin(SimpleHistoryAdmin,ModelAdmin):
@@ -50,6 +90,15 @@ class TitleAdmin(SimpleHistoryAdmin,ModelAdmin):
     ordering = ('name',)
     readonly_fields = ('created', 'modified','deleted_at')
 
+@admin.register(Tribe)
+class TribeAdmin(SimpleHistoryAdmin,ModelAdmin):
+    '''Admin interface for District model.'''
+    list_display = ('name', 'created', 'modified')
+    fields = ('name',)
+    search_fields = ('name',)
+    ordering = ('name',)
+    readonly_fields = ('created', 'modified','deleted_at')
+
 
 @admin.register(Religion)
 class ReligionAdmin(SimpleHistoryAdmin,ModelAdmin):
@@ -59,6 +108,8 @@ class ReligionAdmin(SimpleHistoryAdmin,ModelAdmin):
     search_fields = ('name',)
     ordering = ('name',)
     readonly_fields = ('created', 'modified','deleted_at')
+
+
 
 @admin.register(Region)
 class RegionAdmin(SimpleHistoryAdmin,ModelAdmin):

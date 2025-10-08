@@ -171,7 +171,32 @@ UNFOLD = {
                     "link": reverse_lazy("admin:common_district_changelist"),
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "location_on",
-                },               
+                },   
+                {
+                    "title": _("Counties"),
+                    "link": reverse_lazy("admin:common_county_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "location_on",
+                },  
+                {
+                    "title": _("Sub Counties"),
+                    "link": reverse_lazy("admin:common_subcounty_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "location_on",
+                },  
+                {
+                    "title": _("Parishes"),
+                    "link": reverse_lazy("admin:common_parish_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "location_on",
+                },  
+                {
+                    "title": _("Villages"),
+                    "link": reverse_lazy("admin:common_village_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "location_on",
+                },  
+                         
                   {
                     "title": _("Education Levels"),
                     "link": reverse_lazy("admin:common_educationlevel_changelist"),
@@ -184,11 +209,23 @@ UNFOLD = {
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "title",
                 },
+                 {
+                    "title": _("Tribes"),
+                    "link": reverse_lazy("admin:common_tribe_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "people",
+                },
                   {
                     "title": _("Religions"),
                     "link": reverse_lazy("admin:common_religion_changelist"),
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "folded_hands",
+                },                  
+                {
+                    "title": _("Nationalities"),
+                    "link": reverse_lazy("admin:common_nationality_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "public",
                 },
                 
                 # ... add your other uncommented configuration items here
@@ -234,6 +271,63 @@ UNFOLD = {
                 # ... add your other uncommented configuration items here
             ],
         },
+        {
+            "title": _("Licenses"),
+            "icon": "contract",
+            "collapsible": True,
+            "permission": lambda request: request.user.is_superuser,
+            "items": [
+                {
+                    "title": _("License Types"),
+                    "link": reverse_lazy("admin:license_licensetype_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "rule_settings",
+                },
+                {
+                    "title": _("Intrim Authority"),
+                    "link": reverse_lazy("admin:license_intrimauthority_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "contract",
+                },
+                
+                # ... add your other uncommented configuration items here
+            ],
+        },
+        {
+            "title": _("Human Resource"),
+            "icon": "people",
+            "collapsible": True,
+            "permission": lambda request: request.user.is_superuser,
+            "items": [
+                {
+                    "title": _("Directorates"),
+                    "link": reverse_lazy("admin:hr_directorate_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "apartment",
+                },
+                {
+                    "title": _("Departments"),
+                    "link": reverse_lazy("admin:hr_department_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "location_city",
+                },
+                 {
+                    "title": _("Designations"),
+                    "link": reverse_lazy("admin:hr_designation_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "work",
+                },
+                 {
+                    "title": _("Employees"),
+                    "link": reverse_lazy("admin:hr_employee_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "people",
+                },
+                
+                # ... add your other uncommented configuration items here
+            ],
+        },
+
     ],
 },
   

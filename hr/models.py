@@ -16,6 +16,7 @@ class Directorate(TimeStampedModel):
         return self.name
 
 class Department(TimeStampedModel):
+    '''Department model'''
     short_code = models.CharField(max_length=10, null=False, blank=False)
     name = models.CharField(max_length=100, null=False, blank=False)
     directorate = models.ForeignKey(Directorate, on_delete=models.DO_NOTHING, null=False, blank=False)
@@ -24,6 +25,7 @@ class Department(TimeStampedModel):
         return self.name
     
 class Designation(TimeStampedModel):
+    '''Designation model'''
     name = models.CharField(max_length=100, null=False, blank=False)
     description = models.TextField(null=True, blank=True)
 
