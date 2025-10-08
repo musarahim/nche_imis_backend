@@ -47,6 +47,46 @@ class EmployeeAdmin(SimpleHistoryAdmin,ModelAdmin):
     warn_unsaved_form = True
     list_fullwidth = True
     
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": [
+                    "system_account",
+                    "department",
+                    "employee_number",
+                    "designation",
+                    "title",
+                    "date_of_birth",
+                    "gender",
+                    "nationality",
+                    "religion",
+                    "tribe",
+                    "joining_date",
+                ],
+            },
+        ),
+        # (
+        #     _("Tab 1"),
+        #     {
+        #         "classes": ["tab"],
+        #         "fields": [
+        #             "field_3",
+        #             "field_4",
+        #         ],
+        #     },
+        # ),
+        # (
+        #     _("Tab 2"),
+        #     {
+        #         "classes": ["tab"],
+        #         "fields": [
+        #             "field_5",
+        #             "field_6",
+        #         ],
+        #     },
+        # ),
+    )
     search_fields = ('employee_number', 'system_account__username', 'system_account__first_name', 'system_account__last_name')
     ordering = ('employee_number',)
     filter_fields = ('department', 'designation', 'gender', 'nationality', 'religion', 'tribe', 'district', 'county', 'sub_county', 'marital_status', 'highest_education_level')
