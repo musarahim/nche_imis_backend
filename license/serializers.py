@@ -1,3 +1,4 @@
+from drf_extra_fields.fields import Base64FileField
 from rest_framework import serializers
 
 from .models import CertificationAndClassification, IntrimAuthority
@@ -19,3 +20,5 @@ class IntrimAuthoritySerializer(serializers.ModelSerializer):
         model = IntrimAuthority
         fields = "__all__"
         read_only_fields = ['id']
+
+    

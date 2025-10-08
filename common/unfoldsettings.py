@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 UNFOLD = {
     "SITE_TITLE": "UNCHE IMIS",
     "SITE_HEADER": "UNCHE IMIS",
-    "SITE_SUBHEADER": "Admin Portal",
+    "SITE_SUBHEADER": "Portal",
     "SITE_DROPDOWN": [
         {
             "icon": "diamond",
@@ -21,7 +21,7 @@ UNFOLD = {
         "search_callback": "utils.search_callback",
         "show_history": True,  # Enable history
     },
-    "SITE_URL": "/",
+    "SITE_URL": "/portal",
     # "SITE_ICON": lambda request: static("icon.svg"),  # both modes, optimise for 32px height
     "SITE_ICON": {
         "light": lambda request: static("icon-light.svg"),  # light mode
@@ -53,38 +53,52 @@ UNFOLD = {
         "redirect_after": lambda request: reverse_lazy("admin:index"),
     },
     "STYLES": [
-        lambda request: static("css/style.css"),
+        lambda request: static("css/styles.css"),
     ],
     "SCRIPTS": [
         lambda request: static("js/script.js"),
     ],
-    "BORDER_RADIUS": "6px",
+    "BORDER_RADIUS": "3px",
     "COLORS": {
         "base": {
-            "50": "249, 250, 251", 
-            "100": "243, 244, 246", 
-            "200": "229, 231, 235",
-            "300": "209, 213, 219",
-            "400": "156, 163, 175", 
-            "500": "107, 114, 128", 
-            "600": "75, 85, 99",
-            "700": "55, 65, 81",
-            "800": "31, 41, 55",
-            "900": "17, 24, 39",   
-            "950": "3, 7, 18"      
+            "50": "oklch(98.5% .002 247.839)",
+            "100": "oklch(96.7% .003 264.542)",
+            "200": "oklch(92.8% .006 264.531)",
+            "300": "oklch(87.2% .01 258.338)",
+            "400": "oklch(70.7% .022 261.325)",
+            "500": "oklch(55.1% .027 264.364)",
+            "600": "oklch(44.6% .03 256.802)",
+            "700": "oklch(37.3% .034 259.733)",
+            "800": "oklch(27.8% .033 256.848)",
+            "900": "oklch(21% .034 264.665)",
+            "950": "oklch(13% .028 261.692)",
+            
         },
         "primary": {
-            "50": "229, 237, 247",   
-            "100": "194, 214, 236",  
-            "200": "148, 183, 222",  
-            "300": "102, 153, 208",  
-            "400": "56, 124, 194",  
-            "500": "26, 75, 125",    
-            "600": "20, 58, 97",  
-            "700": "15, 43, 72",  
-            "800": "10, 29, 48",    
-            "900": "5, 14, 24",    
-            "950": "2, 7, 12"   
+           "50":  "oklch(0.985 0.015 248.3)",
+            "100": "oklch(0.940 0.025 248.3)",
+            "200": "oklch(0.870 0.040 248.3)",
+            "300": "oklch(0.750 0.055 248.3)",
+            "400": "oklch(0.620 0.065 248.3)",
+            "500": "oklch(0.370 0.065 248.3)",
+            "600": "oklch(0.320 0.060 248.3)",
+            "700": "oklch(0.260 0.055 248.3)",
+            "800": "oklch(0.200 0.045 248.3)",
+            "900": "oklch(0.150 0.035 248.3)",
+            "950": "oklch(0.5500 0.1700 38)"
+        },
+        "secondary": {
+            "50": "oklch(0.985 0.015 248.3)",
+            "100": "oklch(0.940 0.025 248.3)",
+            "200": "oklch(0.870 0.040 248.3)",
+            "300": "oklch(0.750 0.055 248.3)",
+            "400": "oklch(0.620 0.065 248.3)",
+            "500": "oklch(0.370 0.065 248.3)",
+            "600": "oklch(0.320 0.060 248.3)",
+            "700": "oklch(0.260 0.055 248.3)",
+            "800": "oklch(0.200 0.045 248.3)",
+            "900": "oklch(0.150 0.035 248.3)",
+            "950": "oklch(0.100 0.025 248.3)"
         },
         "font": {
             "subtle-light": "var(--color-base-600)",  # text-base-500
@@ -94,6 +108,7 @@ UNFOLD = {
             "important-light": "var(--color-base-950)",  # text-base-900
             "important-dark": "var(--color-base-200)",  # text-base-100
         },
+       
    
     },
     "EXTENSIONS": {

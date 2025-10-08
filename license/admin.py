@@ -230,8 +230,8 @@ class IntrimAuthorityAdmin(admin.ModelAdmin):
     list_display = ('application_code','institution__name', 'status', 'created')
     search_fields = ("institution__name",)
     #actions = ["export_as_csv"]
-    filter = ('institution__name',)  # 
-    compressed_fields = True
+    filter = ('institution',)  # 
+    compressed_fields = False
     # Warn before leaving unsaved changes in changeform
     warn_unsaved_form = True  # Default: False
      # Display submit button in filters
@@ -247,4 +247,4 @@ class IntrimAuthorityAdmin(admin.ModelAdmin):
     list_per_page = 10
     list_max_show_all = 1000
     ordering = ['institution__name']
-    change_form_show_cancel_button = True
+    #change_form_show_cancel_button = True

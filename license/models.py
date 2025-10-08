@@ -1,5 +1,6 @@
-from common.models import TimeStampedModel
+from common.models import FinanceYear, TimeStampedModel
 from django.db import models
+from django.utils import timezone
 from institutions.models import Institution, PublicationYear
 from phonenumber_field.modelfields import PhoneNumberField
 from tinymce.models import HTMLField
@@ -297,19 +298,19 @@ class IntrimAuthority(TimeStampedModel):
         ('submitted', 'Submitted'),
         ('pending', 'Pending'),
     )
-    application_code = models.CharField(max_length=30, null=True, blank=False)
-    institution = models.ForeignKey(Institution, on_delete=models.DO_NOTHING, null=False, blank=False)
+    application_code = models.CharField(max_length=30, null=True, blank=True, unique=True)
+    institution = models.ForeignKey(Institution, on_delete=models.DO_NOTHING, null=False, blank=True)
     has_title_deed = models.BooleanField(null=False, blank=False)
-    title_deed = models.FileField(null=False, blank=False)
+    title_deed = models.FileField(null=False, blank=True)
     names_of_promoters = HTMLField(null=True, blank=False)
     # VISION, MISSION, OBJECTIVES AND PHILOSOPHY
-    vision = models.TextField(null=False, blank=False)
-    mission = models.TextField(null=False, blank=False)
-    objectives = models.TextField(null=False, blank=False)
-    philosophy = models.TextField(null=False, blank=False)
+    vision = models.TextField(null=False, blank=True)
+    mission = models.TextField(null=False, blank=True)
+    objectives = models.TextField(null=False, blank=True)
+    philosophy = models.TextField(null=False, blank=True)
     governance_structure = HTMLField(null=True, blank=False)
     human_resources = HTMLField(null=True, blank=False)
-    source_of_finance = models.TextField(null=False, blank=False)
+    source_of_finance = models.TextField(null=False, blank=True)
     action_plan = HTMLField(null=True, blank=False)
     infrastructure = HTMLField(null=True, blank=False)
     programmes = HTMLField(null=True, blank=False)
@@ -317,13 +318,38 @@ class IntrimAuthority(TimeStampedModel):
     project_proposal = models.FileField(null=True, blank=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', blank=False)
     application_date = models.DateField(null=True, blank=True, auto_now=True)
-    
 
+    def save(self, *args, **kwargs):
+        if not self.application_code:
+            self.application_code = self.generate_code()
+        super().save(*args, **kwargs)
+    
+    def generate_code(self):
+        # Academic year format (e.g., 2024-2025)
+        year = timezone.now().year
+        if timezone.now().month >= 7:  # financial year starts in July
+            academic_year = f"{year}-{year+1}"
+        else:
+            academic_year = f"{year-1}-{year}"
+
+        # Get last sequence number for this year
+        last_app = IntrimAuthority.objects.filter(
+            application_code__contains=academic_year
+        ).order_by("id").last()
+
+        if last_app:
+            last_number = int(last_app.application_code.split("/")[-1])
+        else:
+            last_number = 0
+
+        new_number = str(last_number + 1).zfill(5)  # zero-padded
+
+        return f"UNII/{academic_year}/{new_number}"
     def __str__(self):
         """
         Returns the institution name as a string representation of the model.
         """
-        return self.institution
+        return self.institution.name
     
 class IntrimAuthorityDocument(TimeStampedModel):
     '''Documents for Intrim Authority'''

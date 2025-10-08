@@ -18,10 +18,11 @@ django-phonenumber-field==8.1.0
 django-simple-history==3.10.1
 django-tinymce==4.1.0
 django-trench==0.3.1
-django-unfold==0.63.0
+django-unfold==0.67.0
 djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.0
 djoser==2.3.1
+drf-base64-binaryfield==1.2.0
 drf-extra-fields==3.7.0
 drf-yasg==1.21.10
 filetype==1.2.0
