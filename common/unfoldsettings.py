@@ -58,7 +58,7 @@ UNFOLD = {
     "SCRIPTS": [
         lambda request: static("js/script.js"),
     ],
-    "BORDER_RADIUS": "3px",
+    "BORDER_RADIUS": "6px",
     "COLORS": {
         "base": {
             "50": "oklch(98.5% .002 247.839)",

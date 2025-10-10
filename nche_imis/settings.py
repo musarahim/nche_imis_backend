@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'phonenumber_field',
     'tinymce',
+    'crispy_forms',
     # my apps 
     'accounts',
     'common',
@@ -148,7 +149,10 @@ TIME_ZONE = 'Africa/Nairobi'
 USE_I18N = True
 
 USE_TZ = True
+# Crispy Forms settings
+CRISPY_TEMPLATE_PACK = "unfold_crispy"
 
+CRISPY_ALLOWED_TEMPLATE_PACKS = ["unfold_crispy"]
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
