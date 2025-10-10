@@ -5,6 +5,7 @@ from simple_history.admin import SimpleHistoryAdmin
 from unfold.admin import ModelAdmin
 from unfold.contrib.forms.widgets import ArrayWidget, WysiwygWidget
 
+from .forms import EmployeeForm
 from .models import (Department, Dependent, Designation, Directorate,
                      EducationHistory, Employee, Referee, WorkHistory)
 
@@ -46,26 +47,26 @@ class EmployeeAdmin(SimpleHistoryAdmin,ModelAdmin):
     compressed_fields = False
     warn_unsaved_form = True
     list_fullwidth = True
-    
-    fieldsets = (
-        (
-            None,
-            {
-                "fields": [
-                    "system_account",
-                    "department",
-                    "employee_number",
-                    "designation",
-                    "title",
-                    "date_of_birth",
-                    "gender",
-                    "nationality",
-                    "religion",
-                    "tribe",
-                    "joining_date",
-                ],
-            },
-        ),
+    form = EmployeeForm
+    # fieldsets = (
+    #     (
+    #         None,
+    #         {
+    #             "fields": [
+    #                 "system_account",
+    #                 "department",
+    #                 "employee_number",
+    #                 "designation",
+    #                 "title",
+    #                 "date_of_birth",
+    #                 "gender",
+    #                 "nationality",
+    #                 "religion",
+    #                 "tribe",
+    #                 "joining_date",
+    #             ],
+    #         },
+    #     ),
         # (
         #     _("Tab 1"),
         #     {
@@ -86,7 +87,7 @@ class EmployeeAdmin(SimpleHistoryAdmin,ModelAdmin):
         #         ],
         #     },
         # ),
-    )
+    #)
     search_fields = ('employee_number', 'system_account__username', 'system_account__first_name', 'system_account__last_name')
     ordering = ('employee_number',)
     filter_fields = ('department', 'designation', 'gender', 'nationality', 'religion', 'tribe', 'district', 'county', 'sub_county', 'marital_status', 'highest_education_level')
