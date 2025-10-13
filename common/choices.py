@@ -32,3 +32,16 @@ BANK_ACCOUNT_TYPE_CHOICES = [
     ('fixed_deposit', 'Fixed Deposit'),
     ('joint_account', 'Joint Account'),
 ]
+
+
+# blood group choices
+BLOOD_GROUP=(
+    ('A+', 'A+'),
+    ('A-', 'A-'),
+    ('B+', 'B+'),
+    ('B-', 'B-'),
+    ('AB+', 'AB+'),
+    ('AB-', 'AB-'),
+    ('O+', 'O+'),
+    ('O-', 'O-'),
+)

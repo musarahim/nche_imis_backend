@@ -1,6 +1,7 @@
 from accounts.models import User
-from common.choices import (BANK_ACCOUNT_TYPE_CHOICES, GENDER, MARITAL_STATUS,
-                            PARENT_STATUS, PASSPORT_TYPE_CHOICES)
+from common.choices import (BANK_ACCOUNT_TYPE_CHOICES, BLOOD_GROUP, GENDER,
+                            MARITAL_STATUS, PARENT_STATUS,
+                            PASSPORT_TYPE_CHOICES)
 from common.models import (County, District, Nationality, Parish, Religion,
                            SubCounty, TimeStampedModel, Title, Tribe, Village)
 from django.db import models
@@ -79,7 +80,7 @@ class Employee(TimeStampedModel):
     contact_person_email = models.EmailField(null=True, blank=True)
     contact_person_address = models.TextField(null=True, blank=True)
     # medical records
-    blood_group = models.CharField(max_length=10, null=True, blank=True)
+    blood_group = models.CharField(max_length=10, null=True, blank=True, choices=BLOOD_GROUP)
     allergies = models.TextField(null=True, blank=True)
     # biological parents
     father_name = models.CharField(max_length=200, null=True, blank=True)
