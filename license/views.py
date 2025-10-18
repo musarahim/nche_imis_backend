@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from institutions.models import Institution
-from rest_framework import parsers, permissions, status, viewsets
+from rest_framework import filters, parsers, permissions, status, viewsets
 from rest_framework.response import Response
 
 from .models import (CertificationAndClassification, IntrimAuthority,
@@ -36,7 +36,8 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
     queryset = IntrimAuthority.objects.all()
     serializer_class = IntrimAuthoritySerializer
     permissions_classes = [permissions.IsAuthenticated]
-    pagination_class = None
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['application_code','institution__name','status','application_date']
     def get_queryset(self):
         '''return documents for the logged in institution'''
         queryset = self.queryset

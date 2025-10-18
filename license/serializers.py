@@ -21,4 +21,10 @@ class IntrimAuthoritySerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = ['id']
 
+
+    def to_representation(self, instance):
+        response = super().to_representation(instance)
+        response['institution'] = instance.institution.name
+        return response
+
     

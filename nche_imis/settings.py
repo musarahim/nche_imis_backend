@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'institutions',
     'license',
     'hr',
+    'payments',
 ]
 
 MIDDLEWARE = [
@@ -282,4 +283,28 @@ DJOSER ={
         'confirmation': 'accounts.email.ConfirmationEmail',
        'password_reset': 'accounts.email.PasswordResetEmail',
     },
+}
+
+# OAuth / Gateway
+UGHUB_BASE_URL = "https://<api-gateway-host>"           # e.g. {base_url}
+UGHUB_TENANT_PATH = "/t/ura.go.ug/ura-mdapayment-api/1.0.0"  # from spec
+UGHUB_TOKEN_ENDPOINT = f"{UGHUB_BASE_URL}/token"        # client_credentials flow
+UGHUB_CONSUMER_KEY = os.getenv("UGHUB_CONSUMER_KEY")
+UGHUB_CONSUMER_SECRET = os.getenv("UGHUB_CONSUMER_SECRET")
+
+# Backend (URA/MDA) auth
+URA_PUBLIC_CERT_PATH = os.getenv("URA_PUBLIC_CERT_PATH")        # PEM/CRT file
+MDA_PRIVATE_KEY_PATH = os.getenv("MDA_PRIVATE_KEY_PATH")        # PEM key
+MDA_PRIVATE_KEY_PASSWORD = os.getenv("MDA_PRIVATE_KEY_PASSWORD")  # if encrypted
+BACKEND_USERNAME = os.getenv("BACKEND_USERNAME")
+BACKEND_PASSWORD = os.getenv("BACKEND_PASSWORD")
+BACKEND_USERNAME_FOR_PAYLOAD = os.getenv("BACKEND_USERNAME_FOR_PAYLOAD")  # userName field
+
+
+# Make sure Django cache is configured to use Memcached
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379",
+    }
 }
