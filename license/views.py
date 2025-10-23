@@ -1,12 +1,14 @@
 from django.shortcuts import render
 from institutions.models import Institution
+from payments.ura_payment import build_backend_credentials
 from rest_framework import filters, parsers, permissions, status, viewsets
 from rest_framework.response import Response
 
 from .models import (CertificationAndClassification, IntrimAuthority,
-                     PublicationYear)
+                     PublicationYear, UniversityProvisionalLicense)
 from .serializers import (CertificationAndClassificationSerializer,
-                          IntrimAuthoritySerializer)
+                          IntrimAuthoritySerializer,
+                          UniversityProvisionalLicenseSerializer)
 
 
 # Create your views here.
@@ -38,6 +40,54 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
     permissions_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['application_code','institution__name','status','application_date']
+    def get_queryset(self):
+        '''return documents for the logged in institution'''
+        queryset = self.queryset
+        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
+            data = queryset
+        else:
+            if hasattr(self.request.user, 'institution'):
+                data = queryset.filter(institution=self.request.user.institution)
+            else:
+                data = None
+        return data
+    
+    def create(self, request):
+        '''Set institution to the logged in user's institution'''
+        serializer = self.serializer_class(data=request.data)
+        
+        if serializer.is_valid():
+            user = self.request.user
+            institution = Institution.objects.get(user=user)
+            
+            serializer.save(institution=institution, status="draft")
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def partial_update(self, request, pk=None):
+        '''Partial update of the Interim Authority Application'''
+        instance = self.get_object()
+        serializer = self.serializer_class(instance, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            build_backend_credentials()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+class UniversityProvisionalLicenseViewset(viewsets.ModelViewSet):
+    '''University Provisional License Application'''
+    queryset = UniversityProvisionalLicense.objects.all()
+    serializer_class = UniversityProvisionalLicenseSerializer
+    permissions_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['application_code','institution__name','status','application_date']
+    
     def get_queryset(self):
         '''return documents for the logged in institution'''
         queryset = self.queryset

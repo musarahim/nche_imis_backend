@@ -286,7 +286,7 @@ DJOSER ={
 }
 
 # OAuth / Gateway
-UGHUB_BASE_URL = "https://<api-gateway-host>"           # e.g. {base_url}
+UGHUB_BASE_URL = "https://api-uat.integration.go.ug"           # e.g. {base_url}
 UGHUB_TENANT_PATH = "/t/ura.go.ug/ura-mdapayment-api/1.0.0"  # from spec
 UGHUB_TOKEN_ENDPOINT = f"{UGHUB_BASE_URL}/token"        # client_credentials flow
 UGHUB_CONSUMER_KEY = os.getenv("UGHUB_CONSUMER_KEY")

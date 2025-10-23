@@ -90,6 +90,8 @@ def build_backend_credentials() -> dict:
         hashes.SHA256(),
     )
     signature_b64 = base64.b64encode(signature).decode("ascii")
+    print(encrypted_b64, "encrypted b64")
+    print(signature_b64, "signature b64")
 
     return {
         "userName": settings.BACKEND_USERNAME_FOR_PAYLOAD,

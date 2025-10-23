@@ -6,7 +6,7 @@ from unfold.contrib.import_export.forms import (ExportForm, ImportForm,
                                                 SelectableFieldsExportForm)
 
 from .models import (CertificationAndClassification, IntrimAuthority,
-                     LicenseType)
+                     LicenseType, UniversityProvisionalLicense)
 
 
 # Register your models here.
@@ -248,3 +248,28 @@ class IntrimAuthorityAdmin(admin.ModelAdmin):
     list_max_show_all = 1000
     ordering = ['institution__name']
     #change_form_show_cancel_button = True
+
+@admin.register(UniversityProvisionalLicense)
+class UniversityProvisionalLicenseAdmin(admin.ModelAdmin):
+    list_display = ('application_code','institution__name', 'status', 'created')
+    search_fields = ("institution__name",)
+    #actions = ["export_as_csv"]
+    filter = ('institution',)  # 
+    compressed_fields = False
+    # Warn before leaving unsaved changes in changeform
+    warn_unsaved_form = True  # Default: False
+     # Display submit button in filters
+    list_filter_submit = True
+
+    # Display changelist in fullwidth
+    list_fullwidth = False
+     # Position horizontal scrollbar in changelist at the top
+    list_horizontal_scrollbar_top = False
+
+    # Dsable select all action in changelist
+    list_disable_select_all = False
+    list_per_page = 10
+    list_max_show_all = 1000
+    ordering = ['institution__name']
+    #change_form_show_cancel_button = True
+

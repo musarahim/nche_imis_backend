@@ -267,6 +267,12 @@ UNFOLD = {
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "contract",
                 },
+                {
+                    "title": _("University Provisional License"),
+                    "link": reverse_lazy("admin:license_universityprovisionallicense_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "school",
+                },
                 
                 # ... add your other uncommented configuration items here
             ],
