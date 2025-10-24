@@ -540,7 +540,7 @@ class UniversityProvisionalLicense(TimeStampedModel):
     #signatures
     signatures = models.FileField(null=True, blank=True)
     member_cvs = models.FileField(null=True, blank=True)
-    finance_control = HTMLField(null=True, blank=True)
+    finance_control = models.FileField(null=True, blank=True)
     detailed_programmes = models.FileField(null=True, blank=True)
     physical_education_facilities = models.FileField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=(('draft', 'Draft'), ('submitted', 'Submitted')), default='draft', blank=False)
