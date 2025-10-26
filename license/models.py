@@ -426,7 +426,6 @@ class UniversityProvisionalLicense(TimeStampedModel):
     application_code = models.CharField(max_length=20, null=True, blank=True)
     institution = models.ForeignKey(Institution, on_delete=models.DO_NOTHING, null=False, blank=True)
     # LOCATION AND LAND
-    location = models.TextField(null=False, blank=False)
     amount_of_land = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
     land_title = models.FileField(upload_to='land_titles/', null=False, blank=True)
     land_in_use = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
@@ -502,7 +501,7 @@ class UniversityProvisionalLicense(TimeStampedModel):
     university_promoters = HTMLField(null=True, blank=True)
     # Financial Management
     other_assets = models.TextField(null=True, blank=True)
-    anual_budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    annual_budget = models.DecimalField(max_digits=250, decimal_places=2, null=True, blank=True)
     fee_structure = models.FileField(null=True, blank=True)
     fees_percent_budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     other_income_sources = models.TextField(null=True, blank=True)
