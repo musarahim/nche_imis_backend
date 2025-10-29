@@ -198,18 +198,10 @@ class OTIProvisionalDocument(TimeStampedModel):
     document = models.FileField(upload_to='oti_provisional_documents/', null=False, blank=False)
 
     def __str__(self):
-        return f"{self.name} - {self.oti_provisional.institution.name}"
-
-
-    
+        return f"{self.title} - {self.oti_provisional.institution.name}"
 
 
 
-
-
-
-
-    
 class CertificationAndClassification(TimeStampedModel):
     '''Certification and Classification model to represent an institution. '''
     STATUS_CHOICES=(
@@ -600,7 +592,6 @@ class CharterApplication(TimeStampedModel):
     has_provisional_license = models.BooleanField(null=False, blank=False)
     provisional_license = models.FileField(null=False, blank=True)
     # LOCATION AND LAND
-    location = models.TextField(null=False, blank=True)
     amount_of_land_owned = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=True)
     land_title = models.FileField(upload_to='land_titles/', null=False, blank=True)
     land_in_use = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
