@@ -1,8 +1,8 @@
 from drf_extra_fields.fields import Base64FileField
 from rest_framework import serializers
 
-from .models import (CertificationAndClassification, IntrimAuthority,
-                     UniversityProvisionalLicense)
+from .models import (CertificationAndClassification, CharterApplication,
+                     IntrimAuthority, UniversityProvisionalLicense)
 
 
 class CertificationAndClassificationSerializer(serializers.ModelSerializer):
@@ -44,4 +44,21 @@ class UniversityProvisionalLicenseSerializer(serializers.ModelSerializer):
         response['institution'] = instance.institution.name
         response['leased_or_rented'] = instance.get_leased_or_rented_display()
         #response['publication_years'] = ', '.join(instance.publication_years) if instance.publication_years else ''
+        return response
+    
+
+class CharterApplicationSerializer(serializers.ModelSerializer):
+    '''Serializer for CharterApplication model.'''
+
+    class Meta:
+        '''Meta class for CharterApplication Serializer'''
+        model = CharterApplication
+        fields = "__all__"
+        read_only_fields = ['id', 'application_code', 'status']
+
+
+    def to_representation(self, instance):
+        '''Custom representation to include institution name'''
+        response = super().to_representation(instance)
+        response['institution'] = instance.institution.name
         return response

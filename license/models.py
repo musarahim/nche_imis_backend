@@ -628,7 +628,11 @@ class CharterApplication(TimeStampedModel):
     # EDUCATIONAL FACILITIES IN PLACE
     library_books = models.IntegerField(null=False, blank=False)
     text_books = models.IntegerField(null=False, blank=False)
-    publication_years = models.ManyToManyField(PublicationYear, blank=False)
+    publication_years = ArrayField(
+        models.CharField(max_length=5),  # store as list of strings
+        blank=True,
+        default=list
+    )
     computers_in_use = models.IntegerField(null=False, blank=False)
     computers_in_library = models.IntegerField(null=False, blank=False)
     academic_staff_computers = models.IntegerField(null=False, blank=False)
@@ -722,6 +726,7 @@ class CharterApplication(TimeStampedModel):
     financial_control = models.FileField(null=False, blank=False)
     detailed_programmes = models.FileField(null=False, blank=False)
     facilities = models.FileField(null=False, blank=False)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', blank=False)
 
     def __str__(self):
         return self.institution

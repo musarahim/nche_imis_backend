@@ -273,6 +273,12 @@ UNFOLD = {
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "school",
                 },
+                {
+                    "title": _("University Grant Charter Applications"),
+                    "link": reverse_lazy("admin:license_charterapplication_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "school",
+                },
                 
                 # ... add your other uncommented configuration items here
             ],
