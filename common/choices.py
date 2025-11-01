@@ -45,3 +45,8 @@ BLOOD_GROUP=(
     ('O+', 'O+'),
     ('O-', 'O-'),
 )
+
+LEASE_RENTED=(
+        ('lease', 'Lease'),
+        ('rent', 'Rent'),
+    )
