@@ -17,9 +17,13 @@ class InstitutionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         '''Return only active institutions'''
         queryset = Institution.objects.all().order_by('name')
+        
+        # Check if user is authenticated first
+        if not self.request.user.is_authenticated:
+            return queryset.none()  # Return empty queryset for unauthenticated users
+            
         if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
             data = queryset
-            
         else:
             data = queryset.filter(user=self.request.user)
         return data
@@ -29,26 +33,31 @@ class PublicationYearViewSet(viewsets.ModelViewSet):
     '''publication year'''
     queryset = PublicationYear.objects.all()
     serializer_class = PublicationYearSerializer
-    permissions_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
 
 class OtherDocumentsViewset(viewsets.ModelViewSet):
     '''Institution other documents'''
     queryset = OtherDocuments.objects.all()
     serializer_class = OtherDocumentsSerializer
-    permissions_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
 
     def get_queryset(self):
         '''return documents for the logged in institution'''
         queryset = self.queryset
+        
+        # Check if user is authenticated first
+        if not self.request.user.is_authenticated:
+            return queryset.none()  # Return empty queryset for unauthenticated users
+            
         if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
             data = queryset
         else:
             if hasattr(self.request.user, 'institution'):
                 data = queryset.filter(institution=self.request.user.institution)
             else:
-                data = None
+                data = queryset.none()  # Return empty queryset if user has no institution
         return data
     
 

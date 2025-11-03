@@ -50,3 +50,14 @@ LEASE_RENTED=(
         ('lease', 'Lease'),
         ('rent', 'Rent'),
     )
+
+PROGRAMME_LEVELS = [
+    ('higher_education_certificate', 'Higher Education Certificate'),
+    ('certificate', 'Certificate'),
+    ('diploma', 'Diploma'),
+    ('bachelor', 'Bachelors'),
+    ('post_graduate_diploma', 'Post Graduate Diploma'),
+    ('masters', 'Masters'),
+    ('phd', 'PhD'),
+    ('other', 'Other'),
+]

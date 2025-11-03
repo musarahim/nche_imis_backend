@@ -47,5 +47,6 @@ urlpatterns = [
     path('api/common/', include('common.urls', namespace='common')),
     path('api/institutions/', include('institutions.urls', namespace='institutions')),
     path('api/licenses/', include('license.urls', namespace='licenses')),
+    path('api/programmes/', include('programmes.urls', namespace='programmes')),
     path('tinymce/', include('tinymce.urls')),
-]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

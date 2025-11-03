@@ -42,7 +42,7 @@ class UniversityProvisionalLicenseSerializer(serializers.ModelSerializer):
         '''Custom representation to include institution name'''
         response = super().to_representation(instance)
         response['institution'] = instance.institution.name
-        response['leased_or_rented'] = instance.get_leased_or_rented_display()
+
         #response['publication_years'] = ', '.join(instance.publication_years) if instance.publication_years else ''
         return response
     
