@@ -12,7 +12,7 @@ from .models import User
 admin.site.unregister(Group)
 
 @admin.register(User)
-class UserAdmin(ModelAdmin, BaseUserAdmin):
+class UserAdmin(BaseUserAdmin, ModelAdmin):
     # Forms loaded from `unfold.forms`
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')
     form = UserChangeForm
