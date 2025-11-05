@@ -55,9 +55,9 @@ UNFOLD = {
     "STYLES": [
         lambda request: static("css/styles.css"),
     ],
-    "SCRIPTS": [
-        lambda request: static("js/script.js"),
-    ],
+    # "SCRIPTS": [
+    #     lambda request: static("js/script.js"),
+    # ],
     "BORDER_RADIUS": "6px",
     "COLORS": {
         "base": {

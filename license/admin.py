@@ -232,7 +232,7 @@ class IntrimAuthorityAdmin(admin.ModelAdmin):
     search_fields = ("institution__name",)
     #actions = ["export_as_csv"]
     filter = ('institution',)  # 
-    compressed_fields = False
+    #compressed_fields = False
     # Warn before leaving unsaved changes in changeform
     warn_unsaved_form = True  # Default: False
      # Display submit button in filters

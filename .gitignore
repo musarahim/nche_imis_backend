@@ -51,3 +51,5 @@ coverage.xml
 !.vscode/extensions.json 
 .history
 uploads/
+node_modules/
+.DS_Store
