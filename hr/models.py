@@ -10,16 +10,18 @@ from phonenumber_field.modelfields import PhoneNumberField
 # Create your models here.
 
 class Directorate(TimeStampedModel):
+    '''Directorate model'''
     short_code = models.CharField(max_length=10, null=False, blank=False)
-    name = models.CharField(max_length=100, null=False, blank=False)
+    name = models.CharField(max_length=100, null=False, blank=False, unique=True)
 
     def __str__(self):
         return self.name
+    
 
 class Department(TimeStampedModel):
     '''Department model'''
-    short_code = models.CharField(max_length=10, null=False, blank=False)
-    name = models.CharField(max_length=100, null=False, blank=False)
+    short_code = models.CharField(max_length=10, null=False, blank=False, unique=True)
+    name = models.CharField(max_length=100, null=False, blank=False, unique=True)
     directorate = models.ForeignKey(Directorate, on_delete=models.DO_NOTHING, null=False, blank=False)
 
     def __str__(self):
@@ -27,7 +29,7 @@ class Department(TimeStampedModel):
     
 class Designation(TimeStampedModel):
     '''Designation model'''
-    name = models.CharField(max_length=100, null=False, blank=False)
+    name = models.CharField(max_length=100, null=False, blank=False, unique=True)
     description = models.TextField(null=True, blank=True)
 
     def __str__(self):
