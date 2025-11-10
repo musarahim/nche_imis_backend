@@ -29,8 +29,22 @@ class Department(TimeStampedModel):
     
 class Designation(TimeStampedModel):
     '''Designation model'''
+    code = models.CharField(max_length=10, null=False, blank=False, unique=True)
     name = models.CharField(max_length=100, null=False, blank=False, unique=True)
-    description = models.TextField(null=True, blank=True)
+    
+
+    def __str__(self):
+        return self.name
+    
+class GradeScale(TimeStampedModel):
+    '''Grade Scale model'''
+    code = models.CharField(max_length=10, null=False, blank=False, unique=True)
+    designation = models.ForeignKey(Designation, on_delete=models.DO_NOTHING, null=False, blank=False)
+    basic_pay = models.FloatField(null=False, blank=False)
+    annual_leave_days = models.IntegerField(null=False, blank=False)
+    resignation_notice_period_days = models.IntegerField(null=False, blank=False)
+    max_advance_amount = models.FloatField(null=False, blank=False)
+    grauity_rate = models.FloatField(null=False, blank=False)
 
     def __str__(self):
         return self.name
@@ -48,6 +62,7 @@ class Employee(TimeStampedModel):
     religion = models.ForeignKey(Religion, on_delete=models.DO_NOTHING, null=True, blank=False)
     tribe = models.ForeignKey(Tribe, on_delete=models.DO_NOTHING, null=True, blank=False)
     joining_date = models.DateField(null=True, blank=True)
+    supervisor = models.ForeignKey('self', on_delete=models.DO_NOTHING, null=True, blank=True, related_name='subordinates')
     # Residential Address
     district = models.ForeignKey(District, on_delete=models.DO_NOTHING, null=True, blank=True)
     county = models.ForeignKey(County, on_delete=models.DO_NOTHING, null=True, blank=True)
@@ -174,4 +189,3 @@ class Referee(TimeStampedModel):
 
     def __str__(self):
         return self.name
-    

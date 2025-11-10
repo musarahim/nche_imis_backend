@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     'hr',
     'payments',
     'programmes',
+    'leave',
 ]
 
 MIDDLEWARE = [

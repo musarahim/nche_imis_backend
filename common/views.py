@@ -1,19 +1,66 @@
+from datetime import datetime
+
+from django.db.models import Count
 from django.shortcuts import render
+from django.utils import timezone
 from django.views.generic import TemplateView
 from rest_framework import permissions, viewsets
 
 from .models import District, Region
 from .serializers import DistrictSerializer, RegionSerializer
 
+# Import other models
+try:
+    from hr.models import Employee
+except ImportError:
+    Employee = None
+
+try:
+    from leave.models import LeaveApplication
+except ImportError:
+    LeaveApplication = None
+
+try:
+    from institutions.models import Institution
+except ImportError:
+    Institution = None
+
+try:
+    from license.models import UniversityProvisionalLicense
+except ImportError:
+    UniversityProvisionalLicense = None
+
 # Create your views here.
 
 
 class HomePageView(TemplateView):
-    template_name = "email.html"
+    template_name = "home.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['message'] = "Welcome to our website!"
+        
+        # Get dashboard statistics
+        context['total_employees'] = Employee.objects.count() if Employee else 0
+        context['pending_leaves'] = LeaveApplication.objects.filter(ed_approved=False).count() if LeaveApplication else 0
+        context['total_institutions'] = Institution.objects.count() if Institution else 0
+        
+        # Get monthly applications (current month)
+        current_month = timezone.now().replace(day=1)
+        if UniversityProvisionalLicense:
+            context['monthly_applications'] = UniversityProvisionalLicense.objects.filter(
+                created__gte=current_month
+            ).count()
+        else:
+            context['monthly_applications'] = 0
+        
+        # Get recent leave applications (last 5)
+        if LeaveApplication:
+            context['recent_leaves'] = LeaveApplication.objects.select_related(
+                'employee', 'leave_type'
+            ).order_by('-created')[:5]
+        else:
+            context['recent_leaves'] = []
+        
         return context
     
 class RegionViewSet(viewsets.ModelViewSet):

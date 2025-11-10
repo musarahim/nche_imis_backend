@@ -42,8 +42,8 @@ class DepartmentAdmin(SimpleHistoryAdmin,ModelAdmin):
 @admin.register(Designation)
 class DesignationAdmin(SimpleHistoryAdmin,ModelAdmin):
     '''Admin interface for Designation model.'''
-    list_display = ('name', 'created', 'modified')
-    fields = ('name', 'description')
+    list_display = ('code', 'name', 'created', 'modified')
+    fields = ('code', 'name')
     search_fields = ('name',)
     ordering = ('name',)
     readonly_fields = ('created', 'modified','deleted_at')
@@ -115,6 +115,7 @@ class EmployeeAdmin(SimpleHistoryAdmin,ModelAdmin):
                     "blood_group",
                     "allergies",
                     "joining_date",
+                    "supervisor",
                 ],
             },
         ),

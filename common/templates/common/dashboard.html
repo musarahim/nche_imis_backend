@@ -1,0 +1,144 @@
+{% extends "common/base.html" %}
+{% load i18n static unfold %}
+
+{% block title %}{% trans "Dashboard" %}{% endblock %}
+
+{% block content_title %}
+    {% trans "Dashboard" %}
+{% endblock %}
+
+{% block content_subtitle %}
+    {% trans "Welcome to NCHE Information Management System" %}
+{% endblock %}
+
+{% block page_content %}
+    <div class="p-6">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Employees Card -->
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
+                            <span class="material-symbols-outlined">people</span>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">{% trans "Total Employees" %}</h3>
+                        <p class="text-2xl font-bold text-blue-600">{{ total_employees|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Leave Applications -->
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center justify-center h-12 w-12 rounded-md bg-yellow-500 text-white">
+                            <span class="material-symbols-outlined">pending_actions</span>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">{% trans "Pending Leave" %}</h3>
+                        <p class="text-2xl font-bold text-yellow-600">{{ pending_leaves|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Institutions -->
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center justify-center h-12 w-12 rounded-md bg-green-500 text-white">
+                            <span class="material-symbols-outlined">school</span>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">{% trans "Institutions" %}</h3>
+                        <p class="text-2xl font-bold text-green-600">{{ total_institutions|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Applications This Month -->
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center justify-center h-12 w-12 rounded-md bg-purple-500 text-white">
+                            <span class="material-symbols-outlined">description</span>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">{% trans "Applications" %}</h3>
+                        <p class="text-2xl font-bold text-purple-600">{{ monthly_applications|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Recent Leave Applications -->
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">{% trans "Recent Leave Applications" %}</h3>
+                </div>
+                <div class="p-6">
+                    {% if recent_leaves %}
+                        <div class="space-y-4">
+                            {% for leave in recent_leaves %}
+                                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                    <div>
+                                        <p class="font-medium text-gray-900 dark:text-white">{{ leave.employee }}</p>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ leave.leave_type }} - {{ leave.leave_days }} days</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-500">{{ leave.start_date }} to {{ leave.end_date }}</p>
+                                    </div>
+                                    <div>
+                                        {% if leave.approved %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                {% trans "Approved" %}
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                                {% trans "Pending" %}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-gray-500 dark:text-gray-400">{% trans "No recent leave applications" %}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">{% trans "Quick Actions" %}</h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <a href="{% url 'admin:hr_employee_add' %}" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <span class="material-symbols-outlined mr-2">person_add</span>
+                            {% trans "Add Employee" %}
+                        </a>
+                        
+                        <a href="{% url 'admin:leave_leaveapplication_add' %}" class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                            <span class="material-symbols-outlined mr-2">event_available</span>
+                            {% trans "New Leave Application" %}
+                        </a>
+                        
+                        <a href="{% url 'admin:institutions_institution_changelist' %}" class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                            <span class="material-symbols-outlined mr-2">school</span>
+                            {% trans "Manage Institutions" %}
+                        </a>
+                        
+                       
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

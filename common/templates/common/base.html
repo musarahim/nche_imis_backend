@@ -1,0 +1,67 @@
+{% extends "admin/base.html" %}
+{% load i18n static unfold %}
+
+{% block title %}
+    {{ title|default:"NCHE IMIS" }} | {% trans "Management System" %}
+{% endblock %}
+
+{% block branding %}
+    <div class="flex items-center space-x-2">
+        <img src="{% static 'images/logo.png' %}" alt="NCHE" class="h-8 w-8" />
+        <span class="font-semibold text-lg text-gray-900 dark:text-white">NCHE IMIS</span>
+    </div>
+{% endblock %}
+
+{% block nav-global %}
+    <nav class="flex space-x-4">
+        <a href="{% url 'common:home' %}" class="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium">
+            {% trans "Dashboard" %}
+        </a>
+        <a href="{% url 'admin:hr_employee_changelist' %}" class="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium">
+            {% trans "Employees" %}
+        </a>
+        <a href="{% url 'admin:leave_leaveapplication_changelist' %}" class="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium">
+            {% trans "Leave Management" %}
+        </a>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+        {% block page_content %}
+        {% endblock %}
+    </div>
+{% endblock %}
+
+{% block extrahead %}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NCHE Information Management System">
+    
+    <!-- Custom CSS -->
+    <style>
+        .card {
+            @apply bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700;
+        }
+        
+        .card-header {
+            @apply px-6 py-4 border-b border-gray-200 dark:border-gray-700;
+        }
+        
+        .card-body {
+            @apply p-6;
+        }
+        
+        .btn {
+            @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2;
+        }
+        
+        .btn-primary {
+            @apply text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-500;
+        }
+        
+        .btn-secondary {
+            @apply text-gray-700 bg-white border-gray-300 hover:bg-gray-50 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600;
+        }
+    </style>
+{% endblock %}

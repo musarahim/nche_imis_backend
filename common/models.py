@@ -143,3 +143,11 @@ class Nationality(TimeStampedModel):
     def __str__(self):
         return self.name
     
+class Holiday(TimeStampedModel):
+    '''Holiday'''
+    name = models.CharField(max_length=100, null=False, blank=False)
+    date = models.DateField(null=False, blank=False)
+
+    def __str__(self):
+        return f"{self.name} ({self.date})"
+    

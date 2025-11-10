@@ -2,8 +2,9 @@ from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 from unfold.admin import ModelAdmin
 
-from .models import (County, District, EducationLevel, Nationality, Parish,
-                     Region, Religion, SubCounty, Title, Tribe, Village)
+from .models import (County, District, EducationLevel, Holiday, Nationality,
+                     Parish, Region, Religion, SubCounty, Title, Tribe,
+                     Village)
 
 # Register your models here.
 
@@ -139,3 +140,12 @@ class NationalityAdmin(SimpleHistoryAdmin,ModelAdmin):
         Override to ensure that only active nationalities are shown.
         """
         return super().get_queryset(request).filter(deleted_at__isnull=True)
+    
+@admin.register(Holiday)
+class HolidayAdmin(SimpleHistoryAdmin,ModelAdmin):
+    '''Admin interface for Holiday model.'''
+    list_display = ('name', 'date', 'created', 'modified')
+    fields = ('name', 'date')
+    search_fields = ('name',)
+    ordering = ('date',)
+    readonly_fields = ('created', 'modified','deleted_at')

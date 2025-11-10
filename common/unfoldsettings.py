@@ -227,6 +227,12 @@ UNFOLD = {
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "public",
                 },
+                  {
+                    "title": _("Holidays"),
+                    "link": reverse_lazy("admin:common_holiday_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "calendar_today",
+                },
                 
                 # ... add your other uncommented configuration items here
             ],
@@ -334,6 +340,24 @@ UNFOLD = {
                     "link": reverse_lazy("admin:hr_employee_changelist"),
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "people",
+                },
+                {
+                    "title": _("Leave Types"),
+                    "link": reverse_lazy("admin:leave_leavetype_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "event",
+                },
+                {
+                    "title": _("Leave Balances"),
+                    "link": reverse_lazy("admin:leave_leavebalance_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "event_available",
+                },
+                {
+                    "title": _("Leave Applications"),
+                    "link": reverse_lazy("admin:leave_leaveapplication_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "event_note",
                 },
                 
                 # ... add your other uncommented configuration items here

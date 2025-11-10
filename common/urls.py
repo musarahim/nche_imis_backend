@@ -11,4 +11,5 @@ router.register(r'regions', views.RegionViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('dashboard/', views.HomePageView.as_view(), name='home'),
 ]
