@@ -11,9 +11,9 @@ from .models import (County, District, EducationLevel, Holiday, Nationality,
 @admin.register(District)
 class DistrictAdmin(SimpleHistoryAdmin,ModelAdmin):
     '''Admin interface for District model.'''
-    list_display = ('name', 'code', 'created', 'modified')
-    fields = ('name', 'code')
-    search_fields = ('name', 'code')
+    list_display = ('name', 'created', 'modified')
+    fields = ('name',)
+    search_fields = ('name',)
     ordering = ('name',)
     list_per_page = 10
     readonly_fields = ('created', 'modified','deleted_at')
@@ -35,9 +35,9 @@ class DistrictAdmin(SimpleHistoryAdmin,ModelAdmin):
 @admin.register(County)
 class CountyAdmin(SimpleHistoryAdmin,ModelAdmin):
     '''Admin interface for District model.'''
-    list_display = ('code', 'name', 'district', 'modified')
-    fields = ('code','name', 'district' )
-    search_fields = ('name', 'code')
+    list_display = ('name', 'district', 'modified')
+    fields = ('name', 'district' )
+    search_fields = ('name',)
     ordering = ('name',)
     filter_fields = ('district',)
     list_per_page = 10
@@ -46,9 +46,9 @@ class CountyAdmin(SimpleHistoryAdmin,ModelAdmin):
 @admin.register(SubCounty)
 class SubCountyAdmin(SimpleHistoryAdmin,ModelAdmin):
     '''Admin interface for District model.'''
-    list_display = ('name', 'code', 'county', 'created', 'modified')
-    fields = ('name', 'code', 'county')
-    search_fields = ('name', 'code')
+    list_display = ('name', 'county', 'created', 'modified')
+    fields = ('name', 'county')
+    search_fields = ('name',)
     ordering = ('name',)
     filter_fields = ('county',)
     list_per_page = 10
@@ -57,9 +57,9 @@ class SubCountyAdmin(SimpleHistoryAdmin,ModelAdmin):
 @admin.register(Parish)
 class ParishAdmin(SimpleHistoryAdmin,ModelAdmin):
     '''Admin interface for District model.'''
-    list_display = ('name', 'code', 'sub_county', 'created', 'modified')
-    fields = ('name', 'code', 'sub_county')
-    search_fields = ('name', 'code')
+    list_display = ('name', 'sub_county', 'created', 'modified')
+    fields = ('name', 'sub_county')
+    search_fields = ('name',)
     ordering = ('name',)
     filter_fields = ('sub_county',)
     list_per_page = 10
@@ -68,9 +68,9 @@ class ParishAdmin(SimpleHistoryAdmin,ModelAdmin):
 @admin.register(Village)
 class VillageAdmin(SimpleHistoryAdmin,ModelAdmin):
     '''Admin interface for District model.'''
-    list_display = ('name', 'code', 'parish', 'created', 'modified')
-    fields = ('name', 'code', 'parish')
-    search_fields = ('name', 'code')
+    list_display = ('name', 'parish', 'created', 'modified')
+    fields = ('name', 'parish')
+    search_fields = ('name',)
     ordering = ('name',)
     filter_fields = ('parish',)
     list_per_page = 10

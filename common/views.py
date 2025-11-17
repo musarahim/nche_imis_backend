@@ -6,9 +6,10 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 from rest_framework import permissions, viewsets
 
-from .models import District, Nationality, Region, Tribe
-from .serializers import (DistrictSerializer, NationalitySerializer,
-                          RegionSerializer, TribeSerializer)
+from .models import County, District, Nationality, Region, Tribe
+from .serializers import (CountySerializer, DistrictSerializer,
+                          NationalitySerializer, RegionSerializer,
+                          TribeSerializer)
 
 # Import other models
 try:
@@ -97,5 +98,14 @@ class TribeViewSet(viewsets.ModelViewSet):
     """
     queryset = Tribe.objects.order_by('name')
     serializer_class = TribeSerializer
+    permission_classes = [permissions.AllowAny]  
+    pagination_class = None
+
+class CountyViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing County instances.
+    """
+    queryset = County.objects.order_by('name')
+    serializer_class = CountySerializer
     permission_classes = [permissions.AllowAny]  
     pagination_class = None

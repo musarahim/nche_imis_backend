@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from .models import District, Nationality, Region, Tribe
+from .models import (County, District, Nationality, Parish, Region, SubCounty,
+                     Tribe, Village)
 
 
 class DistrictSerializer(serializers.ModelSerializer):
@@ -8,8 +9,7 @@ class DistrictSerializer(serializers.ModelSerializer):
     class Meta:
         '''Meta class for District Serializer'''
         model = District
-        fields = ['id','region', 'name', 'code']
-        read_only_fields = ['name', 'code']
+        fields = ['id','region', 'name']
         
 class RegionSerializer(serializers.ModelSerializer):
     '''Serializer for Region model.'''
@@ -32,3 +32,10 @@ class TribeSerializer(serializers.ModelSerializer):
         '''Meta class for Tribe Serializer'''
         model = Tribe
         fields = ['id', 'name']
+
+class CountySerializer(serializers.ModelSerializer):
+    """Counties serializers"""
+    class Meta:
+        '''meta class for county serializer'''
+        model = County
+        fields = ['id','district','name']

@@ -42,7 +42,6 @@ class District(TimeStampedModel):
     '''District model to represent a district in the system.'''
     region = models.ForeignKey(Region, on_delete=models.CASCADE, null=True, blank=False)
     name = models.CharField(max_length=100, unique=True)
-    code = models.CharField(max_length=100, unique=True)
     history = HistoricalRecords()
     def __str__(self):
         return self.name
@@ -53,7 +52,6 @@ class District(TimeStampedModel):
 
 class County(TimeStampedModel):
     '''District model to represent a counties in the system.'''
-    code = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=100, unique=True)
     district = models.ForeignKey(District, on_delete=models.CASCADE, null=False, blank=False)
     def __str__(self):
@@ -65,7 +63,6 @@ class County(TimeStampedModel):
 
 class SubCounty(TimeStampedModel):
     '''District model to represent a counties in the system.'''
-    code = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=100, unique=True)
     county = models.ForeignKey(District, on_delete=models.CASCADE, null=False, blank=False)
     def __str__(self):
@@ -77,7 +74,6 @@ class SubCounty(TimeStampedModel):
 
 class Parish(TimeStampedModel):
     '''District model to represent a counties in the system.'''
-    code = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=100, unique=True)
     sub_county = models.ForeignKey(District, on_delete=models.CASCADE, null=False, blank=False)
     def __str__(self):
@@ -89,8 +85,7 @@ class Parish(TimeStampedModel):
 
 class Village(TimeStampedModel):
     '''District model to represent a counties in the system.'''
-    code = models.CharField(max_length=100, unique=True)
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, null=False, blank=False)
     parish = models.ForeignKey(District, on_delete=models.CASCADE, null=False, blank=False)
     def __str__(self):
         return self.name
