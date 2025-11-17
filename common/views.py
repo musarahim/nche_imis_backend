@@ -6,8 +6,9 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 from rest_framework import permissions, viewsets
 
-from .models import District, Region
-from .serializers import DistrictSerializer, RegionSerializer
+from .models import District, Nationality, Region, Tribe
+from .serializers import (DistrictSerializer, NationalitySerializer,
+                          RegionSerializer, TribeSerializer)
 
 # Import other models
 try:
@@ -81,4 +82,20 @@ class DistrictViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]  
     pagination_class = None  
 
-    
+class NationalityViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing Nationality instances.
+    """
+    queryset = Nationality.objects.order_by('name')
+    serializer_class = NationalitySerializer
+    permission_classes = [permissions.AllowAny]  
+    pagination_class = None  
+
+class TribeViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing Tribe instances.
+    """
+    queryset = Tribe.objects.order_by('name')
+    serializer_class = TribeSerializer
+    permission_classes = [permissions.AllowAny]  
+    pagination_class = None

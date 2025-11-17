@@ -15,6 +15,7 @@ class DistrictAdmin(SimpleHistoryAdmin,ModelAdmin):
     fields = ('name', 'code')
     search_fields = ('name', 'code')
     ordering = ('name',)
+    list_per_page = 10
     readonly_fields = ('created', 'modified','deleted_at')
     
     # def has_delete_permission(self, request, obj=None):
@@ -39,6 +40,7 @@ class CountyAdmin(SimpleHistoryAdmin,ModelAdmin):
     search_fields = ('name', 'code')
     ordering = ('name',)
     filter_fields = ('district',)
+    list_per_page = 10
     readonly_fields = ('created', 'modified','deleted_at')
 
 @admin.register(SubCounty)
@@ -49,6 +51,7 @@ class SubCountyAdmin(SimpleHistoryAdmin,ModelAdmin):
     search_fields = ('name', 'code')
     ordering = ('name',)
     filter_fields = ('county',)
+    list_per_page = 10
     readonly_fields = ('created', 'modified','deleted_at')
 
 @admin.register(Parish)
@@ -59,6 +62,7 @@ class ParishAdmin(SimpleHistoryAdmin,ModelAdmin):
     search_fields = ('name', 'code')
     ordering = ('name',)
     filter_fields = ('sub_county',)
+    list_per_page = 10
     readonly_fields = ('created', 'modified','deleted_at')
     
 @admin.register(Village)
@@ -69,6 +73,7 @@ class VillageAdmin(SimpleHistoryAdmin,ModelAdmin):
     search_fields = ('name', 'code')
     ordering = ('name',)
     filter_fields = ('parish',)
+    list_per_page = 10
     readonly_fields = ('created', 'modified','deleted_at')
     
 
@@ -79,6 +84,7 @@ class EducationLevelAdmin(SimpleHistoryAdmin,ModelAdmin):
     fields = ('name',)
     search_fields = ('name',)
     ordering = ('name',)
+    list_per_page = 10
     readonly_fields = ('created', 'modified','deleted_at')
 
 
@@ -89,6 +95,7 @@ class TitleAdmin(SimpleHistoryAdmin,ModelAdmin):
     fields = ('name',)
     search_fields = ('name',)
     ordering = ('name',)
+    list_per_page = 10
     readonly_fields = ('created', 'modified','deleted_at')
 
 @admin.register(Tribe)
@@ -98,6 +105,7 @@ class TribeAdmin(SimpleHistoryAdmin,ModelAdmin):
     fields = ('name',)
     search_fields = ('name',)
     ordering = ('name',)
+    list_per_page = 10
     readonly_fields = ('created', 'modified','deleted_at')
 
 
@@ -108,6 +116,7 @@ class ReligionAdmin(SimpleHistoryAdmin,ModelAdmin):
     fields = ('name',)
     search_fields = ('name',)
     ordering = ('name',)
+    list_per_page = 10
     readonly_fields = ('created', 'modified','deleted_at')
 
 
@@ -119,6 +128,7 @@ class RegionAdmin(SimpleHistoryAdmin,ModelAdmin):
     fields = ('name', 'code')
     search_fields = ('name', 'code')
     ordering = ('name',)
+    list_per_page = 10
     readonly_fields = ('created', 'modified','deleted_at')
     
     def get_queryset(self, request):
@@ -135,6 +145,7 @@ class NationalityAdmin(SimpleHistoryAdmin,ModelAdmin):
     search_fields = ('name',)
     ordering = ('name',)
     readonly_fields = ('created', 'modified','deleted_at')
+    list_per_page = 10
     def get_queryset(self, request):
         """
         Override to ensure that only active nationalities are shown.
@@ -149,3 +160,4 @@ class HolidayAdmin(SimpleHistoryAdmin,ModelAdmin):
     search_fields = ('name',)
     ordering = ('date',)
     readonly_fields = ('created', 'modified','deleted_at')
+    list_per_page = 10
