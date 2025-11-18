@@ -64,7 +64,7 @@ class County(TimeStampedModel):
 class SubCounty(TimeStampedModel):
     '''District model to represent a counties in the system.'''
     name = models.CharField(max_length=100, unique=True)
-    county = models.ForeignKey(District, on_delete=models.CASCADE, null=False, blank=False)
+    county = models.ForeignKey(County, on_delete=models.CASCADE, null=False, blank=False)
     def __str__(self):
         return self.name
 
@@ -75,7 +75,7 @@ class SubCounty(TimeStampedModel):
 class Parish(TimeStampedModel):
     '''District model to represent a counties in the system.'''
     name = models.CharField(max_length=100, unique=True)
-    sub_county = models.ForeignKey(District, on_delete=models.CASCADE, null=False, blank=False)
+    sub_county = models.ForeignKey(SubCounty, on_delete=models.CASCADE, null=False, blank=False)
     def __str__(self):
         return self.name
 
@@ -86,7 +86,7 @@ class Parish(TimeStampedModel):
 class Village(TimeStampedModel):
     '''District model to represent a counties in the system.'''
     name = models.CharField(max_length=100, null=False, blank=False)
-    parish = models.ForeignKey(District, on_delete=models.CASCADE, null=False, blank=False)
+    parish = models.ForeignKey(Parish, on_delete=models.CASCADE, null=False, blank=False)
     def __str__(self):
         return self.name
 
@@ -102,7 +102,7 @@ class EducationLevel(TimeStampedModel):
 
     def __str__(self):
         return self.name
-    
+      
 class Title(TimeStampedModel):
     '''Title'''
     name = models.CharField(max_length=50, null=False, blank=False)

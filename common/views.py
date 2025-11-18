@@ -6,10 +6,15 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 from rest_framework import permissions, viewsets
 
-from .models import County, District, Nationality, Region, Tribe
+from .models import (County, District, EducationLevel, FinanceYear, Holiday,
+                     Nationality, Parish, Region, Religion, SubCounty, Title,
+                     Tribe, Village)
 from .serializers import (CountySerializer, DistrictSerializer,
-                          NationalitySerializer, RegionSerializer,
-                          TribeSerializer)
+                          EducationLevelSerializer, FinanceYearSerializer,
+                          HolidaySerializer, NationalitySerializer,
+                          ParishSerializer, RegionSerializer,
+                          ReligionSerializer, SubCountySerializer,
+                          TitleSerializer, TribeSerializer, VillageSerializer)
 
 # Import other models
 try:
@@ -80,7 +85,7 @@ class DistrictViewSet(viewsets.ModelViewSet):
     """
     queryset = District.objects.order_by('name')
     serializer_class = DistrictSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  
+    permission_classes = [permissions.AllowAny]  
     pagination_class = None  
 
 class NationalityViewSet(viewsets.ModelViewSet):
@@ -109,3 +114,77 @@ class CountyViewSet(viewsets.ModelViewSet):
     serializer_class = CountySerializer
     permission_classes = [permissions.AllowAny]  
     pagination_class = None
+    
+class SubCountyViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing Sub-County instances.
+    """
+    queryset = SubCounty.objects.order_by('name')
+    serializer_class = SubCountySerializer
+    permission_classes = [permissions.AllowAny]  
+    pagination_class = None
+    
+
+class ParishViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing Parish instances.
+    """
+    queryset = Parish.objects.order_by('name')
+    serializer_class = ParishSerializer
+    permission_classes = [permissions.AllowAny]  
+    pagination_class = None
+    
+class VillageViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing Village instances.
+    """
+    queryset = Village.objects.order_by('name')
+    serializer_class = VillageSerializer
+    permission_classes = [permissions.AllowAny]  
+    pagination_class = None
+
+class EducationLevelViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing Education Level instances.
+    """
+    queryset = EducationLevel.objects.order_by('name')
+    serializer_class = EducationLevelSerializer
+    permission_classes = [permissions.AllowAny]  
+    pagination_class = None
+
+class TitleViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing Title instances.
+    """
+    queryset = Title.objects.order_by('name')
+    serializer_class = TitleSerializer
+    permission_classes = [permissions.AllowAny]  
+    pagination_class = None
+
+class ReligionViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing Religion instances.
+    """
+    queryset = Religion.objects.order_by('name')
+    serializer_class = ReligionSerializer
+    permission_classes = [permissions.AllowAny]  
+    pagination_class = None
+
+class FinanceYearViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing Finance Year instances.
+    """
+    queryset = FinanceYear.objects.order_by('name')
+    serializer_class = FinanceYearSerializer
+    permission_classes = [permissions.AllowAny]  
+    pagination_class = None
+
+class HolidayViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing Holiday instances.
+    """
+    queryset = Holiday.objects.order_by('name')
+    serializer_class = HolidaySerializer
+    permission_classes = [permissions.AllowAny]  
+    pagination_class = None
+
