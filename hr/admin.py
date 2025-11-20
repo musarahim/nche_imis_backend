@@ -86,7 +86,7 @@ class RefereeInline(TabularInline):
 @admin.register(Employee)
 class EmployeeAdmin(SimpleHistoryAdmin,ModelAdmin):
     '''Admin interface for Employee model.'''
-    list_display = ('employee_number', 'system_account', 'department', 'designation', 'created', 'modified')
+    list_display = ('employee_number', 'get_system_account_name', 'department', 'designation', 'created', 'modified')
     inlines = [DependentInline, EducationHistoryInline, WorkHistoryInline, RefereeInline]
     #compressed_fields = False
     #warn_unsaved_form = True
@@ -164,6 +164,19 @@ class EmployeeAdmin(SimpleHistoryAdmin,ModelAdmin):
                 ],
             },
         ), 
+         (
+            _("Contact Person"),
+            {
+                "classes": ["tab"],
+                "fields": [
+                    "contact_person_name",
+                    "contact_person_relationship",
+                    "contact_person_telephone",
+                    "contact_person_email",
+                    "contact_person_address",
+                ],
+            },
+        ), 
         (
             _("Parents"),
             {
@@ -228,3 +241,10 @@ class EmployeeAdmin(SimpleHistoryAdmin,ModelAdmin):
     list_per_page = 10
     list_max_show_all = 1000
     list_disable_select_all = False
+    
+    def get_system_account_name(self, obj):
+        """Display system account name safely"""
+        if obj.system_account:
+            return obj.system_account.get_full_name() or obj.system_account.username
+        return "No Account"
+    get_system_account_name.short_description = "System Account"

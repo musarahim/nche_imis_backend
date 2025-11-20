@@ -47,7 +47,7 @@ class GradeScale(TimeStampedModel):
     grauity_rate = models.FloatField(null=False, blank=False)
 
     def __str__(self):
-        return self.name
+        return f"{self.code} - {self.designation}"
 
 class Employee(TimeStampedModel):
     '''Employee model'''
@@ -136,7 +136,15 @@ class Employee(TimeStampedModel):
 
 
     def __str__(self):
-        return self.system_account
+        if self.system_account:
+            return f"{self.system_account.get_full_name()} ({self.employee_number or 'No Number'})"
+        return self.employee_number or f"Employee ID: {self.id}"
+    
+    @property
+    def full_name(self):
+        if self.system_account:
+            return self.system_account.get_full_name()
+        return "No Name"
     
 
 class Dependent(TimeStampedModel):
