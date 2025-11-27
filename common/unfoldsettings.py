@@ -290,19 +290,19 @@ UNFOLD = {
             ],
         },
         {
-            "title": _("Licenses"),
+            "title": _("Programs"),
             "icon": "contract",
             "collapsible": True,
             "permission": lambda request: request.user.is_superuser,
             "items": [
                 {
-                    "title": _("License Types"),
-                    "link": reverse_lazy("admin:license_licensetype_changelist"),
+                    "title": _("Program Applications"),
+                    "link": reverse_lazy("admin:programmes_programmeaccreditation_changelist"),
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "rule_settings",
                 },
                 {
-                    "title": _("Intrim Authority"),
+                    "title": _("Accredited Programs"),
                     "link": reverse_lazy("admin:license_intrimauthority_changelist"),
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "contract",

@@ -51,7 +51,7 @@ class GradeScale(TimeStampedModel):
 
 class Employee(TimeStampedModel):
     '''Employee model'''
-    system_account = models.OneToOneField(User, on_delete=models.DO_NOTHING, null=True, blank=True)
+    system_account = models.OneToOneField(User, on_delete=models.DO_NOTHING, null=True, blank=True, related_name='employee')
     department = models.ForeignKey(Department, on_delete=models.DO_NOTHING, null=True, blank=True)
     employee_number = models.CharField(null=True, blank=True, max_length=50)
     designation = models.ForeignKey(Designation, on_delete=models.DO_NOTHING, null=True, blank=True)
@@ -153,6 +153,7 @@ class Dependent(TimeStampedModel):
     name = models.CharField(max_length=200, null=False, blank=False)
     relationship = models.CharField(max_length=100, null=False, blank=False)
     date_of_birth = models.DateField(null=True, blank =False)
+    gender = models.CharField(max_length=10, choices=GENDER, null=True, blank=False)
 
     def __str__(self):
         return self.name
@@ -170,6 +171,7 @@ class EducationHistory(TimeStampedModel):
     to_year = models.IntegerField(null=False, blank=False)
     qualification = models.CharField(max_length=200, null=False, blank=False)
     award_date = models.DateField(null=True, blank=True)
+    certificate_document = models.FileField(upload_to='employees_documents/', null=True, blank=False)
 
     def __str__(self):
         return f"{self.institution} - {self.qualification}"

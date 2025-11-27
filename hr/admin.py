@@ -53,7 +53,7 @@ class DesignationAdmin(SimpleHistoryAdmin,ModelAdmin):
 class DependentInline(TabularInline):
     '''Inline admin for Employee Dependents'''
     model = Dependent
-    fields = ('name', 'relationship', 'date_of_birth')
+    fields = ('name', 'relationship', 'date_of_birth','gender')
     extra = 1
     tab = True
 
@@ -61,7 +61,7 @@ class DependentInline(TabularInline):
 class EducationHistoryInline(TabularInline):
     '''Inline admin for Employee Education History'''
     model = EducationHistory
-    fields = ('institution', 'qualification', 'from_year', 'to_year', 'award_date')
+    fields = ('institution', 'qualification', 'from_year', 'to_year', 'award_date','certificate_document')
     extra = 1
     tab = True
 

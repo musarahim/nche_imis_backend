@@ -22,9 +22,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username','email','first_name','last_name',
+        fields = ['username','email','first_name','last_name','other_names',
                   'account_expiry_date','phone','alternative_phone_number','profile_pic',
-                  'groups']
+                  'groups','employee']
         ref_name='user'
 
 
