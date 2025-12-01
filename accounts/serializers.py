@@ -1,4 +1,4 @@
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 from django.utils.translation import gettext_lazy as _
 from djoser.serializers import UserCreatePasswordRetypeSerializer
 from institutions.models import Institution
@@ -8,12 +8,22 @@ from rest_framework import serializers
 from .models import User
 
 
-class GroupSerializer(serializers.ModelSerializer):
+class PermissionSerializer(serializers.ModelSerializer):
     name = serializers.CharField()
 
     class Meta:
+        model = Permission
+        fields = ['name','codename']
+        ref_name='user permission'
+
+
+class GroupSerializer(serializers.ModelSerializer):
+    name = serializers.CharField()
+    permissions = PermissionSerializer(many=True)
+
+    class Meta:
         model = Group
-        fields = ['name']
+        fields = ['name','permissions']
         ref_name='user group'
 
 

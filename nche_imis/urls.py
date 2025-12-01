@@ -39,8 +39,8 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('api-docs', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-    path('portal/', admin.site.urls),
-    path('', HomePageView.as_view(), name='home'),
+    path('', admin.site.urls),
+    path('homePage', HomePageView.as_view(), name='home'),
     path("api/accounts/", include("accounts.urls", namespace="accounts")),
     path('api/auth/', include('trench.urls.jwt')),
     path('api/', include('djoser.urls')),
