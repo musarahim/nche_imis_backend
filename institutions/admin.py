@@ -1,10 +1,32 @@
 from django.contrib import admin
 from import_export.admin import ExportActionModelAdmin, ImportExportModelAdmin
+from simple_history.admin import SimpleHistoryAdmin
 from unfold.admin import ModelAdmin
 from unfold.contrib.import_export.forms import (ExportForm, ImportForm,
                                                 SelectableFieldsExportForm)
 
-from .models import Institution
+from .models import Institution, LicenseType
+
+
+@admin.register(LicenseType)
+class LicenseTypeAdmin(SimpleHistoryAdmin,ModelAdmin,ExportForm):
+    '''Admin interface for District model.'''
+    list_display = ('code','name', 'created', 'modified')
+    fields = ( 'code','name')
+    search_fields = ('name', 'code')
+    ordering = ('name',)
+    readonly_fields = ('created', 'modified','deleted_at')
+    list_disable_select_all = False
+    list_per_page = 10
+    list_max_show_all = 1000
+    # def has_delete_permission(self, request, obj=None):
+    #     return False
+    # def has_add_permission(self, request):
+    #     return False
+    # def has_change_permission(self, request, obj=None):
+    #     return False
+    # def has_view_permission(self, request, obj=None):
+    #     return True
 
 
 # Register your models here.

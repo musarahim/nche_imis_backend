@@ -7,11 +7,19 @@ from unfold.admin import ModelAdmin, TabularInline
 from unfold.contrib.forms.widgets import ArrayWidget, WysiwygWidget
 from unfold.paginator import InfinitePaginator
 
-from .models import ProgrammeAccreditation
+from .models import Program, ProgramAccreditation
 
 
-@admin.register(ProgrammeAccreditation)
-class ProgrammeAccreditationAdmin(ModelAdmin):
+@admin.register(ProgramAccreditation)
+class ProgramAccreditationAdmin(ModelAdmin):
     '''Admin interface for Programme Accreditation'''
-    list_display = ("id","application_number", "programme_name", "institution","status","date_submitted")
+    list_display = ("id","application_number", "program_name", "institution","status","date_submitted")
+    fields = ("institution","application_type","program_level","program_name","duration_semester","campus","program_structure","letter_of_submission","program_to_renew","status")
 
+
+
+@admin.register(Program)
+class ProgramAdmin(ModelAdmin):
+    '''Admin interface for Programs under an Accreditation'''
+    list_display = ("id","program_name", "program_level", "accreditation_date", "expiry_date", "status")
+    fields = ("program_accreditation","program_name","program_level","accreditation_date","expiry_date")

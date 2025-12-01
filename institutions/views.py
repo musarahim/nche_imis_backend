@@ -11,7 +11,7 @@ class InstitutionViewSet(viewsets.ModelViewSet):
     '''Institution viewset'''
     queryset = Institution.objects.all()
     serializer_class = InstitutionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     search_fields = ['name',"institution_type"]
 
     def get_queryset(self):

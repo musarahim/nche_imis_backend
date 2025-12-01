@@ -233,6 +233,12 @@ UNFOLD = {
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "calendar_today",
                 },
+                {
+                    "title": _("RelationShip"),
+                    "link": reverse_lazy("admin:common_relationship_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "calendar_today",
+                },
                 
                 # ... add your other uncommented configuration items here
             ],
@@ -244,6 +250,12 @@ UNFOLD = {
             "collapsible": True,
             "permission": lambda request: request.user.is_superuser,
             "items": [
+                                {
+                    "title": _("License Types"),
+                    "link": reverse_lazy("admin:institutions_licensetype_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "rule_settings",
+                },
                 {
                     "title": _("Institutions"),
                     "link": reverse_lazy("admin:institutions_institution_changelist"),
@@ -261,12 +273,7 @@ UNFOLD = {
             "collapsible": True,
             "permission": lambda request: request.user.is_superuser,
             "items": [
-                {
-                    "title": _("License Types"),
-                    "link": reverse_lazy("admin:license_licensetype_changelist"),
-                    "permission": lambda request: request.user.is_superuser,
-                    "icon": "rule_settings",
-                },
+
                 {
                     "title": _("Intrim Authority"),
                     "link": reverse_lazy("admin:license_intrimauthority_changelist"),
@@ -297,13 +304,13 @@ UNFOLD = {
             "items": [
                 {
                     "title": _("Program Applications"),
-                    "link": reverse_lazy("admin:programmes_programmeaccreditation_changelist"),
+                    "link": reverse_lazy("admin:programmes_programaccreditation_changelist"),
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "rule_settings",
                 },
                 {
                     "title": _("Accredited Programs"),
-                    "link": reverse_lazy("admin:license_intrimauthority_changelist"),
+                    "link": reverse_lazy("admin:programmes_program_changelist"),
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "contract",
                 },

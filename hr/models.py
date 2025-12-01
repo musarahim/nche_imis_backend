@@ -2,8 +2,9 @@ from accounts.models import User
 from common.choices import (BANK_ACCOUNT_TYPE_CHOICES, BLOOD_GROUP, GENDER,
                             MARITAL_STATUS, PARENT_STATUS,
                             PASSPORT_TYPE_CHOICES)
-from common.models import (County, District, Nationality, Parish, Religion,
-                           SubCounty, TimeStampedModel, Title, Tribe, Village)
+from common.models import (County, District, Nationality, Parish, Relationship,
+                           Religion, SubCounty, TimeStampedModel, Title, Tribe,
+                           Village)
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 
@@ -151,7 +152,7 @@ class Dependent(TimeStampedModel):
     '''Employee Dependents/children'''
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, null=False, blank=False)
     name = models.CharField(max_length=200, null=False, blank=False)
-    relationship = models.CharField(max_length=100, null=False, blank=False)
+    relationship = models.ForeignKey(Relationship, on_delete=models.RESTRICT, null=True, blank=False)
     date_of_birth = models.DateField(null=True, blank =False)
     gender = models.CharField(max_length=10, choices=GENDER, null=True, blank=False)
 

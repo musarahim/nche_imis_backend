@@ -4,7 +4,15 @@ from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 from tinymce.models import HTMLField
 
+
 # Create your models here.
+class LicenseType(TimeStampedModel):
+    '''License types'''
+    code = models.CharField(max_length = 10, null=False, blank=False, unique=True)
+    name = models.CharField(max_length=100, null=False, blank=False, unique=True)
+
+    def __str__(self):
+        return self.name
 
 class Institution(TimeStampedModel):
     '''Institution model to represent an institution. '''
@@ -28,6 +36,10 @@ class Institution(TimeStampedModel):
     postal_address = models.CharField(null=True, blank=True)
     website = models.URLField(null=True, blank=True)
     location = models.TextField(null=True, blank=True)
+    license = models.ForeignKey(LicenseType, on_delete=models.CASCADE, related_name='institutions', blank=False, null=True)
+    is_closed = models.BooleanField(null=False, blank=True, default=False)
+
+    
     def __str__(self):
         return self.name
 

@@ -9,13 +9,7 @@ from tinymce.models import HTMLField
 
 # Create your models here.
 
-class LicenseType(TimeStampedModel):
-    '''License types'''
-    code = models.CharField(max_length = 10, null=False, blank=False)
-    name = models.CharField(max_length=100, null=False, blank=False)
 
-    def __str__(self):
-        return self.name
 
 
 class OTIProvisional(TimeStampedModel):

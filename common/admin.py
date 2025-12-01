@@ -3,8 +3,8 @@ from simple_history.admin import SimpleHistoryAdmin
 from unfold.admin import ModelAdmin
 
 from .models import (County, District, EducationLevel, Holiday, Nationality,
-                     Parish, Region, Religion, SubCounty, Title, Tribe,
-                     Village)
+                     Parish, Region, Relationship, Religion, SubCounty, Title,
+                     Tribe, Village)
 
 # Register your models here.
 
@@ -159,5 +159,16 @@ class HolidayAdmin(SimpleHistoryAdmin,ModelAdmin):
     fields = ('name', 'date')
     search_fields = ('name',)
     ordering = ('date',)
+    readonly_fields = ('created', 'modified','deleted_at')
+    list_per_page = 10
+    
+
+@admin.register(Relationship)
+class RelationshipAdmin(SimpleHistoryAdmin,ModelAdmin):
+    '''Admin interface for Relationship model.'''
+    list_display = ('name', 'created', 'modified')
+    fields = ('name',)
+    search_fields = ('name',)
+    ordering = ('name',)
     readonly_fields = ('created', 'modified','deleted_at')
     list_per_page = 10
