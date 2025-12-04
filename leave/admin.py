@@ -10,7 +10,7 @@ from .models import LeaveApplication, LeaveBalance, LeaveType
 class LeaveTypeAdmin(SimpleHistoryAdmin,ModelAdmin):
     '''Admin interface for LeaveType model.'''
     list_display = ('code', 'name', 'max_days', 'exclude_weekends', 'gender_restriction', 'created', 'modified')
-    fields = ('code', 'name', 'max_days', 'exclude_weekends', 'gender_restriction')
+    fields = ('code', 'name', 'max_days', 'exclude_weekends', 'gender_restriction','is_paid')
     search_fields = ('code', 'name')
     ordering = ('name',)
     readonly_fields = ('created', 'modified','deleted_at')

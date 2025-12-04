@@ -1,5 +1,6 @@
-from common.models import TimeStampedModel
 from django.db import models
+
+from common.models import TimeStampedModel
 from hr.models import Employee
 
 # Create your models here.
@@ -26,6 +27,7 @@ class LeaveType(TimeStampedModel):
         default='both',
         help_text="Specify which gender can apply for this leave type."
     )
+    is_paid = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
@@ -68,6 +70,7 @@ class LeaveApplication(TimeStampedModel):
         ('rejected', 'Rejected'),
     ]
     STATUS_CHOICES = [
+        ('planned', 'Planned'),
         ('submitted', 'Submitted'),
         ('delegation_accepted', 'Delegation Accepted'),
         ('delegation_rejected', 'Delegation Rejected'),
@@ -77,18 +80,16 @@ class LeaveApplication(TimeStampedModel):
         ('hr_rejected', 'HR Rejected'),
         ('ed_approved', 'ED Approved'),
         ('ed_rejected', 'ED Rejected'),
-       
     ]
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     leave_type = models.ForeignKey(LeaveType, on_delete=models.CASCADE)
-    delegated_to = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='delegated_leaves', null=True, blank=True)
     leave_days = models.PositiveIntegerField()
     start_date = models.DateField()
     end_date = models.DateField()
     return_date = models.DateField()
     reason = models.TextField()
      # 3. Delegation Workflow Tracking (Crucial Step)
-    delegatee = models.ForeignKey(Employee, related_name='delegated_duties', on_delete=models.SET_NULL, null=True, blank=True)
+    delegated_to = models.ForeignKey(Employee, related_name='delegated_duties', on_delete=models.SET_NULL, null=True, blank=True)
     delegation_accepted = models.BooleanField(default=False)
     delegation_acceptance_date = models.DateTimeField(null=True, blank=True)
     delegatee_remarks = models.TextField(null=True, blank=True)
