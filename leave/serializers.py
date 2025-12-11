@@ -27,4 +27,23 @@ class LeaveApplicationSerializer(serializers.ModelSerializer):
             'status',
         ]
         read_only_fields = ['status']
+
+    def to_representation(self, instance):
+        '''Custom representation to include nested leave type details'''
+        representation = super().to_representation(instance)
+        representation['leave_type'] = instance.leave_type.name
+        return representation
+
+
+class LeaveScheduleSerializer(serializers.ModelSerializer):
+    '''Leave Application serializer'''
+    class Meta:
+        '''Leave Application serializer meta data'''
+        model = LeaveApplication
+        fields = [
+            'id', 'leave_type', 'leave_days',
+            'start_date', 'end_date','status',
+        ]
+        read_only_fields = ['status']
+        
         
