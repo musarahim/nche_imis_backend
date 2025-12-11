@@ -1,14 +1,16 @@
 from django.shortcuts import render
-from institutions.models import Institution
-from payments.ura_payment import build_backend_credentials
 from rest_framework import filters, parsers, permissions, status, viewsets
 from rest_framework.response import Response
 
+from institutions.models import Institution
+from payments.ura_payment import build_backend_credentials
+
 from .models import (CertificationAndClassification, CharterApplication,
-                     IntrimAuthority, PublicationYear,
+                     InterimDiscussion, IntrimAuthority, PublicationYear,
                      UniversityProvisionalLicense)
 from .serializers import (CertificationAndClassificationSerializer,
                           CharterApplicationSerializer,
+                          InterimDiscussionSerializer,
                           IntrimAuthoritySerializer,
                           UniversityProvisionalLicenseSerializer)
 
@@ -76,10 +78,35 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
         
         if serializer.is_valid():
             serializer.save()
-            build_backend_credentials()
+            #build_backend_credentials()
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class InterimDiscussionViewset(viewsets.ModelViewSet):
+    '''Interim Discussion Viewset'''
+    queryset = InterimDiscussion.objects.all()
+    serializer_class = InterimDiscussionSerializer
+    permissions_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    pagination_class = None
+    search_fields = ['institution__name','discussion_date','remarks']
+    
+    def get_queryset(self):
+        '''return documents for the logged in institution'''
+        queryset = self.queryset
+        data = queryset  # Initialize data with default value
+        
+        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
+            data = queryset
+        
+        # Filter by application parameter if provided in request
+        application = self.request.query_params.get('application_id', None)
+        if application is not None:
+            data = queryset.filter(application=application)
+        
+        return data
     
     
 class UniversityProvisionalLicenseViewset(viewsets.ModelViewSet):

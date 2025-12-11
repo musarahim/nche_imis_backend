@@ -1,11 +1,12 @@
-from common.choices import LEASE_RENTED
-from common.models import FinanceYear, TimeStampedModel
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils import timezone
-from institutions.models import Institution, PublicationYear
 from phonenumber_field.modelfields import PhoneNumberField
 from tinymce.models import HTMLField
+
+from common.choices import LEASE_RENTED
+from common.models import FinanceYear, TimeStampedModel
+from institutions.models import Institution, PublicationYear
 
 # Create your models here.
 
@@ -337,9 +338,41 @@ class CertificationAndClassification(TimeStampedModel):
 class IntrimAuthority(TimeStampedModel):
     """Intrim Authority University License"""
     STATUS_CHOICES = (
+        # Initial stages
         ('draft', 'Draft'),
         ('submitted', 'Submitted'),
-        ('pending', 'Pending'),
+        ('prelim_review', 'Under Preliminary Review'),
+        ('prelim_feedback', 'Preliminary Feedback Issued'),
+
+        # Vetting stages
+        ('vetting_scheduled', 'Scheduled for Vetting'),
+        ('vetting_in_progress', 'Vetting in Progress'),
+        ('vetting_feedback', 'Vetting Decision Issued'),
+
+        # Administrative visit to verify land/infrastructure
+        ('admin_visit_pending', 'Administrative Visit Pending'),
+        ('admin_visit_done', 'Administrative Visit Completed'),
+
+        # NCHE organs review (Directorate, Management, QAAC, Council)
+        ('under_directorate_review', 'Under Directorate Review'),
+        ('under_management_review', 'Under Management Review'),
+        ('under_qaac_review', 'Under QAAC Review'),
+        ('under_council_review', 'Under Council Review'),
+
+        # Council decision and fees
+        ('approved_pending_fees', 'Approved – Pending Fee Payment'),
+        ('fees_invoiced', 'Fees Invoiced'),
+        ('fees_paid', 'Fees Paid – Certificate Processing'),
+
+        # Certificate issuance / completion
+        ('certificate_ready', 'Certificate Ready for Collection'),
+        ('completed', 'Completed – LIA Issued'),
+
+        # On-hold / negative outcomes
+        ('on_hold_requirements', 'On Hold – Requirements Not Met'),
+        ('on_hold_non_compliance', 'On Hold – Non-Compliance Issues'),
+        ('deferred', 'Deferred'),
+        ('rejected', 'Rejected / Not Approved'),
     )
     application_code = models.CharField(max_length=30, null=True, blank=True, unique=True)
     institution = models.ForeignKey(Institution, on_delete=models.DO_NOTHING, null=False, blank=True)
@@ -351,6 +384,7 @@ class IntrimAuthority(TimeStampedModel):
     mission = models.TextField(null=False, blank=True)
     objectives = models.TextField(null=False, blank=True)
     philosophy = models.TextField(null=False, blank=True)
+    # GOVERNANCE, MANAGEMENT AND ADMINISTRATION
     governance_structure = HTMLField(null=True, blank=False)
     human_resources = HTMLField(null=True, blank=False)
     source_of_finance = models.TextField(null=False, blank=True)
@@ -359,12 +393,28 @@ class IntrimAuthority(TimeStampedModel):
     programmes = HTMLField(null=True, blank=False)
     promoters = models.FileField(null=True, blank=False)
     project_proposal = models.FileField(null=True, blank=False)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', blank=False)
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='draft', blank=False)
+
+     # Key process dates (optional but very useful for tracking)
+    submission_date = models.DateField(null=True, blank=True)
+    preliminary_review_date = models.DateField(null=True, blank=True)
+    vetting_meeting_date = models.DateField(null=True, blank=True)
+    admin_visit_date = models.DateField(null=True, blank=True)
+    council_decision_date = models.DateField(null=True, blank=True)
+    fee_invoice_date = models.DateField(null=True, blank=True)
+    fee_payment_date = models.DateField(null=True, blank=True)
+    certificate_issue_date = models.DateField(null=True, blank=True)
+    certificate_collection_date = models.DateField(null=True, blank=True)
+    remarks = models.TextField(null=True, blank=True)
+
     application_date = models.DateField(null=True, blank=True, auto_now=True)
 
     def save(self, *args, **kwargs):
         if not self.application_code:
             self.application_code = self.generate_code()
+
+        if self.status != 'draft' and self.submission_date is None:
+            self.submission_date = timezone.now().date()
         super().save(*args, **kwargs)
     
     def generate_code(self):
@@ -392,7 +442,25 @@ class IntrimAuthority(TimeStampedModel):
         """
         Returns the institution name as a string representation of the model.
         """
-        return self.institution.name
+        return self.application_code
+
+class InterimDiscussion(TimeStampedModel):
+    '''Interim Authority Discussion Notes'''
+    Role_CHOICES = (
+        ('reviewer', 'Reviewer'),
+        ('applicant', 'Applicant'),
+    )
+    application = models.ForeignKey(IntrimAuthority, on_delete=models.CASCADE, related_name='discussions', blank=False)
+    role = models.CharField(max_length=20, choices=Role_CHOICES, null=False, blank=False)
+    text = models.TextField(null=False, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewer = models.ForeignKey('accounts.User', on_delete=models.CASCADE, null=True, blank=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.role} - {self.application.institution.name} - {self.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
     
 class IntrimAuthorityDocument(TimeStampedModel):
     '''Documents for Intrim Authority'''
@@ -415,7 +483,7 @@ class UniversityProvisionalLicense(TimeStampedModel):
     land_in_use = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
     land_for_future_use = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=False)
     year_obtained = models.CharField(null=False, blank=False, max_length=30)
-    leased_or_rented =  models.BooleanField(null=True, blank=False)
+    leased_or_rented =  models.CharField(max_length=20, choices=LEASE_RENTED, null=True, blank=False)
     lease_or_rent_agreement = models.FileField(upload_to='land_titles/', null=True, blank=False)
     # infrastructure
     classrooms = models.FloatField(null=True, blank=True)

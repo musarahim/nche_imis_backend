@@ -10,6 +10,7 @@ router.register(r'certification-and-classification', views.CertificationAndClass
 router.register(r'intrim-authority', views.IntrimAuthorityViewset, basename='intrim-authority')
 router.register(r'university-provisional-license', views.UniversityProvisionalLicenseViewset, basename='university-provisional-license')
 router.register(r'charter-application', views.CharterApplicationViewset, basename='charter-application')
+router.register(r'interim-discussion', views.InterimDiscussionViewset, basename='interim-discussion')
 
 
 urlpatterns = [

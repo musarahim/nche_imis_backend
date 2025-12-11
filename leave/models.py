@@ -1,6 +1,5 @@
-from django.db import models
-
 from common.models import TimeStampedModel
+from django.db import models
 from hr.models import Employee
 
 # Create your models here.
@@ -59,8 +58,7 @@ class LeaveBalance(TimeStampedModel):
         unique_together = ('employee', 'leave_type', 'year')
         verbose_name_plural = "Leave Balances"
 
-    def __str__(self):
-        return f"{self.employee} - {self.leave_type}: {self.balance} days remaining"
+  
 
 
 class LeaveApplication(TimeStampedModel):
@@ -114,4 +112,16 @@ class LeaveApplication(TimeStampedModel):
 
     def __str__(self):
         return f"{self.employee} - {self.leave_type} from {self.start_date} to {self.end_date}"
+    
+
+
+class LeaveEvent(TimeStampedModel):    
+    '''Model representing leave approved.'''
+    leave_application = models.ForeignKey(LeaveApplication, on_delete=models.CASCADE)
+    start = models.DateField()
+    end = models.DateField()
+    leave_days = models.PositiveIntegerField()
+
+    def __str__(self):
+        return f"{self.leave_application.leave_type.name} from {self.start} to {self.end}"
     

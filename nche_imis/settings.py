@@ -15,11 +15,10 @@ import string
 from datetime import timedelta
 from pathlib import Path
 
+from common.unfoldsettings import *
 from django.templatetags.static import static
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-
-from common.unfoldsettings import *
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -109,6 +108,9 @@ TEMPLATES = [
 WSGI_APPLICATION = 'nche_imis.wsgi.application'
 
 AUTH_USER_MODEL = 'accounts.User'
+
+
+
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
@@ -198,7 +200,7 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
 }
 CORS_ALLOWED_ORIGINS = ['http://localhost:3000',
-                        'http://127.0.0.1:81', 'http://localhost:3001']
+                        'http://192.168.5.44', 'http://localhost:3001','http://192.168.5.23']
 
 
 CORS_ALLOW_CREDENTIALS = True
