@@ -1,0 +1,59 @@
+{% load i18n %}
+{% load static %}
+
+{% block subject %}
+{% blocktrans %}Account activation on {{ site_name }}{% endblocktrans %}
+{% endblock subject %}
+{% block html_body %}
+<div style="padding: 10px; width: 100%; max-width: 600px; margin: 0 auto;">
+    <style>
+    @media only screen and (max-width: 600px) {
+        .email-container {
+            padding: 10px !important;
+            margin: 0 !important;
+            width: 100% !important;
+        }
+        .email-inner {
+            width: 100% !important;
+            padding: 10px !important;
+        }
+        .email-logo {
+            overflow: hidden !important;
+        }
+        .email-logo img {
+            height: 60px !important;
+            margin-bottom: -20px !important;
+            max-width: 100% !important;
+        }
+        .email-content {
+            padding: 15px 5px 10px 5px !important;
+        }
+    }
+</style>
+<div class="email-container" style="background-color: #1a5677; padding: 40px; margin: 0 auto; border-radius: 10px 10px 0 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: center;">
+    <div class="email-inner" style="width: 80%; padding: 20px; border-radius: 10px; min-height: 40vh; max-height: 80vh; margin: 0 auto;">
+        <div class="email-logo" style="background-color: #F5F5F5; border-radius: 10px 10px 0 0; position: relative; overflow: hidden;">
+            <img src="https://imis.unche.or.ug/Images/logo.png" alt="logo" style="height: 125px; display: block; margin: 0 auto; margin-bottom: -75px; max-width: 100%;">
+        </div>
+      
+        {% block text_body %}
+        <div class="email-content" style="background-color: #f9f9f9; padding: 30px 20px 20px 20px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+              Dear {{ leave_application.delegated_to.full_name }}, <br><br>
+            {% blocktrans %} {{ leave_application.employee.full_name }} has applied for leave and deligated you, please click this <a href="{{ protocol }}://{{ domain }}/leave/delegation-approval">link</a> to take action. The details are outlined below:{% endblocktrans %}
+            <ul style="list-style-type: none; padding: 0;">
+                <li><strong>{% trans "Leave Type:" %}</strong> {{ leave_application.leave_type.name }}</li>
+                <li><strong>{% trans "No. of Days:" %}</strong> {{ leave_application.leave_days }}</li>
+                <li><strong>{% trans "Start Date:" %}</strong> {{ leave_application.start_date }}</li>
+                <li><strong>{% trans "End Date:" %}</strong> {{ leave_application.end_date }}</li>  
+                <li><strong>{% trans "Reason:" %}</strong> {{ leave_application.reason }}</li>
+            </ul>
+            {% trans "Thanks for using our site!" %}
+
+            <p style="text-align: center;"><strong>{% blocktrans %}Uganda National Council for Higher Education{% endblocktrans %}</strong></p>
+        </div>
+        {% endblock text_body %}
+    </div>
+</div>
+<div style="background-color: #af001d; height: 50px; margin: 0 auto; border-radius: 0 0 10px 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px;"></div>
+</div>
+{% endblock html_body %}

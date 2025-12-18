@@ -134,6 +134,7 @@ class Employee(TimeStampedModel):
     account_type = models.CharField(max_length=50, null=True, blank=True, choices=BANK_ACCOUNT_TYPE_CHOICES)
     # signature
     signature = models.ImageField(upload_to='employees_signatures/', null=True, blank=True)
+    is_active = models.BooleanField(default=True)
 
 
     def __str__(self):

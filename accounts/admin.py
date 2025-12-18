@@ -21,8 +21,26 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
     fieldsets = (
         (None, {'fields': ('username', 'password', 'email')}),
         ('Personal info', {'fields': ('first_name', 'last_name','other_names','phone','alternative_phone_number','profile_pic')}),
-        ('Permissions', {'fields': ('is_active','approved', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Important dates', {'fields': ('last_login', 'date_joined','account_expiry_date')}),
+    )
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'email', 'password1', 'password2'),
+        }),
+        ('Personal info', {
+            'classes': ('wide',),
+            'fields': ('first_name', 'last_name', 'other_names', 'phone', 'alternative_phone_number', 'profile_pic'),
+        }),
+        ('Permissions', {
+            'classes': ('wide',),
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
+        }),
+        ('Account Settings', {
+            'classes': ('wide',),
+            'fields': ('account_expiry_date',),
+        }),
     )
 
 @admin.register(Group)

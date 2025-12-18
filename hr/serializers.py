@@ -141,3 +141,12 @@ class EmployeeSerializer(serializers.ModelSerializer):
         response['referees'] = RefereeSerializer(instance.referee_set.all(), many=True).data
         response['dependents'] = DependentSerializer(instance.dependent_set.all(), many=True).data
         return response
+    
+
+class EmpDrodpdownSerializer(serializers.ModelSerializer):
+    '''Serializer for Employee model for dropdowns.'''
+    class Meta:
+        '''Meta class for Employee Dropdown Serializer'''
+        model = Employee
+        fields = ("id", "employee_number", "full_name")
+        read_only_fields = ['id']

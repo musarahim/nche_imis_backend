@@ -108,7 +108,7 @@ class LeaveApplication(TimeStampedModel):
     ed_approval = models.CharField(max_length=10, choices=APPROVE_REJECT, null=True, blank=True)
     ed_comments = models.TextField(null=True, blank=True)
     ed_approved = models.BooleanField(default=False)
-    status = models.CharField(max_length=20, default='submitted')
+    status = models.CharField(max_length=20, default='submitted', choices=STATUS_CHOICES)
 
     def __str__(self):
         return f"{self.employee} - {self.leave_type} from {self.start_date} to {self.end_date}"

@@ -26,12 +26,14 @@ class LeaveApplicationSerializer(serializers.ModelSerializer):
             'reason', 'delegated_to', 'supervisor',
             'status',
         ]
-        read_only_fields = ['status']
 
     def to_representation(self, instance):
         '''Custom representation to include nested leave type details'''
         representation = super().to_representation(instance)
         representation['leave_type'] = instance.leave_type.name
+        representation['employee'] = instance.employee.full_name
+        representation['delegated_to'] = instance.delegated_to.full_name if instance.delegated_to else None
+        representation['supervisor'] = instance.supervisor.full_name if instance.supervisor else None
         return representation
 
 

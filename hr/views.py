@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from rest_framework import filters, parsers, permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import (Department, Dependent, Designation, Directorate,
@@ -7,9 +8,9 @@ from .models import (Department, Dependent, Designation, Directorate,
                      WorkHistory)
 from .serializers import (DepartmentSerializer, DependentSerializer,
                           DesignationSerializer, DirectorateSerializer,
-                          EducationHistorySerializer, EmployeeSerializer,
-                          GradeScaleSerializer, RefereeSerializer,
-                          WorkHistorySerializer)
+                          EducationHistorySerializer, EmpDrodpdownSerializer,
+                          EmployeeSerializer, GradeScaleSerializer,
+                          RefereeSerializer, WorkHistorySerializer)
 
 
 # Create your views here.
@@ -121,7 +122,6 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     search_fields = ['system_account__first_name', 'system_account__last_name', 'employee_number']
     ordering_fields = ['employee_number', 'created']
     ordering = ['employee_number']
-    pagination_class = None
 
     def get_queryset(self):
         '''Return employees, optionally filtered by department or designation'''
@@ -130,3 +130,15 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_superuser:
             queryset =queryset.filter(system_account__id=user_id)
         return queryset
+    
+    @action(detail=False, methods=['get'], url_path='employee-dropdown')
+    def employee_dropdown(self, request, pk=None):
+        """
+        GET /employees/employee-dropdown/
+        Retrieve employees in the same department as the requesting user for dropdowns.
+        """
+        employee = Employee.objects.get(system_account=request.user)
+        employees = Employee.objects.filter(department=employee.department, is_active=True).exclude(id=employee.id)
+        serializer = EmpDrodpdownSerializer(employees, many=True)
+        self.pagination_class = None
+        return Response(serializer.data)

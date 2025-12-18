@@ -36,7 +36,7 @@ class LeaveApplicationAdmin(SimpleHistoryAdmin,ModelAdmin):
         'employee', 'leave_type', 'delegated_to', 'start_date', 'end_date', 'reason',
         'supervisor', 'supervisor_approval', 'supervisor_comments', 'approval_date',
         'hr_approval', 'hr_comments', 'hr_approval_date',
-        'ed_approval', 'ed_comments', 'ed_approval_date'
+        'ed_approval', 'ed_comments', 'ed_approval_date','status',
     )
     search_fields = ('employee__first_name', 'employee__last_name', 'leave_type__name')
     ordering = ('-created',)
