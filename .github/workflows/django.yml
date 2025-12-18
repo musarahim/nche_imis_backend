@@ -56,6 +56,7 @@ jobs:
           EMAIL_PORT: 587
           EMAIL_HOST_USER: no-reply@unche.or.ug
           EMAIL_HOST_PASSWORD: VtV[bNs{bmSVl,32
+          ALLOWED_HOSTS: localhost,127.0.0.1
           DEVELOPMENT_MODE: 1
           DEBUG: True
           
