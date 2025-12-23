@@ -23,8 +23,10 @@ class LeaveApplicationSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'employee', 'leave_type', 'leave_days',
             'start_date', 'end_date', 'return_date',
-            'reason', 'delegated_to', 'supervisor',
-            'status',
+            'reason', 'delegated_to', 'supervisor','approval_date',
+            'supervisor_approved', 'supervisor_comments',
+            'status','delegation_accepted',
+            'delegation_acceptance_date','delegatee_remarks'
         ]
 
     def to_representation(self, instance):
@@ -34,6 +36,7 @@ class LeaveApplicationSerializer(serializers.ModelSerializer):
         representation['employee'] = instance.employee.full_name
         representation['delegated_to'] = instance.delegated_to.full_name if instance.delegated_to else None
         representation['supervisor'] = instance.supervisor.full_name if instance.supervisor else None
+        representation['status'] = instance.get_status_display()
         return representation
 
 

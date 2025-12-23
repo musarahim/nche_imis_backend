@@ -146,13 +146,15 @@ class LeaveApplicationViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='approve_delegation')
     def acceptDelegation(self, request, pk=None):
         """
-        POST /leave-applications/{id}/approve/
+        POST /leave-applications/{id}/approve_delegation/
         Approve a leave application delegation.
         """
         leave_application = LeaveApplication.objects.get(pk=pk)
         serializer = LeaveApplicationSerializer(leave_application, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save(status='approved', delegation_acceptance_date= timezone.now())
+            accepted = serializer.validated_data.get('delegation_accepted')
+            leave_status = 'delegation_accepted' if accepted else 'delegation_rejected'
+            serializer.save(status=leave_status, delegation_acceptance_date= timezone.now())
             # Send email notification to the applicant about approval
             html_message = render_to_string('emails/leave_approval_notification.html', {
                 'leave_application': leave_application,
@@ -161,14 +163,78 @@ class LeaveApplicationViewSet(viewsets.ModelViewSet):
                 'site_name': 'UNCHE IMIS',
             })
             email = EmailMessage(
-                subject='Leave Application Approved',
+                subject='Leave Delegation Acceptance Notification',
+                body=html_message,
+                to=[leave_application.employee.system_account.email],
+            )
+            email.content_subtype = 'html'  # Main content is now text/html
+            email.send(fail_silently=True)
+            # notify supervisor incase the delegation is accepted
+            if accepted:
+                html_message = render_to_string('emails/leave_approval_request.html', {
+                'leave_application': leave_application,
+                'protocol': 'https',
+                'domain': 'imis.unche.or.ug',
+                'site_name': 'UNCHE IMIS',
+                })
+                email = EmailMessage(
+                subject='Leave  Approval Request',
+                body=html_message,
+                to=[leave_application.employee.system_account.email],
+                )
+                email.content_subtype = 'html'  # Main content is now text/html
+                email.send(fail_silently=True)
+
+            return Response(serializer.data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['get'], url_path='supervisor-approvals')
+    def supervisor_approvals(self, request):
+        """
+        GET /leave-applications/supervisor-approvals/
+        Retrieve leave applications pending supervisor approval.
+        """
+        employee = Employee.objects.get(system_account=request.user)
+        queryset = LeaveApplication.objects.filter(supervisor=employee, delegation_accepted=True, status='delegation_accepted')
+        
+        # Apply pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        # Fallback if no pagination is configured
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'], url_path='approve_supervisor')
+    def approve_supervisor(self, request, pk=None):
+        """
+        POST /leave-applications/{id}/approve_supervisor/
+        Approve a leave application by supervisor.
+        """
+        leave_application = LeaveApplication.objects.get(pk=pk)
+        serializer = LeaveApplicationSerializer(leave_application, data=request.data, partial=True)
+        if serializer.is_valid():
+            approved = serializer.validated_data.get('supervisor_approved')
+            leave_status = 'supervisor_approved' if approved else 'supervisor_rejected'
+            serializer.save(status=leave_status, approval_date= timezone.now())
+            # Send email notification to the applicant about approval
+            html_message = render_to_string('emails/leave_supervisor_approval_notification.html', {
+                'leave_application': leave_application,
+                'protocol': 'https',
+                'domain': 'imis.unche.or.ug',
+                'site_name': 'UNCHE IMIS',
+            })
+            email = EmailMessage(
+                subject='Leave Supervisor Approval Notification',
                 body=html_message,
                 to=[leave_application.employee.system_account.email],
             )
             email.content_subtype = 'html'  # Main content is now text/html
             email.send(fail_silently=True)
 
-            serializer = self.get_serializer(leave_application)
             return Response(serializer.data)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -14,6 +14,7 @@ class CustomMFAJWTView(MFASecondStepJWTView):
 
     def post(self, request, *args, **kwargs):
         '''Overiding the jwt token to include cookie based auth '''
+        print(request.data, 'request data in custom mfa view')
         response = super().post(request, *args, **kwargs)
         ephemeral_token = request.data.get('ephemeral_token')
         # getting the user from the token
@@ -21,7 +22,7 @@ class CustomMFAJWTView(MFASecondStepJWTView):
         token = RefreshToken.for_user(user=user)
         access_token = str(token.access_token)
         refresh_token = str(token)
-        # print(access_token, 'access_token')
+        print(access_token, 'access_token')
         # print(refresh_token, 'refresh_token')
         response.set_cookie(
             "access", access_token,

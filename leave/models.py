@@ -95,7 +95,7 @@ class LeaveApplication(TimeStampedModel):
     # 4. Approval Workflow Tracking
     supervisor = models.ForeignKey(Employee, related_name='leave_approvals', on_delete=models.SET_NULL, null=True, blank=True)
     approval_date = models.DateTimeField(null=True, blank=True)
-    supervisor_approval = models.CharField(max_length=10, choices=APPROVE_REJECT, null=True, blank=True)
+    supervisor_approved = models.BooleanField(default=False)
     supervisor_comments = models.TextField(null=True, blank=True)
 
     # HR Approval
@@ -110,8 +110,16 @@ class LeaveApplication(TimeStampedModel):
     ed_approved = models.BooleanField(default=False)
     status = models.CharField(max_length=20, default='submitted', choices=STATUS_CHOICES)
 
+    class Meta:
+        ordering = ['-created']
+        permissions = [
+            ("can_approve_leave", "Can approve leave applications"),
+        ]
+
     def __str__(self):
         return f"{self.employee} - {self.leave_type} from {self.start_date} to {self.end_date}"
+    
+    
     
 
 
