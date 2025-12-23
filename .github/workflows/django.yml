@@ -79,7 +79,7 @@ jobs:
           script: |
             cd /home/imis/projects/nche_imis_backend
             git pull origin main
-            source  .local.evn
+            source .local.env
             source myvenv/bin/activate
             pip install -r requirements.txt
             python manage.py migrate --noinput
