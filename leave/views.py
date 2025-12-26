@@ -290,4 +290,58 @@ class LeaveApplicationViewSet(viewsets.ModelViewSet):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['get'], url_path='hr-approvals')
+    def hr_approvals(self, request):
+        """
+        GET /leave-applications/hr-approvals/
+        Retrieve leave applications pending HR approval.
+        """
+        queryset = LeaveApplication.objects.filter(supervisor_approved=True, director_approved=True, status='director_approved')
         
+        # Apply pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        # Fallback if no pagination is configured
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'], url_path='approve_hr')
+    def approve_hr(self, request, pk=None):
+        """
+        POST /leave-applications/{id}/approve_hr/
+        Approve a leave application by HR.
+        """
+        leave_application = LeaveApplication.objects.get(pk=pk)
+        serializer = LeaveApplicationSerializer(leave_application, data=request.data, partial=True)
+        hr = Employee.objects.get(system_account=request.user)
+        if serializer.is_valid():
+            approved = serializer.validated_data.get('hr_approved')
+            leave_status = 'hr_approved' if approved else 'hr_rejected'
+            serializer.save(status=leave_status, hr_approval_date= timezone.now(), hr=hr)
+            #Deduct leave balance if approved
+            if approved:
+                # Deduct leave balance
+                leave_balance = leave_application.employee.leavebalance_set.get(leave_type=leave_application.leave_type, year=leave_application.start_date.year)
+                leave_balance.days_used += leave_application.leave_days
+                leave_balance.save()
+            # Send email notification to the applicant about approval
+            html_message = render_to_string('emails/hr_leave_approval_notification.html', {
+                'leave_application': leave_application,
+                'protocol': 'https',
+                'domain': 'imis.unche.or.ug',
+                'site_name': 'UNCHE IMIS',
+            })
+            email = EmailMessage(
+                subject='HR Leave Approval Notification',
+                body=html_message,
+                to=[leave_application.employee.system_account.email],
+            )
+            email.content_subtype = 'html'  # Main content is now text/html
+            email.send(fail_silently=True)
+
+            return Response(serializer.data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
