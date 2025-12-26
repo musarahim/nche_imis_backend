@@ -19,7 +19,7 @@ class LeaveTypeAdmin(SimpleHistoryAdmin,ModelAdmin):
 @admin.register(LeaveBalance)
 class LeaveBalanceAdmin(SimpleHistoryAdmin,ModelAdmin):
     '''Admin interface for LeaveBalance model.'''
-    list_display = ('employee', 'leave_type', 'annual_entitlement', 'carried_forward_days', 'days_used', 'year', 'total_available', 'created', 'modified')
+    list_display = ('employee', 'leave_type', 'annual_entitlement', 'carried_forward_days', 'days_used', 'year', 'total_available')
     fields = ('employee', 'leave_type', 'annual_entitlement', 'carried_forward_days', 'days_used', 'year')
     search_fields = ('employee__system_account__first_name', 'employee__system_account__last_name', 'leave_type__name')
     ordering = ('employee__system_account__last_name', 'leave_type__name')
@@ -35,11 +35,10 @@ class LeaveApplicationAdmin(SimpleHistoryAdmin,ModelAdmin):
     fields = (
         'employee', 'leave_type', 'delegated_to','delegation_accepted', 'start_date', 'end_date', 'reason',
         'supervisor', 'supervisor_approved', 'supervisor_comments', 'approval_date',
-        'hr_approval', 'hr_comments', 'hr_approval_date',
-        'ed_approval', 'ed_comments', 'ed_approval_date','status',
+        'hr_approval', 'hr_comments', 'hr_approval_date', 'director_comments', 'director_approval_date','status',
     )
     search_fields = ('employee__first_name', 'employee__last_name', 'leave_type__name')
     ordering = ('-created',)
-    filter_fields = ('leave_type', 'supervisor_approval', 'hr_approval', 'ed_approval')
+    filter_fields = ('leave_type', 'supervisor_approval', 'hr_approval')
     readonly_fields = ('created', 'modified','deleted_at')
     list_per_page = 10

@@ -26,7 +26,9 @@ class LeaveApplicationSerializer(serializers.ModelSerializer):
             'reason', 'delegated_to', 'supervisor','approval_date',
             'supervisor_approved', 'supervisor_comments',
             'status','delegation_accepted',
-            'delegation_acceptance_date','delegatee_remarks'
+            'delegation_acceptance_date','delegatee_remarks',
+            'director_approved','director_comments','director_approval_date',
+            'hr_approved','hr_comments','hr_approval_date',
         ]
 
     def to_representation(self, instance):

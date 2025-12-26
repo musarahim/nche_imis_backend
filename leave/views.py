@@ -238,5 +238,56 @@ class LeaveApplicationViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['get'], url_path='director-approvals')
+    def director_approvals(self, request):
+        """
+        GET /leave-applications/director-approvals/
+        Retrieve leave applications pending director approval.
+        """
+        director = Employee.objects.get(system_account=request.user)
+        queryset = LeaveApplication.objects.filter(employee__directorate=director.directorate, supervisor_approved=True, status='supervisor_approved')
+        
+        # Apply pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        # Fallback if no pagination is configured
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'], url_path='approve_director')
+    def approve_director(self, request, pk=None):
+        """
+        POST /leave-applications/{id}/approve_director/
+        Approve a leave application by director.
+        """
+        leave_application = LeaveApplication.objects.get(pk=pk)
+        serializer = LeaveApplicationSerializer(leave_application, data=request.data, partial=True)
+        director = Employee.objects.get(system_account=request.user)
+        if serializer.is_valid():
+            approved = serializer.validated_data.get('director_approved')
+            leave_status = 'director_approved' if approved else 'director_rejected'
+            serializer.save(status=leave_status, director_approval_date= timezone.now(), director=director)
+            # Send email notification to the applicant about approval
+            html_message = render_to_string('emails/director_leave_approval_notification.html', {
+                'leave_application': leave_application,
+                'protocol': 'https',
+                'domain': 'imis.unche.or.ug',
+                'site_name': 'UNCHE IMIS',
+            })
+            email = EmailMessage(
+                subject='Director Leave Approval Notification',
+                body=html_message,
+                to=[leave_application.employee.system_account.email],
+            )
+            email.content_subtype = 'html'  # Main content is now text/html
+            email.send(fail_silently=True)
+
+            return Response(serializer.data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         

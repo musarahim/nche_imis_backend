@@ -100,6 +100,7 @@ class EmployeeAdmin(SimpleHistoryAdmin,ModelAdmin):
                 "fields": [
                     "title",
                     "system_account",
+                    "directorate",
                     "department",
                     "designation",
                     "employee_number",

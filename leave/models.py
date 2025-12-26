@@ -51,7 +51,8 @@ class LeaveBalance(TimeStampedModel):
         return self.annual_entitlement + self.carried_forward_days - self.days_used
 
     def __str__(self):
-        return f"{self.user.username}'s {self.leave_type.name} Balance ({self.year})"
+        # Display employee username, leave type, and year for clarity plus balance
+        return f"{self.employee.system_account.username} - {self.leave_type.name} ({self.year}): {self.total_available} days available"
 
     class Meta:
         # Ensures an employee only has one balance record per leave type per year
@@ -76,8 +77,8 @@ class LeaveApplication(TimeStampedModel):
         ('supervisor_rejected', 'Supervisor Rejected'),
         ('hr_approved', 'HR Approved'),
         ('hr_rejected', 'HR Rejected'),
-        ('ed_approved', 'ED Approved'),
-        ('ed_rejected', 'ED Rejected'),
+        ('director_approved', 'Director Approved'),
+        ('director_rejected', 'Director Rejected'),
     ]
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     leave_type = models.ForeignKey(LeaveType, on_delete=models.CASCADE)
@@ -97,23 +98,25 @@ class LeaveApplication(TimeStampedModel):
     approval_date = models.DateTimeField(null=True, blank=True)
     supervisor_approved = models.BooleanField(default=False)
     supervisor_comments = models.TextField(null=True, blank=True)
+    # Director's Approval
+    director_approval_date = models.DateTimeField(null=True, blank=True)
+    director_comments = models.TextField(null=True, blank=True)
+    director_approved = models.BooleanField(default=False)
+    director = models.ForeignKey(Employee, related_name='director_leave_approvals', on_delete=models.SET_NULL, null=True, blank=True)
 
     # HR Approval
     hr_approval_date = models.DateTimeField(null=True, blank=True)
-    hr_approval = models.CharField(max_length=10, choices=APPROVE_REJECT, null=True, blank=True)
+    hr_approved = models.BooleanField(default=False)
     hr_comments = models.TextField(null=True, blank=True)
-
-    # Ed final Approval
-    ed_approval_date = models.DateTimeField(null=True, blank=True)
-    ed_approval = models.CharField(max_length=10, choices=APPROVE_REJECT, null=True, blank=True)
-    ed_comments = models.TextField(null=True, blank=True)
-    ed_approved = models.BooleanField(default=False)
+    hr = models.ForeignKey(Employee, related_name='hr_leave_approvals', on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, default='submitted', choices=STATUS_CHOICES)
 
     class Meta:
         ordering = ['-created']
         permissions = [
             ("can_approve_leave", "Can approve leave applications"),
+            ("director_approve_leave", "Can approve leave applications as Director"),
+            ("hr_approve_leave", "Can approve leave applications as HR"),
         ]
 
     def __str__(self):

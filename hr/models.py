@@ -53,6 +53,7 @@ class GradeScale(TimeStampedModel):
 class Employee(TimeStampedModel):
     '''Employee model'''
     system_account = models.OneToOneField(User, on_delete=models.DO_NOTHING, null=True, blank=True, related_name='employee')
+    directorate = models.ForeignKey(Directorate, on_delete=models.DO_NOTHING, null=True, blank=True)
     department = models.ForeignKey(Department, on_delete=models.DO_NOTHING, null=True, blank=True)
     employee_number = models.CharField(null=True, blank=True, max_length=50)
     designation = models.ForeignKey(Designation, on_delete=models.DO_NOTHING, null=True, blank=True)
