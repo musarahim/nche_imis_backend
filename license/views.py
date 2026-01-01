@@ -1,17 +1,18 @@
 from django.shortcuts import render
+from institutions.models import Institution
+from payments.ura_payment import build_backend_credentials
 from rest_framework import filters, parsers, permissions, status, viewsets
 from rest_framework.response import Response
 
-from institutions.models import Institution
-from payments.ura_payment import build_backend_credentials
-
 from .models import (CertificationAndClassification, CharterApplication,
-                     InterimDiscussion, IntrimAuthority, PublicationYear,
+                     InterimDiscussion, IntrimAuthority,
+                     ProvisionalLicenseODIA, PublicationYear,
                      UniversityProvisionalLicense)
 from .serializers import (CertificationAndClassificationSerializer,
                           CharterApplicationSerializer,
                           InterimDiscussionSerializer,
                           IntrimAuthoritySerializer,
+                          ProvisionalLicenseODIASerializer,
                           UniversityProvisionalLicenseSerializer)
 
 
@@ -177,4 +178,39 @@ class CharterApplicationViewset(viewsets.ModelViewSet):
             serializer.save(institution=institution, status="draft")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class ProvisionalLicenseODIAViewset(viewsets.ModelViewSet):
+    '''Provisional License ODIA Application'''
+    queryset = ProvisionalLicenseODIA.objects.all()
+    serializer_class = ProvisionalLicenseODIASerializer
+    permissions_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['application_code','institution__name','status','application_date']
+    
+    def get_queryset(self):
+        '''return documents for the logged in institution'''
+        queryset = self.queryset
+        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
+            data = queryset
+        else:
+            if hasattr(self.request.user, 'institution'):
+                data = queryset.filter(institution=self.request.user.institution)
+            else:
+                data = None
+        return data
+    
+    def create(self, request):
+        '''Set institution to the logged in user's institution'''
+        serializer = self.serializer_class(data=request.data)
+        
+        if serializer.is_valid():
+            user = self.request.user
+            institution = Institution.objects.get(user=user)
+            
+            serializer.save(institution=institution, status="draft")
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

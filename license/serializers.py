@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from .models import (CertificationAndClassification, CharterApplication,
                      InterimDiscussion, IntrimAuthority,
-                     UniversityProvisionalLicense)
+                     ProvisionalLicenseODIA, UniversityProvisionalLicense)
 
 
 class CertificationAndClassificationSerializer(serializers.ModelSerializer):
@@ -71,6 +71,22 @@ class CharterApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         '''Meta class for CharterApplication Serializer'''
         model = CharterApplication
+        fields = "__all__"
+        read_only_fields = ['id', 'application_code', 'status']
+
+
+    def to_representation(self, instance):
+        '''Custom representation to include institution name'''
+        response = super().to_representation(instance)
+        response['institution'] = instance.institution.name
+        return response
+    
+class ProvisionalLicenseODIASerializer(serializers.ModelSerializer):
+    '''Serializer for ProvisionalLicenseODIA model.'''
+
+    class Meta:
+        '''Meta class for ProvisionalLicenseODIA Serializer'''
+        model = ProvisionalLicenseODIA
         fields = "__all__"
         read_only_fields = ['id', 'application_code', 'status']
 

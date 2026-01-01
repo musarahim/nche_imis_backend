@@ -11,6 +11,7 @@ router.register(r'intrim-authority', views.IntrimAuthorityViewset, basename='int
 router.register(r'university-provisional-license', views.UniversityProvisionalLicenseViewset, basename='university-provisional-license')
 router.register(r'charter-application', views.CharterApplicationViewset, basename='charter-application')
 router.register(r'interim-discussion', views.InterimDiscussionViewset, basename='interim-discussion')
+router.register(r'provisional-license-odia', views.ProvisionalLicenseODIAViewset, basename='provisional-license-odia')
 
 
 urlpatterns = [

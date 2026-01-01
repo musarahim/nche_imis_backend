@@ -1,17 +1,13 @@
+from common.choices import LEASE_RENTED
+from common.models import FinanceYear, TimeStampedModel
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils import timezone
+from institutions.models import Institution, PublicationYear
 from phonenumber_field.modelfields import PhoneNumberField
 from tinymce.models import HTMLField
 
-from common.choices import LEASE_RENTED
-from common.models import FinanceYear, TimeStampedModel
-from institutions.models import Institution, PublicationYear
-
 # Create your models here.
-
-
-
 
 class OTIProvisional(TimeStampedModel):
     code = models.CharField(max_length=30, null=True, blank=True)
@@ -206,6 +202,7 @@ class CertificationAndClassification(TimeStampedModel):
     )
     institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='certifications', blank=False)
     provisional_license_issue_date = models.DateField(null=False, blank=False)
+    application_code = models.CharField(max_length=30, null=True, blank=True, unique=True)
     # consider using a reference to the provisional license
     provisional_license = models.FileField(upload_to='certifications/', null=False, blank=False)
     location = models.TextField(null=False, blank=False)
@@ -333,6 +330,35 @@ class CertificationAndClassification(TimeStampedModel):
         Returns the institution name as a string representation of the model.
         """
         return self.institution_name
+
+    def save(self, *args, **kwargs):
+        if not self.application_code:
+            self.application_code = self.generate_code()
+        super().save(*args, **kwargs)
+
+    def generate_code(self):
+        # Academic year format (e.g., 2024-2025)
+        year = timezone.now().year
+        if timezone.now().month >= 7:  # financial year starts in July
+            academic_year = f"{year}-{year+1}"
+        else:
+            academic_year = f"{year-1}-{year}"
+
+        # Get last sequence number for this year
+        last_app = CertificationAndClassification.objects.filter(
+            application_code__contains=academic_year
+        ).order_by("id").last()
+
+        if last_app:
+            last_number = int(last_app.application_code.split("/")[-1])
+        else:
+            last_number = 0
+
+        new_number = str(last_number + 1).zfill(5)  # zero-padded
+
+        return f"OTIR/{academic_year}/{new_number}"
+    
+
     
 # university license
 class IntrimAuthority(TimeStampedModel):
@@ -817,7 +843,7 @@ class CharterApplication(TimeStampedModel):
 
         new_number = str(last_number + 1).zfill(5)  # zero-padded
 
-        return f"UTIP/{academic_year}/{new_number}"
+        return f"UNIC/{academic_year}/{new_number}"
     
 
 class CharterApplicationDocoment(models.Model):
@@ -827,9 +853,327 @@ class CharterApplicationDocoment(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.oti_provisional.institution.name}"
-
-
-
-
-
     
+class ProvisionalLicenseODIA(TimeStampedModel):
+    """Provisional License ODAI"""
+    application_code = models.CharField(max_length=20, null=True, blank=True)
+    institution = models.ForeignKey(Institution, on_delete=models.DO_NOTHING, null=False, blank=True)
+    #LOCATION AND LAND
+    location = models.TextField(null=False, blank=True)
+    amount_of_land_owned = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+    land_in_use = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+    land_for_future_use = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=False)
+    year_obtained = models.CharField(null=False, blank=False, max_length=30)
+    leased_or_rented = models.CharField(max_length=20, choices=LEASE_RENTED, null=True, blank=False)
+    lease_or_rent_agreement = models.FileField(upload_to='land_titles/', null=True, blank=False)
+    # infrastructure
+    classrooms = models.IntegerField(null=True, blank=True)
+    libraries = models.IntegerField(null=True, blank=True)
+    science_labs = models.IntegerField(null=True, blank=True)
+    computer_labs = models.IntegerField(null=True, blank=True)
+    staff_houses = models.IntegerField(null=True, blank=True)
+    administrative_staff_area = models.IntegerField(null=True, blank=True)
+    area_for_staff_use = models.IntegerField(null=True, blank=True)
+    administrative_block_area = models.IntegerField(null=True, blank=True)
+    student_Welfare_offices = models.IntegerField(null=True, blank=True)
+    sick_bay_area = models.IntegerField(null=True, blank=True)
+    hostels_area = models.IntegerField(null=True, blank=True)
+    meeting_hall_area = models.IntegerField(null=True, blank=True)
+    master_plan = models.FileField(upload_to='land_titles/', null=True, blank=True)
+    # ground,physical infrastructure
+    area_of_playground = models.FloatField(null=True, blank=True)
+    type_of_playground = models.CharField(max_length=255, null=True, blank=True)
+    area_of_empty_space = models.IntegerField(null=True, blank=True)
+    total_roads_mileage = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    water_source = models.CharField(max_length=255, null=True, blank=True)
+    power_source = models.CharField(max_length=255, null=True, blank=True)
+    has_cultivable_land = models.BooleanField(null=True, blank=True)
+    cultivable_land = models.FloatField(null=True, blank=True)
+    vehicles_registration_details = models.TextField(null=True, blank=True)
+    # EDUCATIONAL FACILITIES IN PLACE
+    library_books = models.IntegerField(null=True, blank=True)
+    textbooks = models.IntegerField(null=True, blank=True)
+    publication_dates = ArrayField(
+        models.CharField(max_length=5),  # store as list of strings
+        blank=True,
+        default=list
+    )
+    computers_for_student_use = models.IntegerField(null=True, blank=True)
+    computers_in_library = models.IntegerField(null=True, blank=True)
+    computers_for_academic_staff = models.IntegerField(null=True, blank=True)
+    computers_for_administration = models.IntegerField(null=True, blank=True)
+    library_computer_programme = models.TextField(null=True, blank=True)
+    students_access_computers = models.BooleanField(null=True, blank=True)
+    has_internet_access = models.BooleanField(null=True, blank=True)
+    library_seats = models.IntegerField(null=True, blank=True)
+    classroom_seats = models.IntegerField(null=True, blank=True)
+    laboratory_seats = models.IntegerField(null=True, blank=True)
+    administration_block_seats = models.IntegerField(null=True, blank=True)
+    student_accommodation_facilities = models.TextField(null=True, blank=True)
+    # ACADEMIC STAFF
+    intended_full_time_staff = models.IntegerField(null=True, blank=True)
+    intended_part_time_staff = models.IntegerField(null=True, blank=True)
+    # ADMINISTRATIVE AND SUPPORT STAFF
+    intended_administrative_staff = models.IntegerField(null=True, blank=True)
+    intended_support_staff = models.IntegerField(null=True, blank=True)
+    # university council members
+    council_members = HTMLField(null=True, blank=True)
+    proposed_chancellor = models.CharField(max_length=255, null=True, blank=True)
+    proposed_vice_chancellor = models.CharField(max_length=255, null=True, blank=True)
+    proposed_deputy_vice_chancellor = models.CharField(max_length=255, null=True, blank=True)
+    proposed_institution_secretary = models.CharField(max_length=255, null=True, blank=True)
+    proposed_academic_registrar = models.CharField(max_length=255, null=True, blank=True)
+    heads_of_faculties = HTMLField(null=True, blank=True)
+    # Ownership OF THE UNIVERSITY
+    institution_ownership = HTMLField(null=True, blank=True)
+    university_promoters = HTMLField(null=True, blank=True)
+    # Financial Management
+    other_assets = models.TextField(null=True, blank=True)
+    annual_budget = models.DecimalField(max_digits=250, decimal_places=2, null=True, blank=True)
+    fee_structure = models.FileField(null=True, blank=True)
+    fees_percent_budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    other_income_sources = models.TextField(null=True, blank=True)
+    # How much of the budget is to be given to
+    infrastructure_development = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    research_development = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    computer_hardware_software = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    science_lab_equipment = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    library_equipment = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    staff_development = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    staff_salaries = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    current_bankers = models.TextField(null=True, blank=True)
+    # VISION AND MISSION OF THE INSTITUTION
+    vision = models.TextField(null=True, blank=True)
+    mission = models.TextField(null=True, blank=True)
+    specific_objectives = models.TextField(null=True, blank=True)
+    stractegic_plan = models.FileField(null=True, blank=True)
+    programmes = models.FileField(null=True, blank=True)
+    area_of_competence = HTMLField(null=True, blank=True)
+    feature_programmes = HTMLField(null=True, blank=True)
+    # student population
+    total_number_of_students = models.IntegerField(null=True, blank=True)
+    # programme_distribution
+    arts_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    social_sciences_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    basic_sciences_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    arts_education_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    science_education_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    agriculture_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    medicine_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    veterinary_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    engineering_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    technology_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    #signatures
+    signatures = models.FileField(null=True, blank=True)
+    member_cvs = models.FileField(null=True, blank=True)
+    finance_control = models.FileField(null=True, blank=True)
+    detailed_programmes = models.FileField(null=True, blank=True)
+    physical_education_facilities = models.FileField(null=True, blank=True)
+    other_document = models.FileField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=(('draft', 'Draft'), ('submitted', 'Submitted')), default='draft', blank=False)
+    application_date = models.DateField(null=True, blank=True, auto_now=True)
+    
+    def __str__(self):
+        return self.application_code
+    
+    def save(self, *args, **kwargs):
+        if not self.application_code:
+            self.application_code = self.generate_code()
+        super().save(*args, **kwargs)
+
+    def generate_code(self):
+        # Academic year format (e.g., 2024-2025)
+        year = timezone.now().year
+        if timezone.now().month >= 7:  # financial year starts in July
+            academic_year = f"{year}-{year+1}"
+        else:
+            academic_year = f"{year-1}-{year}"
+        # Get last sequence number for this year
+        last_app = ProvisionalLicenseODIA.objects.filter(
+            application_code__contains=academic_year
+        ).order_by("id").last()
+        if last_app:
+            last_number = int(last_app.application_code.split("/")[-1])
+        else:
+            last_number = 0
+        new_number = str(last_number + 1).zfill(5)  # zero-padded 
+        return f"ODIAPL/{academic_year}/{new_number}"
+
+class CharterApplicationODI(TimeStampedModel):
+    """Charter Application"""
+    STATUS_CHOICES = (
+        ('draft', 'Draft'),
+        ('submitted', 'Submitted'),
+        ('pending', 'Pending'),
+    )
+    application_code = models.CharField(max_length=30, null=True, blank=True, unique=True)
+    institution = models.ForeignKey(Institution, on_delete=models.DO_NOTHING, null=False, blank=True)
+    has_provisional_license = models.BooleanField(null=False, blank=False)
+    provisional_license = models.FileField(null=False, blank=True)
+    provisional_license_issue_date = models.DateField(null=True, blank=False)
+    # LOCATION AND LAND
+    amount_of_land_owned = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=True)
+    land_title = models.FileField(upload_to='land_titles/', null=False, blank=True)
+    land_in_use = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+    land_for_future_use = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=False)
+    year_obtained = models.CharField(null=False, blank=False, max_length=30)
+    leased_or_rented = models.BooleanField(null=True, blank=False)
+    lease_or_rent_agreement = models.FileField(upload_to='land_titles/', null=True, blank=True)
+    # infrastructure
+    classrooms = models.IntegerField(null=True, blank=True)
+    libraries = models.IntegerField(null=True, blank=True)
+    science_labs = models.IntegerField(null=True, blank=True)
+    computer_labs = models.IntegerField(null=True, blank=True)
+    staff_houses = models.IntegerField(null=True, blank=True)
+    areadministrative_staff_area = models.IntegerField(null=True, blank=True)
+    area_for_staff_use = models.IntegerField(null=True, blank=True)
+    administrative_block_area = models.IntegerField(null=True, blank=True)
+    student_Welfare_offices = models.IntegerField(null=True, blank=True)
+    sick_bay_area = models.IntegerField(null=True, blank=True)
+    hostels_area = models.IntegerField(null=True, blank=True)
+    meeting_hall_area = models.IntegerField(null=True, blank=True)
+    master_plan = models.FileField(upload_to='land_titles/', null=True, blank=True)
+    # ground,physical infrastructure
+    area_of_playground = models.FloatField(null=True, blank=True)
+    # type of playground
+    available_playgrounds = models.CharField(max_length=255, null=True, blank=True)
+    area_of_empty_space = models.IntegerField(null=True, blank=True)
+    total_roads_mileage = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    water_source = models.CharField(max_length=255, null=True, blank=True)
+    power_source = models.CharField(max_length=255, null=True, blank=True)
+    has_cultivable_land = models.BooleanField(null=True, blank=True)
+    cultivable_land = models.FloatField(null=True, blank=True)
+
+    #Transport - State the number and registration of vehicles the university has
+    # EDUCATIONAL FACILITIES IN PLACE
+    library_books = models.IntegerField(null=True, blank=True)
+    text_books = models.IntegerField(null=True, blank=True)
+    publication_years = ArrayField(
+        models.CharField(max_length=5),  # store as list of strings
+        blank=True,
+        default=list
+    )
+    computers_in_use = models.IntegerField(null=True, blank=True)
+    computers_in_library = models.IntegerField(null=True, blank=True)
+    academic_staff_computers = models.IntegerField(null=True, blank=True)
+    administrative_staff_computers = models.IntegerField(null=True, blank=True)
+    library_computer_software = models.IntegerField(null=True, blank=True)
+    #State whether students will access computers to locate reading materials in the library
+    students_have_access = models.BooleanField(null=True, blank=True)
+    has_internet_access = models.BooleanField(null=True, blank=True)
+    library_seats = models.IntegerField(null=True, blank=True)
+    classroom_seats = models.IntegerField(null=True, blank=True)
+    laboratories_seats = models.IntegerField(null=True, blank=True)
+    administration_block_seats = models.IntegerField(null=True, blank=True)
+    student_facilities = models.TextField(null=True, blank=True)
+    # ACADEMIC STAFF
+    full_time_academic_staff = models.IntegerField(null=True, blank=True)
+    intended_full_time_academic_staff = models.IntegerField(null=True, blank=True)
+    full_time_academic_staff_qualifications = models.FileField(null=True, blank=True)
+    intended_part_time_academic_staff = models.IntegerField(null=True, blank=True)
+    part_time_academic_staff_qualifications = models.FileField(null=True, blank=True)
+    phd_holders = models.IntegerField(null=True, blank=True)
+    phd_holder_discipline = models.FileField(null=True, blank=True)
+    masters_holders = models.IntegerField(null=True, blank=True)
+    masters_holders_discipline = models.FileField(null=True, blank=True)
+    bachelor_holders = models.IntegerField(null=True, blank=True)
+    bachelor_holders_discipline = models.FileField(null=True, blank=True)
+    diploma_holders = models.IntegerField(null=True, blank=True)
+    diploma_holders_discipline = models.FileField(null=True, blank=True)
+    average_staff_student_ratio = models.IntegerField(null=True, blank=True)
+    programme_staff_student_ratio = models.FileField(null=True, blank=True)
+    staff_overload = models.IntegerField(null=True, blank=True)
+    # ADMINISTRATIVE AND SUPPORT STAFF
+    administrative_staff = models.IntegerField(null=True, blank=True)
+    support_staff = models.IntegerField(null=True, blank=True)
+    council_members = models.FileField(null=True, blank=True)
+    senate_members = models.FileField(null=True, blank=True)
+    chancellor = models.CharField(max_length=255, null=True, blank=True)
+    vice_chancellor = models.CharField(max_length=255, null=True, blank=True)
+    university_secretary = models.CharField(max_length=255, null=True, blank=True)
+    academic_registrar = models.CharField(max_length=255, null=True, blank=True)
+    vice_registrar = models.CharField(max_length=255, null=True, blank=True)
+    deans = models.FileField(null=True, blank=True)
+    # OWNERSHIP OF THE UNIVERSITY
+    ownership = HTMLField(null=True, blank=True)
+    # FINANCES AND THEIR MANAGEMENT
+    other_assets = HTMLField(null=True, blank=True)
+    annual_budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    previous_year_accounts = models.FileField(null=True, blank=True)
+    fees_structure = models.FileField(null=True, blank=True)
+    fees_percentage = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    other_income_source = HTMLField(null=True, blank=True)
+    # How much of the budget is given to
+    infrastructure_budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    research_budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    computer_budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    science_labs_budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    staff_development_budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    library_budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    staff_salary_budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    current_bankers = models.TextField(null=True, blank=True)
+    # VISION AND MISSION OF THE UNIVERSITY
+    vision = models.TextField(null=True, blank=True)
+    mission = models.TextField(null=True, blank=True)
+    specific_objectives = models.TextField(null=True, blank=True)
+    university_strategic_plan = models.FileField(null=True, blank=True)
+    programmes_offered = models.FileField(null=True, blank=True)
+    areas_of_competence = models.FileField(null=True, blank=True)
+    future_planned_programmes = models.FileField(null=True, blank=True)
+    # STUDENT POPULATION
+    total_students = models.IntegerField(null=True, blank=True)
+    # programmes distribution
+    arts_students = models.IntegerField(null=True, blank=True)
+    social_science_students = models.IntegerField(null=True, blank=True)
+    basic_science_students = models.IntegerField(null=True, blank=True)
+    arts_education_students = models.IntegerField(null=True, blank=True)
+    agriculture_students = models.IntegerField(null=True, blank=True)
+    medicine_students = models.IntegerField(null=True, blank=True)
+    veterinary_students = models.IntegerField(null=True, blank=True)
+    engineering_students = models.IntegerField(null=True, blank=True)
+    other_students_numbers = HTMLField(null=True, blank=True)
+    # Regions of origin
+    eastern_region = models.IntegerField(null=True, blank=True)
+    central_region = models.IntegerField(null=True, blank=True)
+    northern_region = models.IntegerField(null=True, blank=True)
+    western_region = models.IntegerField(null=True, blank=True)
+    # Non-Ugandan students
+    east_africans = models.IntegerField(null=True, blank=True)
+    other_regions = models.IntegerField(null=True, blank=True)
+    # SIGNATURE OF THE OFFICERS OF THE UNIVERSITY
+    signature_officers = models.FileField(null=True, blank=True)
+    # ATTACHMENTS
+    financial_control = models.FileField(null=True, blank=True)
+    detailed_programmes = models.FileField(null=True, blank=True)
+    facilities = models.FileField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', blank=False)
+
+    def __str__(self):
+        return self.institution
+    
+    def save(self, *args, **kwargs):
+        if not self.application_code:
+            self.application_code = self.generate_code()
+        super().save(*args, **kwargs)   
+
+    def generate_code(self):
+        # Academic year format (e.g., 2024-2025)
+        year = timezone.now().year
+        if timezone.now().month >= 7:  # financial year starts in July
+            academic_year = f"{year}-{year+1}"
+        else:
+            academic_year = f"{year-1}-{year}"
+
+        # Get last sequence number for this year
+        last_app = OTIProvisional.objects.filter(
+            code__contains=academic_year
+        ).order_by("id").last()
+
+        if last_app:
+            last_number = int(last_app.code.split("/")[-1])
+        else:
+            last_number = 0
+
+        new_number = str(last_number + 1).zfill(5)  # zero-padded
+
+        return f"ODAC/{academic_year}/{new_number}"
