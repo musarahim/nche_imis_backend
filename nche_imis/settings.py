@@ -201,7 +201,7 @@ REST_FRAMEWORK = {
 }
 CORS_ALLOWED_ORIGINS = ['http://localhost:3000',
                         'http://192.168.5.44', 'http://localhost:3001',
-                        'http://192.168.5.23','http://portal.unche.or.ug']
+                        'http://192.168.5.23','https://portal.unche.or.ug']
 
 
 CORS_ALLOW_CREDENTIALS = True
@@ -215,6 +215,18 @@ AUTH_COOKIE_HTTP_ONLY = True
 AUTH_COOKIE_SAMESITE = 'None'
 AUTH_COOKIE_PATH = '/'
 AUTH_COOKIE_DOMAIN = None
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "https://portal.unche.or.ug",
+]
+
+# if you're using cookies across domains:
+SESSION_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True   # required for SameSite=None in modern browsers
+CSRF_COOKIE_SECURE = True
+
 
 # Email settings
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
