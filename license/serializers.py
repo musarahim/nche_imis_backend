@@ -2,7 +2,7 @@ from drf_extra_fields.fields import Base64FileField
 from rest_framework import serializers
 
 from .models import (CertificationAndClassification, CharterApplication,
-                     InterimDiscussion, IntrimAuthority,
+                     InterimDiscussion, IntrimAuthority, OTIProvisional,
                      ProvisionalLicenseODIA, UniversityProvisionalLicense)
 
 
@@ -87,6 +87,22 @@ class ProvisionalLicenseODIASerializer(serializers.ModelSerializer):
     class Meta:
         '''Meta class for ProvisionalLicenseODIA Serializer'''
         model = ProvisionalLicenseODIA
+        fields = "__all__"
+        read_only_fields = ['id', 'application_code', 'status']
+
+
+    def to_representation(self, instance):
+        '''Custom representation to include institution name'''
+        response = super().to_representation(instance)
+        response['institution'] = instance.institution.name
+        return response
+    
+class OTIProvisionalSerializer(serializers.ModelSerializer):
+    '''Serializer for OTIProvisional model.'''
+
+    class Meta:
+        '''Meta class for OTIProvisional Serializer'''
+        model = OTIProvisional
         fields = "__all__"
         read_only_fields = ['id', 'application_code', 'status']
 

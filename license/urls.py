@@ -12,6 +12,7 @@ router.register(r'university-provisional-license', views.UniversityProvisionalLi
 router.register(r'charter-application', views.CharterApplicationViewset, basename='charter-application')
 router.register(r'interim-discussion', views.InterimDiscussionViewset, basename='interim-discussion')
 router.register(r'provisional-license-odia', views.ProvisionalLicenseODIAViewset, basename='provisional-license-odia')
+router.register(r'oti-provisional', views.OTIProvisionalViewset, basename='oti-provisional')
 
 
 urlpatterns = [

@@ -200,7 +200,8 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
 }
 CORS_ALLOWED_ORIGINS = ['http://localhost:3000',
-                        'http://192.168.5.44', 'http://localhost:3001','http://192.168.5.23']
+                        'http://192.168.5.44', 'http://localhost:3001',
+                        'http://192.168.5.23','http://portal.unche.or.ug']
 
 
 CORS_ALLOW_CREDENTIALS = True
