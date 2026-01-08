@@ -222,7 +222,7 @@ class OTIProvisionalViewset(viewsets.ModelViewSet):
     serializer_class = OTIProvisionalSerializer
     permissions_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
-    search_fields = ['application_code','institution__name','status','application_date']
+    search_fields = ['application_code','institute__name','status','application_date']
     
     def get_queryset(self):
         '''return documents for the logged in institution'''
@@ -231,7 +231,7 @@ class OTIProvisionalViewset(viewsets.ModelViewSet):
             data = queryset
         else:
             if hasattr(self.request.user, 'institution'):
-                data = queryset.filter(institution=self.request.user.institution)
+                data = queryset.filter(institute=self.request.user.institution)
             else:
                 data = None
         return data
@@ -244,7 +244,7 @@ class OTIProvisionalViewset(viewsets.ModelViewSet):
             user = self.request.user
             institution = Institution.objects.get(user=user)
             
-            serializer.save(institution=institution, status="draft")
+            serializer.save(institute=institution, status="draft")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 

@@ -199,13 +199,13 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
 }
-CORS_ALLOWED_ORIGINS = ['http://localhost:3000',
-                        'http://192.168.5.44', 'http://localhost:3001',
-                        'http://192.168.5.23','https://portal.unche.or.ug']
+CORS_ALLOWED_ORIGINS = ['http://localhost:3000','http://localhost:3001',
+                        'https://portal.unche.or.ug','https://www.portal.unche.or.ug'
+                        ,'https://imis2.unche.or.ug','https://www.imis2.unche.or.ug']
 
-CSRF_TRUSTED_ORIGINS = ['http://localhost:3000',
-                        'http://192.168.5.44', 'http://localhost:3001',
-                        'http://192.168.5.23','https://portal.unche.or.ug']
+CSRF_TRUSTED_ORIGINS = ['http://localhost:3000','http://localhost:3001',
+                        'https://portal.unche.or.ug','https://www.portal.unche.or.ug'
+                        ,'https://imis2.unche.or.ug','https://www.imis2.unche.or.ug']
 
 CORS_ALLOW_CREDENTIALS = True
 

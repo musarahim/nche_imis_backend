@@ -15,13 +15,13 @@ class OTIProvisional(TimeStampedModel):
     application_date = models.DateField(null=True, blank=True, auto_now=True)
     institute = models.ForeignKey(Institution, on_delete=models.DO_NOTHING, null=True, blank=True)
     #LOCATION AND LAND
-    land_owned = models.BooleanField(null=True, blank=True)
+    location = models.CharField(max_length=255, null=True, blank=False)
     amount_of_land = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=False)
     land_title = models.FileField(upload_to='land_titles/', null=True, blank=False)
     land_in_use = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=False)
     land_for_future_use = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=False)
-    years_for_future_use = models.IntegerField(null=True, blank=False)
-    leased_or_rented =  models.BooleanField(null=True, blank=False)
+    land_acquisition_years = models.CharField(null=True, blank=False, max_length=30)
+    leased_or_rented =  models.CharField(max_length=20, choices=LEASE_RENTED, null=True, blank=False)
     lease_or_rent_agreement = models.FileField(upload_to='land_titles/', null=True, blank=False)
     # infrastructure
     classrooms = models.PositiveIntegerField(null=True, blank=False)
@@ -54,7 +54,7 @@ class OTIProvisional(TimeStampedModel):
     # EDUCATIONAL FACILITIES IN PLACE	
     library_books = models.IntegerField(null=True, blank=False)
     text_books = models.IntegerField(null=True, blank=False)
-    publication_years = models.ManyToManyField(PublicationYear, blank=False)
+    publication_years = models.ManyToManyField(PublicationYear, blank=True)
     computers_in_use = models.IntegerField(null=True, blank=False)
     computers_in_library = models.IntegerField(null=True, blank=False)
     academic_staff_computers = models.IntegerField(null=True, blank=False)

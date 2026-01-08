@@ -110,5 +110,5 @@ class OTIProvisionalSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         '''Custom representation to include institution name'''
         response = super().to_representation(instance)
-        response['institution'] = instance.institution.name
+        response['institute'] = instance.institute.name
         return response
