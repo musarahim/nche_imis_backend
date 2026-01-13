@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from institutions.models import Institution
-from payments.ura_payment import build_backend_credentials
+from payments.ura_payment import UraMdaPaymentService
 from rest_framework import filters, parsers, permissions, status, viewsets
 from rest_framework.response import Response
 
@@ -79,7 +79,10 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
         
         if serializer.is_valid():
             serializer.save()
-            #build_backend_credentials()
+            service = UraMdaPaymentService()
+            # You can call service methods here if needed, e.g., service.get_prn(...)
+            prn_check=service.check_prn_status(prn="2240015259832")  # Example call
+            print(prn_check, "result from URA PRN check")
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
