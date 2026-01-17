@@ -243,19 +243,20 @@ TRENCH_AUTH = {
     "CONFIRM_BACKUP_CODES_REGENERATION_WITH_CODE": True,
     "ALLOW_BACKUP_CODES_REGENERATION": True,
     "ENCRYPT_BACKUP_CODES": True,
-    "APPLICATION_ISSUER_NAME": "Uganda National Council for Higher Education",
+    "APPLICATION_ISSUER_NAME": "National Council for Higher Education",
     "MFA_METHODS": {
         "email": {
             "VERBOSE_NAME": _("email"),
             "VALIDITY_PERIOD": 60 * 10,
-            "HANDLER": "trench.backends.basic_mail.SendMailMessageDispatcher",
+            "HANDLER": "accounts.basic_email.SendMailMessageDispatcher",
+            #"HANDLER": "trench.backends.basic_mail.SendMailMessageDispatcher",
             "SOURCE_FIELD": "email",
             "EMAIL_SUBJECT": _("Your verification code"),
             "EMAIL_PLAIN_TEMPLATE": "trench/backends/email/code.txt",
             "EMAIL_HTML_TEMPLATE": "trench/backends/email/code.html",
         },
         # Your other backends here
-    }
+    }  
 }
 
 SIMPLE_JWT = {

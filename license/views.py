@@ -37,6 +37,17 @@ class CertificationAndClassificationViewset(viewsets.ModelViewSet):
                 data = None
         return data
     
+    def create(self, request):
+        '''Set institution to the logged in user's institution'''
+        serializer = self.serializer_class(data=request.data)
+        
+        if serializer.is_valid():
+            user = self.request.user
+            institution = Institution.objects.get(user=user)
+            
+            serializer.save(institution=institution, status="draft")
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
 
 class IntrimAuthorityViewset(viewsets.ModelViewSet):
     '''Interim Authority Application'''
