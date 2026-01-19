@@ -13,6 +13,7 @@ router.register(r'charter-application', views.CharterApplicationViewset, basenam
 router.register(r'interim-discussion', views.InterimDiscussionViewset, basename='interim-discussion')
 router.register(r'provisional-license-odia', views.ProvisionalLicenseODIAViewset, basename='provisional-license-odia')
 router.register(r'oti-provisional', views.OTIProvisionalViewset, basename='oti-provisional')
+router.register(r'oti-provisional-award', views.OTIProvisionalAwardViewset, basename='oti-provisional-award')
 
 
 urlpatterns = [

@@ -273,6 +273,12 @@ UNFOLD = {
             "collapsible": True,
             "permission": lambda request: request.user.is_superuser,
             "items": [
+                 {
+                    "title": _("OTI Provisional Award"),
+                    "link": reverse_lazy("admin:license_otiprovisionalaward_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "gavel",
+                },
 
                 {
                     "title": _("Intrim Authority"),
@@ -280,6 +286,7 @@ UNFOLD = {
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "contract",
                 },
+               
                 {
                     "title": _("University Provisional License"),
                     "link": reverse_lazy("admin:license_universityprovisionallicense_changelist"),

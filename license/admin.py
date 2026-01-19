@@ -7,13 +7,14 @@ from unfold.contrib.import_export.forms import (ExportForm, ImportForm,
                                                 SelectableFieldsExportForm)
 
 from .models import (CertificationAndClassification, CharterApplication,
-                     IntrimAuthority, UniversityProvisionalLicense)
+                     IntrimAuthority, OTIProvisionalAward,
+                     UniversityProvisionalLicense)
 
 # Register your models here.
 
 
 @admin.register(CertificationAndClassification)
-class CertificationAndClassificationAdmin(ModelAdmin, ExportActionModelAdmin):
+class CertificationAndClassificationAdmin(SimpleHistoryAdmin, ModelAdmin, ExportActionModelAdmin):
     export_form_class = SelectableFieldsExportForm
     list_display = ("institution__name",)
     search_fields = ("institution__name",)
@@ -208,7 +209,7 @@ class CertificationAndClassificationAdmin(ModelAdmin, ExportActionModelAdmin):
 
 
 @admin.register(IntrimAuthority)
-class IntrimAuthorityAdmin(ModelAdmin, SimpleHistoryAdmin):
+class IntrimAuthorityAdmin(SimpleHistoryAdmin, ModelAdmin):
     list_display = ('application_code','institution__name', 'status', 'created')
     search_fields = ("institution__name",)
     # fieldset
@@ -248,7 +249,7 @@ class IntrimAuthorityAdmin(ModelAdmin, SimpleHistoryAdmin):
     )
 
 @admin.register(UniversityProvisionalLicense)
-class UniversityProvisionalLicenseAdmin(ModelAdmin, SimpleHistoryAdmin):
+class UniversityProvisionalLicenseAdmin(SimpleHistoryAdmin, ModelAdmin):
     list_display = ('application_code','institution__name', 'status', 'created')
     search_fields = ("institution__name",)
     #actions = ["export_as_csv"]
@@ -273,7 +274,7 @@ class UniversityProvisionalLicenseAdmin(ModelAdmin, SimpleHistoryAdmin):
 
 
 @admin.register(CharterApplication)
-class CharterApplicationAdmin(ModelAdmin, SimpleHistoryAdmin):
+class CharterApplicationAdmin(SimpleHistoryAdmin, ModelAdmin):
     list_display = ('application_code','institution__name', 'status', 'created')
     search_fields = ("institution__name",)
     #actions = ["export_as_csv"]
@@ -295,3 +296,18 @@ class CharterApplicationAdmin(ModelAdmin, SimpleHistoryAdmin):
     list_max_show_all = 1000
     ordering = ['institution__name']
     #change_form_show_cancel_button = True
+
+@admin.register(OTIProvisionalAward)
+class OTIProvisionalAwardAdmin(SimpleHistoryAdmin, ModelAdmin):
+    list_display = ('oti_provisional', 'institution', 'code', 'issue_date', 'expiry_date')
+    search_fields = ("oti_provisional__institution__name", "code")
+    list_filter = ('issue_date', 'expiry_date')
+    ordering = ['-issue_date']
+    list_per_page = 10
+    list_max_show_all = 1000
+    #change_form_show_cancel_button = True
+    
+    fields = ('oti_provisional','institution', 'code', 'award_letter','issue_date',
+    'expiry_date'
+    )
+
