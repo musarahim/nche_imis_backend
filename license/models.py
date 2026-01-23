@@ -328,12 +328,22 @@ class CertificationAndClassification(TimeStampedModel):
     specific_objectives = models.TextField(null=True, blank=True)
     logo = models.ImageField(blank=True, null=True)
     stractegic_plan = models.FileField(null=True, blank=True)
-    current_programmes = HTMLField(null=True, blank=True)
+    current_programmes = models.FileField(null=True, blank=True)
     area_of_competence = HTMLField(null=True, blank=True)
-    feature_programmes = HTMLField(null=True, blank=True)
+    feature_programmes = models.FileField(null=True, blank=True)
     # student population
     total_number_of_students = models.PositiveIntegerField(null=True, blank=True)
-    programme_distribution = HTMLField(null=True, blank=True)
+   # programme_distribution 
+    arts_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    social_sciences_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    basic_sciences_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    arts_education_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    science_education_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    agriculture_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    medicine_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    veterinary_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    engineering_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+
     # Regions distribution
     eastern_students = models.PositiveIntegerField(null=True, blank=True)
     central_students = models.PositiveIntegerField(null=True, blank=True)
@@ -342,6 +352,12 @@ class CertificationAndClassification(TimeStampedModel):
     # Non Ugandan Students
     east_africans_students = models.PositiveIntegerField(null=True, blank=True)
     other_students = models.PositiveIntegerField(null=True, blank=True)
+    #attachments
+    signatures = models.FileField(null=True, blank=True)
+    members_cvs = models.FileField(null=True, blank=True)
+    financial_control_mechanism = models.FileField(null=True, blank=True)
+    detailed_programmes = models.FileField(null=True, blank=True)
+    physical_education_facilities = models.FileField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', blank=False)
     application_date = models.DateField(null=True, blank=True, auto_now=True)
     # payment, integrate URA
