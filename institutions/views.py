@@ -1,9 +1,8 @@
 from django.shortcuts import render
 from rest_framework import permissions, viewsets
 
-from .models import Institution, OtherDocuments, PublicationYear
-from .serializers import (InstitutionSerializer, OtherDocumentsSerializer,
-                          PublicationYearSerializer)
+from .models import Institution, OtherDocuments
+from .serializers import InstitutionSerializer, OtherDocumentsSerializer
 
 
 # Create your views here.
@@ -28,13 +27,6 @@ class InstitutionViewSet(viewsets.ModelViewSet):
             data = queryset.filter(user=self.request.user)
         return data
         
-
-class PublicationYearViewSet(viewsets.ModelViewSet):
-    '''publication year'''
-    queryset = PublicationYear.objects.all()
-    serializer_class = PublicationYearSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    pagination_class = None
 
 class OtherDocumentsViewset(viewsets.ModelViewSet):
     '''Institution other documents'''

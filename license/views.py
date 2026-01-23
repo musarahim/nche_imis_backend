@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from .models import (CertificationAndClassification, CharterApplication,
                      InterimDiscussion, IntrimAuthority, OTIProvisional,
                      OTIProvisionalAward, ProvisionalLicenseODIA,
-                     PublicationYear, UniversityProvisionalLicense)
+                     UniversityProvisionalLicense)
 from .serializers import (CertificationAndClassificationSerializer,
                           CharterApplicationSerializer,
                           InterimDiscussionSerializer,
@@ -24,7 +24,6 @@ class CertificationAndClassificationViewset(viewsets.ModelViewSet):
     queryset = CertificationAndClassification.objects.all()
     serializer_class = CertificationAndClassificationSerializer
     permissions_classes = [permissions.IsAuthenticated]
-    pagination_class = None
     parsers_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser] 
 
     def get_queryset(self):
@@ -49,6 +48,17 @@ class CertificationAndClassificationViewset(viewsets.ModelViewSet):
             
             serializer.save(institution=institution, status="draft")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def partial_update(self, request, pk=None):
+        '''Partial update of the Certification and Classification Application'''
+        instance = self.get_object()
+        serializer = self.serializer_class(instance, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 

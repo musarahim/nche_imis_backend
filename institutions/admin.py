@@ -31,8 +31,9 @@ class LicenseTypeAdmin(SimpleHistoryAdmin,ModelAdmin,ExportForm):
 
 # Register your models here.
 @admin.register(Institution)
-class InstitutionAdmin(ModelAdmin, ExportActionModelAdmin):
+class InstitutionAdmin(ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     export_form_class = SelectableFieldsExportForm
+    import_form_class = ImportForm
     list_display = ("name", "district","institution_type","landline", "user__email")
     search_fields = ("name", "district__name", "user__email")
     #actions = ["export_as_csv"]
@@ -42,7 +43,7 @@ class InstitutionAdmin(ModelAdmin, ExportActionModelAdmin):
     warn_unsaved_form = True  # Default: False
      # Display submit button in filters
     list_filter_submit = True
-
+    fields=("user",)
     # Display changelist in fullwidth
     list_fullwidth = False
      # Position horizontal scrollbar in changelist at the top

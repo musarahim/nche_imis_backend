@@ -3,7 +3,7 @@ from common.models import FinanceYear, TimeStampedModel
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils import timezone
-from institutions.models import Institution, PublicationYear
+from institutions.models import Institution
 from phonenumber_field.modelfields import PhoneNumberField
 from tinymce.models import HTMLField
 
@@ -258,12 +258,15 @@ class CertificationAndClassification(TimeStampedModel):
     # Facilities
     library_books = models.PositiveIntegerField(null=True, blank=True)
     text_books = models.PositiveIntegerField(null=True, blank=True)
-    publication_years = models.ManyToManyField(PublicationYear, blank=True)
+    publication_years = ArrayField(models.CharField(max_length=5),  # store as list of strings
+        blank=True,
+        default=list
+    )
     computers_in_use = models.PositiveIntegerField(null=True, blank=True)
     computers_in_library = models.PositiveIntegerField(null=True, blank=True)
     academic_staff_computers = models.PositiveIntegerField(null=True, blank=True)
     administrative_staff_computers = models.PositiveIntegerField(null=True, blank=True)
-    library_computer_software = models.PositiveIntegerField(null=True, blank=True)
+    library_computer_software = models.TextField(null=True, blank=True)
     #State whether students will access computers to locate reading materials in the library
     students_have_access = models.BooleanField(null=True, blank=True)
     has_internet_access = models.BooleanField(null=True, blank=True)
@@ -305,7 +308,7 @@ class CertificationAndClassification(TimeStampedModel):
     institution_ownership = HTMLField(null=True, blank=True)
     # Financial Management
     other_assets = models.FileField(null=True, blank=True)
-    anual_budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    annual_budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     previous_financial_year_accounts = models.FileField(null=True, blank=True)
     fee_structure = models.FileField(null=True, blank=True)
     fees_percent_budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)

@@ -1,12 +1,16 @@
+import pyotp
 from django.contrib import admin
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
+from import_export.admin import ExportActionModelAdmin, ImportExportModelAdmin
+from simple_history.admin import SimpleHistoryAdmin
+from trench.models import MFAMethod
 from unfold.admin import ModelAdmin
+from unfold.contrib.import_export.forms import (ExportForm, ImportForm,
+                                                SelectableFieldsExportForm)
 from unfold.forms import (AdminPasswordChangeForm, UserChangeForm,
                           UserCreationForm)
-import pyotp
-from trench.models import MFAMethod
 
 from .models import User
 
@@ -33,9 +37,11 @@ class CustomUserCreationForm(UserCreationForm):
 admin.site.unregister(Group)
 
 @admin.register(User)
-class UserAdmin(BaseUserAdmin, ModelAdmin):
+class UserAdmin(BaseUserAdmin, ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     # Forms loaded from `unfold.forms`
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')
+    search_fields = ('username', 'email', 'first_name', 'last_name')
+    export_form_class = SelectableFieldsExportForm
     form = UserChangeForm
     add_form = CustomUserCreationForm  # Use our custom form
     change_password_form = AdminPasswordChangeForm

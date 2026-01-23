@@ -1,7 +1,7 @@
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from .models import Institution, OtherDocuments, PublicationYear
+from .models import Institution, OtherDocuments
 
 
 class InstitutionSerializer(serializers.ModelSerializer):
@@ -29,14 +29,6 @@ class InstitutionSerializer(serializers.ModelSerializer):
         representation['phone'] = instance.user.phone.raw_input if instance.user else ''
         return representation
 
-
-class PublicationYearSerializer(serializers.ModelSerializer):
-    '''Serializer for PublicationYear model.'''
-    class Meta:
-        '''Meta class for PublicationYear Serializer'''
-        model = PublicationYear
-        fields = ['id', 'year']
-        read_only_fields = ['id']
 
 
 class OtherDocumentsSerializer(serializers.ModelSerializer):

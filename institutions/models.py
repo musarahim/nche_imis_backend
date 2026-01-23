@@ -47,16 +47,8 @@ class Institution(TimeStampedModel):
         verbose_name_plural = "Institutions"
         ordering = ['name']
 
-class PublicationYear(TimeStampedModel):
-    '''Publication Year model. '''
-    year = models.IntegerField(null=False, blank=False)
-
-    def __str__(self):
-        return str(self.year)
-
 
     
-
 class InstitutionVehicle(TimeStampedModel):
     """Institution Vehicle"""
     institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='vehicles', blank=False)

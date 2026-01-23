@@ -7,7 +7,6 @@ app_name = 'institutions'
 # Create a router and register our viewset with it.
 router = DefaultRouter()
 router.register(r'institutions', views.InstitutionViewSet)
-router.register(r'publication-years', views.PublicationYearViewSet)
 router.register(r'other-documents', views.OtherDocumentsViewset)
 
 
