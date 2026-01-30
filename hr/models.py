@@ -65,6 +65,8 @@ class Employee(TimeStampedModel):
     tribe = models.ForeignKey(Tribe, on_delete=models.DO_NOTHING, null=True, blank=False)
     joining_date = models.DateField(null=True, blank=True)
     supervisor = models.ForeignKey('self', on_delete=models.DO_NOTHING, null=True, blank=True, related_name='subordinates')
+    office_phone = models.CharField(max_length=12, null=True, blank=True)
+    office_extension = models.CharField(max_length=10, null=True, blank=True)
     # Residential Address
     district = models.ForeignKey(District, on_delete=models.DO_NOTHING, null=True, blank=True)
     county = models.ForeignKey(County, on_delete=models.DO_NOTHING, null=True, blank=True)
