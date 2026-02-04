@@ -732,10 +732,10 @@ class CharterApplication(TimeStampedModel):
     science_labs = models.IntegerField(null=True, blank=True)
     computer_labs = models.IntegerField(null=True, blank=True)
     staff_houses = models.IntegerField(null=True, blank=True)
-    areadministrative_staff_area = models.IntegerField(null=True, blank=True)
+    administrative_staff_area = models.IntegerField(null=True, blank=True)
     area_for_staff_use = models.IntegerField(null=True, blank=True)
     administrative_block_area = models.IntegerField(null=True, blank=True)
-    student_Welfare_offices = models.IntegerField(null=True, blank=True)
+    student_welfare_offices = models.IntegerField(null=True, blank=True)
     sick_bay_area = models.IntegerField(null=True, blank=True)
     hostels_area = models.IntegerField(null=True, blank=True)
     meeting_hall_area = models.IntegerField(null=True, blank=True)
@@ -752,6 +752,8 @@ class CharterApplication(TimeStampedModel):
     cultivable_land = models.FloatField(null=True, blank=True)
 
     #Transport - State the number and registration of vehicles the university has
+    number_of_vehicles = models.IntegerField(null=True, blank=True)
+    vehicle_registration = models.TextField(null=True, blank=True)
     # EDUCATIONAL FACILITIES IN PLACE
     library_books = models.IntegerField(null=True, blank=True)
     text_books = models.IntegerField(null=True, blank=True)
@@ -764,7 +766,7 @@ class CharterApplication(TimeStampedModel):
     computers_in_library = models.IntegerField(null=True, blank=True)
     academic_staff_computers = models.IntegerField(null=True, blank=True)
     administrative_staff_computers = models.IntegerField(null=True, blank=True)
-    library_computer_software = models.IntegerField(null=True, blank=True)
+    library_computer_software = models.TextField(null=True, blank=True)
     #State whether students will access computers to locate reading materials in the library
     students_have_access = models.BooleanField(null=True, blank=True)
     has_internet_access = models.BooleanField(null=True, blank=True)
@@ -777,7 +779,7 @@ class CharterApplication(TimeStampedModel):
     full_time_academic_staff = models.IntegerField(null=True, blank=True)
     intended_full_time_academic_staff = models.IntegerField(null=True, blank=True)
     full_time_academic_staff_qualifications = models.FileField(null=True, blank=True)
-    intended_part_time_academic_staff = models.IntegerField(null=True, blank=True)
+    part_time_academic_staff = models.IntegerField(null=True, blank=True)
     part_time_academic_staff_qualifications = models.FileField(null=True, blank=True)
     phd_holders = models.IntegerField(null=True, blank=True)
     phd_holder_discipline = models.FileField(null=True, blank=True)
@@ -787,7 +789,7 @@ class CharterApplication(TimeStampedModel):
     bachelor_holders_discipline = models.FileField(null=True, blank=True)
     diploma_holders = models.IntegerField(null=True, blank=True)
     diploma_holders_discipline = models.FileField(null=True, blank=True)
-    average_staff_student_ratio = models.IntegerField(null=True, blank=True)
+    average_staff_student_ratio = models.CharField(max_length=50, null=True, blank=True)
     programme_staff_student_ratio = models.FileField(null=True, blank=True)
     staff_overload = models.IntegerField(null=True, blank=True)
     # ADMINISTRATIVE AND SUPPORT STAFF
@@ -834,6 +836,7 @@ class CharterApplication(TimeStampedModel):
     social_science_students = models.IntegerField(null=True, blank=True)
     basic_science_students = models.IntegerField(null=True, blank=True)
     arts_education_students = models.IntegerField(null=True, blank=True)
+    science_education_students = models.IntegerField(null=True, blank=True)
     agriculture_students = models.IntegerField(null=True, blank=True)
     medicine_students = models.IntegerField(null=True, blank=True)
     veterinary_students = models.IntegerField(null=True, blank=True)
@@ -853,6 +856,7 @@ class CharterApplication(TimeStampedModel):
     financial_control = models.FileField(null=True, blank=True)
     detailed_programmes = models.FileField(null=True, blank=True)
     facilities = models.FileField(null=True, blank=True)
+    member_cvs = models.FileField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', blank=False)
      # ODI application
     is_odai = models.BooleanField(default=False)

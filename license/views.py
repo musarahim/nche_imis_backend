@@ -295,7 +295,7 @@ class CharterApplicationViewset(viewsets.ModelViewSet):
 # ODI charter application
 class ODICharterApplicationViewset(viewsets.ModelViewSet):
     '''University Grant Charter Application'''
-    queryset = CharterApplication.objects.all()
+    queryset = CharterApplication.objects.filter(is_odai=True)
     serializer_class = CharterApplicationSerializer
     permissions_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
@@ -357,9 +357,9 @@ class OTIProvisionalViewset(viewsets.ModelViewSet):
             serializer.save(institute=institution, status="draft")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
     
 class OTIProvisionalAwardViewset(viewsets.ModelViewSet):
     '''OTI Provisional Award Letters'''
