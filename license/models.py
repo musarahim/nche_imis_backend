@@ -11,6 +11,11 @@ from tinymce.models import HTMLField
 
 class OTIProvisional(TimeStampedModel):
     '''OTI Provisional License Application'''
+    STATUS_CHOICES = (
+        ('draft', 'Draft'),
+        ('submitted', 'Submitted'),
+        ('pending', 'Pending'),
+    )
     code = models.CharField(max_length=30, null=True, blank=True)
     application_date = models.DateField(null=True, blank=True, auto_now=True)
     institute = models.ForeignKey(Institution, on_delete=models.DO_NOTHING, null=True, blank=True)
@@ -155,7 +160,7 @@ class OTIProvisional(TimeStampedModel):
     financial_control_mechanism = models.FileField(null=True, blank=False)
     detailed_programmes = models.FileField(null=True, blank=False)
     physical_education_facilities = models.FileField(null=True, blank=False)
-    status = models.CharField(max_length=20, choices=(('draft', 'Draft'), ('submitted', 'Submitted')), default='draft', blank=False)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', blank=False)
 
     def save(self, *args, **kwargs):
         if not self.code:

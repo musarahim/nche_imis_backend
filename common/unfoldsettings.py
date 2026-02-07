@@ -238,6 +238,12 @@ UNFOLD = {
                     "link": reverse_lazy("admin:common_relationship_changelist"),
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "calendar_today",
+                }, 
+                {
+                    "title": _("Payment Codes"),
+                    "link": reverse_lazy("admin:payments_paymentcode_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "payments",
                 },
                 
                 # ... add your other uncommented configuration items here

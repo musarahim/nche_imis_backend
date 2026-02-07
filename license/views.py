@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.utils import timezone
 from institutions.models import Institution
 from payments.ura_payment import UraMdaPaymentService
 from rest_framework import filters, parsers, permissions, status, viewsets
@@ -15,13 +16,14 @@ from .serializers import (CertificationAndClassificationSerializer,
                           OTIProvisionalSerializer,
                           UniversityProvisionalLicenseSerializer)
 
-
+service = UraMdaPaymentService()
 # Create your views here.
+
 class CertificationAndClassificationViewset(viewsets.ModelViewSet):
     '''Institution certification and classification'''
     queryset = CertificationAndClassification.objects.all()
     serializer_class = CertificationAndClassificationSerializer
-    permissions_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     parsers_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser] 
 
     def get_queryset(self):
@@ -101,7 +103,7 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
         
         if serializer.is_valid():
             serializer.save()
-            service = UraMdaPaymentService()
+            
             # You can call service methods here if needed, e.g., service.get_prn(...)
             prn_check=service.check_prn_status(prn="2240015259832")  # Example call
             print(prn_check, "result from URA PRN check")
@@ -151,7 +153,6 @@ class IntrimAuthorityODIViewset(viewsets.ModelViewSet):
         
         if serializer.is_valid():
             serializer.save()
-            service = UraMdaPaymentService()
             # You can call service methods here if needed, e.g., service.get_prn(...)
             prn_check=service.check_prn_status(prn="2240015259832")  # Example call
             print(prn_check, "result from URA PRN check")
@@ -165,7 +166,7 @@ class InterimDiscussionViewset(viewsets.ModelViewSet):
     '''Interim Discussion Viewset'''
     queryset = InterimDiscussion.objects.all()
     serializer_class = InterimDiscussionSerializer
-    permissions_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     pagination_class = None
     search_fields = ['institution__name','discussion_date','remarks']
@@ -360,12 +361,55 @@ class OTIProvisionalViewset(viewsets.ModelViewSet):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    def partial_update(self, request, pk=None):
+        '''Partial update of the Interim Authority Application'''
+        instance = self.get_object()
+        serializer = self.serializer_class(instance, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            # You can call service methods here if needed, e.g., service.get_prn(...)
+            if serializer.validated_data.get('status') == 'submitted':
+                print("Status is submitted, checking PRN...")
+                prn_check=service.get_prn(
+                    {
+                    "amount": 10000000,
+                    "assessmentDate": timezone.now().isoformat(),
+                    "paymentType": "DT",
+                    "referenceNo": instance.code,
+                    "tin": "1017779749",
+                    "srcSystem": "Imis",
+                    "taxHead": "NCHE001",
+                    "taxSubHead": "",
+                    "email": "musarahi@example.com",
+                    "taxPayerName": "Musa Rahim",
+                    "plot": "",
+                    "buildingName": "",
+                    "street": "",
+                    "tradeCentre": "",
+                    "district": "",
+                    "county": "",
+                    "subCounty": "",
+                    "parish": "",
+                    "village": "",
+                    "localCouncil": "",
+                    "contactNo": "",
+                    "paymentPeriod": "",
+                    "expiryDays": "",
+                    "mobileMoneyNumber": "",
+                    "mobileNo": "0788329636"
+                })  # Example call
+                print(prn_check, "result from URA PRN check")
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
     
 class OTIProvisionalAwardViewset(viewsets.ModelViewSet):
     '''OTI Provisional Award Letters'''
     queryset = OTIProvisionalAward.objects.all()
     serializer_class = OTIProvisionalAwardSerializer
-    permissions_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     pagination_class = None
     search_fields = ['oti_provisional__application_code','oti_provisional__institute__name','code','issue_date']

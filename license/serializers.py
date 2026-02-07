@@ -95,7 +95,7 @@ class OTIProvisionalSerializer(serializers.ModelSerializer):
         '''Meta class for OTIProvisional Serializer'''
         model = OTIProvisional
         fields = "__all__"
-        read_only_fields = ['id', 'application_code', 'status']
+        read_only_fields = ['id', 'application_code']
 
 
     def to_representation(self, instance):

@@ -76,8 +76,10 @@ class UraMdaPaymentService:
         Body must be: { "PRNRequest": {...}, <backend-cred-fields> }
         Sample PRNRequest fields are in the spec (Amount, PaymentMode, TaxHead, etc.).
         """
-        body = {"PRNRequest": prn_request}
-        return self._post("getPRN", body)
+      
+        body = prn_request
+        print(f"Generating PRN with request: {body}")
+        return self._post("prn-services/generate-prn", body)
 
     # 2) Check PRN Status
     def check_prn_status(self, prn: str) -> Dict[str, Any]:
