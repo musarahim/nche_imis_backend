@@ -371,7 +371,7 @@ class OTIProvisionalViewset(viewsets.ModelViewSet):
             # You can call service methods here if needed, e.g., service.get_prn(...)
             if serializer.validated_data.get('status') == 'submitted':
                 print("Status is submitted, checking PRN...")
-                prn_check=service.get_prn(
+                prn_check=service.generate_and_save_prn(
                     {
                     "amount": 10000000,
                     "assessmentDate": timezone.now().isoformat(),
@@ -399,7 +399,7 @@ class OTIProvisionalViewset(viewsets.ModelViewSet):
                     "mobileMoneyNumber": "",
                     "mobileNo": "0788329636"
                 })  # Example call
-                print(prn_check, "result from URA PRN check")
+               # print(prn_check, "result from URA PRN check")
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

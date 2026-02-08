@@ -383,6 +383,28 @@ UNFOLD = {
                 # ... add your other uncommented configuration items here
             ],
         },
+         {
+            "title": _("Payments"),
+            "icon": "contract",
+            "collapsible": True,
+            "permission": lambda request: request.user.is_superuser,
+            "items": [
+                {
+                    "title": _("PRN Requests"),
+                    "link": reverse_lazy("admin:payments_applicationprns_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "money",
+                },
+                {
+                    "title": _("Accredited Programs"),
+                    "link": reverse_lazy("admin:programmes_program_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "contract",
+                },
+                
+                # ... add your other uncommented configuration items here
+            ],
+        },
 
     ],
 },

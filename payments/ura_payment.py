@@ -5,6 +5,9 @@ from typing import Any, Dict
 
 import httpx
 from django.conf import settings
+from django.utils.dateparse import parse_date
+
+from .models import ApplicationPRNS, PaymentCode
 
 
 @dataclass
@@ -80,6 +83,58 @@ class UraMdaPaymentService:
         body = prn_request
         print(f"Generating PRN with request: {body}")
         return self._post("prn-services/generate-prn", body)
+
+    def generate_and_save_prn(self, prn_request: Dict[str, Any]) -> ApplicationPRNS:
+        """
+        Generate PRN and save both request and response data to ApplicationPRNS model.
+        Returns the created ApplicationPRNS instance.
+        """
+        # Get the PRN from URA API
+        response = self.get_prn(prn_request)
+        
+        # Extract request data directly (no PRNRequest wrapper)
+        #print(f"Received PRN Request: {prn_request}")
+        prn_req_data = prn_request
+        
+        # Create ApplicationPRNS instance with combined request and response data
+        app_prn = ApplicationPRNS.objects.create(
+            # Request data
+            amount=prn_req_data.get("amount"),
+            assessmentDate=prn_req_data.get("assessmentDate"),
+            paymentType=prn_req_data.get("paymentType"),  # Maps to DT
+            referenceNo=prn_req_data.get("referenceNo"),
+            tin=prn_req_data.get("tin"),
+            srcSystem=prn_req_data.get("srcSystem"),
+            taxHead=prn_req_data.get("taxHead"),
+            taxSubHead=prn_req_data.get("taxSubHead"),
+            email=prn_req_data.get("email"),
+            taxPayerName=prn_req_data.get("taxPayerName"),
+            plot=prn_req_data.get("plot"),
+            buildingName=prn_req_data.get("buildingName"),
+            street=prn_req_data.get("street"),
+            tradeCentre=prn_req_data.get("tradeCentre"),
+            district=prn_req_data.get("district"),
+            county=prn_req_data.get("county"),
+            subCounty=prn_req_data.get("subCounty"),
+            parish=prn_req_data.get("parish"),
+            village=prn_req_data.get("village"),
+            localCouncil=prn_req_data.get("localCouncil"),
+            contactNo=prn_req_data.get("contactNo"),
+            paymentPeriod=prn_req_data.get("paymentPeriod"),
+            expiryDays=prn_req_data.get("expiryDays"),
+            mobileMoneyNumber=prn_req_data.get("mobileMoneyNumber"),
+            mobileNo=prn_req_data.get("mobileNo"),
+            
+            # Response data
+            prn=response.get("prn"),
+            statusCode=response.get("statusCode"),
+            statusDesc=response.get("statusDesc"),
+            searchCode=response.get("searchCode"),
+            expiryDate=parse_date(response.get("expiryDate")) if response.get("expiryDate") else None,
+        )
+        
+        print(f"Created ApplicationPRNS record with Application Reference No: {app_prn.referenceNo}")
+        return app_prn
 
     # 2) Check PRN Status
     def check_prn_status(self, prn: str) -> Dict[str, Any]:

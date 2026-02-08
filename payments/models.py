@@ -2,17 +2,6 @@ from accounts.models import User
 from django.db import models
 
 # Create your models here.
-
-class PaymentOptions(models.Model):
-    name            =   models.CharField(max_length=100)
-    description     =   models.TextField(null=True, blank=True)
-    created_at      =   models.DateTimeField(auto_now_add=True)
-    updated_at      =   models.DateTimeField(auto_now_add=False, null=True, blank=True)
-    created_by      =   models.ForeignKey(User, on_delete=models.CASCADE, related_name="payment_option_creator")
-    updated_by      =   models.ForeignKey(User, on_delete=models.CASCADE, related_name="payment_option_updater", null=True, blank=True)
-
-    def __str__(self):
-        return self.name
     
 class PaymentCode(models.Model):
     '''Model to store payment codes and their details'''
@@ -39,7 +28,7 @@ class ApplicationPRNS(models.Model):
     assessmentDate = models.DateTimeField(null=True, blank=True)
     paymentType = models.CharField(max_length=100, null=True, blank=True)# DT
     # map application ID to reference number when generating PRN
-    referenceNo = models.CharField(max_length=100, null=True, blank=True)
+    referenceNo = models.CharField(max_length=100, blank=True, null=True) # ReferenceNo
     tin = models.CharField(max_length=100, null=True, blank=True)
     srcSystem = models.CharField(max_length=100, null=True, blank=True)
     taxHead = models.CharField(max_length=100, null=True, blank=True)
@@ -61,6 +50,13 @@ class ApplicationPRNS(models.Model):
     expiryDays = models.CharField(max_length=100, null=True, blank=True)
     mobileMoneyNumber = models.CharField(max_length=100, null=True, blank=True)
     mobileNo = models.CharField(max_length=100, null=True, blank=True)
+    # PRN response data structure
+    expiryDate = models.DateField(null=True, blank=True) 
+    statusCode = models.CharField(max_length=10, null=True, blank=True)
+    statusDesc = models.CharField(max_length=100, null=True, blank=True)
+    searchCode = models.CharField(max_length=100, null=True, blank=True)
+    prn = models.CharField(max_length=100, null=True, blank=True)
+    prn_reconciled = models.BooleanField(default=False)
 
 
     def __str__(self):
@@ -68,33 +64,4 @@ class ApplicationPRNS(models.Model):
     
 
 
-class PRNCallIns(models.Model):
-    prn             =   models.CharField(max_length=100)
-    created_at      =   models.DateTimeField(auto_now_add=True)
-    status          =   models.BooleanField(default=True)
 
-class PaymentRequests(models.Model):
-    related_prn             =   models.ForeignKey(ApplicationPRNS, on_delete=models.CASCADE, related_name="related_prn_payment_request")
-    internal_transaction_id =   models.CharField(max_length=100) 
-    mobile_number            =   models.CharField(max_length=12, null=True, blank=True)
-    external_transaction_id =   models.CharField(max_length=100)
-    return_transaction_id   =   models.CharField(max_length=100, null=True, blank=True)
-    pay_request_status      =   models.BooleanField(default=False)
-    request_response        =   models.TextField(null=True, blank=True)
-    response_status         =   models.BooleanField(default=True)
-    updated_at              =   models.DateTimeField(auto_now_add=False, null=True, blank=True)
-    created_at              =   models.DateTimeField(auto_now_add=True)
-
-class PaymentRequestCallbacks(models.Model):
-    prn                     =   models.ForeignKey(ApplicationPRNS, on_delete=models.CASCADE, related_name="related_prn_payment_request_callback")
-    ura_status              =   models.CharField(max_length=40)
-    mobilemoney_post_date   =   models.DateTimeField(auto_now_add=False, null=True, blank=True)
-    mm_transaction_id       =   models.CharField(max_length=100)
-    ura_post_date           =   models.DateTimeField(auto_now_add=False, null=True, blank=True)
-    date_created            =   models.DateTimeField(auto_now_add=False, null=True, blank=True)
-    overall_status          =   models.CharField(max_length=20)
-    last_post_message       =   models.CharField(max_length=20)
-    internal_reference      =   models.CharField(max_length=20)
-    external_reference      =   models.CharField(max_length=20)
-    amount                  =   models.DecimalField(max_digits=20, decimal_places=2)
-    created_at              =   models.DateTimeField(auto_now_add=True)
