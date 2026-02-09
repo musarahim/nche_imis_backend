@@ -57,9 +57,42 @@ class CertificationAndClassificationViewset(viewsets.ModelViewSet):
         
         if serializer.is_valid():
             serializer.save()
+            if serializer.validated_data.get('status') == 'submitted':
+                print("Status is submitted, checking PRN...")
+                prn_check = service.generate_and_save_prn(
+                    {
+                    "amount": 200000,
+                    "assessmentDate": timezone.now().isoformat(),
+                    "paymentType": "DT",
+                    "referenceNo": instance.application_code,
+                    "tin": instance.institution.tin,
+                    "srcSystem": "Imis",
+                    "taxHead": "NCHE001",
+                    "taxSubHead": "",
+                    "email": instance.institution.user.email or instance.institution.alternative_email,
+                    "taxPayerName": instance.institution.name,
+                    "plot": "",
+                    "buildingName": "",
+                    "street": "",
+                    "tradeCentre": "",
+                    "district": instance.institution.district.name if instance.institution.district else "",
+                    "county": "",
+                    "subCounty": "",
+                    "parish": "",
+                    "village": "",
+                    "localCouncil": "",
+                    "contactNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else "",
+                    "paymentPeriod": "",
+                    "expiryDays": "",
+                    "mobileMoneyNumber": "",
+                    "mobileNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else ""
+                })  # Example call
+                print(prn_check, "result from URA PRN check")
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    
     
 
 class IntrimAuthorityViewset(viewsets.ModelViewSet):
@@ -373,16 +406,16 @@ class OTIProvisionalViewset(viewsets.ModelViewSet):
                 print("Status is submitted, checking PRN...")
                 prn_check=service.generate_and_save_prn(
                     {
-                    "amount": 10000000,
+                    "amount": 200000,
                     "assessmentDate": timezone.now().isoformat(),
                     "paymentType": "DT",
                     "referenceNo": instance.code,
-                    "tin": "1017779749",
+                    "tin": instance.institute.tin,
                     "srcSystem": "Imis",
                     "taxHead": "NCHE001",
                     "taxSubHead": "",
-                    "email": "musarahi@example.com",
-                    "taxPayerName": "Musa Rahim",
+                    "email": instance.institute.alternative_email or instance.institute.user.email,
+                    "taxPayerName": instance.institute.name,
                     "plot": "",
                     "buildingName": "",
                     "street": "",
@@ -393,13 +426,13 @@ class OTIProvisionalViewset(viewsets.ModelViewSet):
                     "parish": "",
                     "village": "",
                     "localCouncil": "",
-                    "contactNo": "",
+                    "contactNo": f'0{instance.institute.contact_person_phone.national_number}' if instance.institute.contact_person_phone else "",
                     "paymentPeriod": "",
                     "expiryDays": "",
                     "mobileMoneyNumber": "",
-                    "mobileNo": "0788329636"
+                    "mobileNo": f'0{instance.institute.contact_person_phone.national_number}' if instance.institute.contact_person_phone else ""
                 })  # Example call
-               # print(prn_check, "result from URA PRN check")
+                print(prn_check, "result from URA PRN check")
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -24,6 +24,7 @@ class Institution(TimeStampedModel):
     name = models.CharField(max_length=255, unique=True, null=False, blank=False)
     acroynm = models.CharField(max_length=50, unique=True, null=True, blank=False)
     alternative_email = models.EmailField(max_length=255, blank=True, null=True)
+    tin = models.CharField(max_length=11, null=True, blank=True)
     region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name='institutions', blank=False, null=True)
     district = models.ForeignKey(District, on_delete=models.CASCADE, related_name='institutions', blank=False)
     institution_type = models.CharField(max_length=20, choices=INSTITUTION_TYPE_CHOICES, default='public', blank=False)

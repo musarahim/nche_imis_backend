@@ -112,6 +112,6 @@ class ApplicationPRNSAdmin(SimpleHistoryAdmin, ModelAdmin, ExportActionModelAdmi
         """Disable editing records."""
         return False
 
-    def has_delete_permission(self, request, obj=None):
-        """Disable deleting records."""
-        return False
+    # def has_delete_permission(self, request, obj=None):
+    #     """Disable deleting records."""
+    #     return False

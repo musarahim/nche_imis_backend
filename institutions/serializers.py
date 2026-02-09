@@ -16,7 +16,7 @@ class InstitutionSerializer(serializers.ModelSerializer):
             'id', 'user', 'name','acroynm','region', 'district', 'institution_type',"alternative_email",
             'landline','website','postal_address', 'contact_person', 'contact_person_phone',
             'alternative_contact_person', 'alternative_contact_person_phone','location',
-            'logo'
+            'logo','tin'
         ]
         read_only_fields = ['id', 'user']
 

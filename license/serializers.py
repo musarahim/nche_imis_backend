@@ -17,6 +17,7 @@ class CertificationAndClassificationSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         response = super().to_representation(instance)
         response['institution'] = instance.institution.name
+        response['provisional_license_value'] = instance.provisional_license.code if instance.provisional_license else None
         return response
 
 
