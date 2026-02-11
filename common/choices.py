@@ -62,3 +62,40 @@ PROGRAMME_LEVELS = [
     ('other', 'Other'),
 ]
 
+STATUS_CHOICES = (
+        # Initial stages
+        ('draft', 'Draft'),
+        ('submitted', 'Submitted'),
+        ('prelim_review', 'Under Preliminary Review'),
+        ('prelim_feedback', 'Preliminary Feedback Issued'),
+
+        # Vetting stages
+        ('vetting_scheduled', 'Scheduled for Vetting'),
+        ('vetting_in_progress', 'Vetting in Progress'),
+        ('vetting_feedback', 'Vetting Decision Issued'),
+
+        # Administrative visit to verify land/infrastructure
+        ('admin_visit_pending', 'Administrative Visit Pending'),
+        ('admin_visit_done', 'Administrative Visit Completed'),
+
+        # NCHE organs review (Directorate, Management, QAAC, Council)
+        ('under_directorate_review', 'Under Directorate Review'),
+        ('under_management_review', 'Under Management Review'),
+        ('under_qaac_review', 'Under QAAC Review'),
+        ('under_council_review', 'Under Council Review'),
+
+        # Council decision and fees
+        ('approved_pending_fees', 'Approved – Pending Fee Payment'),
+        ('fees_invoiced', 'Fees Invoiced'),
+        ('fees_paid', 'Fees Paid – Certificate Processing'),
+
+        # Certificate issuance / completion
+        ('certificate_ready', 'Certificate Ready for Collection'),
+        ('completed', 'Completed – LIA Issued'),
+
+        # On-hold / negative outcomes
+        ('on_hold_requirements', 'On Hold – Requirements Not Met'),
+        ('on_hold_non_compliance', 'On Hold – Non-Compliance Issues'),
+        ('deferred', 'Deferred'),
+        ('rejected', 'Rejected / Not Approved'),
+    )

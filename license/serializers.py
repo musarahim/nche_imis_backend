@@ -59,7 +59,7 @@ class UniversityProvisionalLicenseSerializer(serializers.ModelSerializer):
         '''Meta class for UniversityProvisionalLicense Serializer'''
         model = UniversityProvisionalLicense
         fields = "__all__"
-        read_only_fields = ['id', 'application_code', 'status']
+        read_only_fields = ['id', 'application_code']
 
 
     def to_representation(self, instance):
@@ -78,7 +78,7 @@ class CharterApplicationSerializer(serializers.ModelSerializer):
         '''Meta class for CharterApplication Serializer'''
         model = CharterApplication
         fields = "__all__"
-        read_only_fields = ['id', 'application_code', 'status']
+        read_only_fields = ['id', 'application_code']
 
 
     def to_representation(self, instance):

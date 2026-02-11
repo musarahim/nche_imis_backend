@@ -1,4 +1,4 @@
-from common.choices import LEASE_RENTED
+from common.choices import LEASE_RENTED, STATUS_CHOICES
 from common.models import FinanceYear, TimeStampedModel
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -218,10 +218,7 @@ class OTIProvisionalAward(TimeStampedModel):
 
 class CertificationAndClassification(TimeStampedModel):
     '''Certification and Classification model to represent an institution. '''
-    STATUS_CHOICES=(
-        ('draft', 'Draft'),
-        ('submitted', 'Submitted'),
-    )
+ 
     institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='certifications', blank=True)
     application_code = models.CharField(max_length=30, null=True, blank=True, unique=True)
     # consider using a reference to the provisional license
@@ -363,7 +360,7 @@ class CertificationAndClassification(TimeStampedModel):
     financial_control_mechanism = models.FileField(null=True, blank=True)
     detailed_programmes = models.FileField(null=True, blank=True)
     physical_education_facilities = models.FileField(null=True, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', blank=False)
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='draft', blank=False)
     application_date = models.DateField(null=True, blank=True, auto_now=True)
     # payment, integrate URA
     def __str__(self):
@@ -404,43 +401,7 @@ class CertificationAndClassification(TimeStampedModel):
 # university license
 class IntrimAuthority(TimeStampedModel):
     """Intrim Authority University License"""
-    STATUS_CHOICES = (
-        # Initial stages
-        ('draft', 'Draft'),
-        ('submitted', 'Submitted'),
-        ('prelim_review', 'Under Preliminary Review'),
-        ('prelim_feedback', 'Preliminary Feedback Issued'),
-
-        # Vetting stages
-        ('vetting_scheduled', 'Scheduled for Vetting'),
-        ('vetting_in_progress', 'Vetting in Progress'),
-        ('vetting_feedback', 'Vetting Decision Issued'),
-
-        # Administrative visit to verify land/infrastructure
-        ('admin_visit_pending', 'Administrative Visit Pending'),
-        ('admin_visit_done', 'Administrative Visit Completed'),
-
-        # NCHE organs review (Directorate, Management, QAAC, Council)
-        ('under_directorate_review', 'Under Directorate Review'),
-        ('under_management_review', 'Under Management Review'),
-        ('under_qaac_review', 'Under QAAC Review'),
-        ('under_council_review', 'Under Council Review'),
-
-        # Council decision and fees
-        ('approved_pending_fees', 'Approved – Pending Fee Payment'),
-        ('fees_invoiced', 'Fees Invoiced'),
-        ('fees_paid', 'Fees Paid – Certificate Processing'),
-
-        # Certificate issuance / completion
-        ('certificate_ready', 'Certificate Ready for Collection'),
-        ('completed', 'Completed – LIA Issued'),
-
-        # On-hold / negative outcomes
-        ('on_hold_requirements', 'On Hold – Requirements Not Met'),
-        ('on_hold_non_compliance', 'On Hold – Non-Compliance Issues'),
-        ('deferred', 'Deferred'),
-        ('rejected', 'Rejected / Not Approved'),
-    )
+    
     application_code = models.CharField(max_length=30, null=True, blank=True, unique=True)
     institution = models.ForeignKey(Institution, on_delete=models.DO_NOTHING, null=False, blank=True)
     has_title_deed = models.BooleanField(null=False, blank=False)
@@ -663,9 +624,9 @@ class UniversityProvisionalLicense(TimeStampedModel):
     finance_control = models.FileField(null=True, blank=True)
     detailed_programmes = models.FileField(null=True, blank=True)
     physical_education_facilities = models.FileField(null=True, blank=True)
-    status = models.CharField(max_length=20, choices=(('draft', 'Draft'), ('submitted', 'Submitted')), default='draft', blank=False)
     application_date = models.DateField(null=True, blank=True, auto_now=True)
      # ODI application (add ODI specific fields)
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='draft', blank=False)
     is_odai = models.BooleanField(default=False)
 
     def __str__(self):
@@ -729,7 +690,7 @@ class CharterApplication(TimeStampedModel):
     land_in_use = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
     land_for_future_use = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=False)
     year_obtained = models.CharField(null=False, blank=False, max_length=30)
-    leased_or_rented = models.BooleanField(null=True, blank=False)
+    leased_or_rented =  models.CharField(max_length=20, choices=LEASE_RENTED, null=True, blank=False)
     lease_or_rent_agreement = models.FileField(upload_to='land_titles/', null=True, blank=True)
     # infrastructure
     classrooms = models.IntegerField(null=True, blank=True)
@@ -863,6 +824,7 @@ class CharterApplication(TimeStampedModel):
     facilities = models.FileField(null=True, blank=True)
     member_cvs = models.FileField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', blank=False)
+    application_date = models.DateField(null=True, blank=True, auto_now=True)
      # ODI application
     is_odai = models.BooleanField(default=False)
 
