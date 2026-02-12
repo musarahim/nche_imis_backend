@@ -660,6 +660,9 @@ class UniversityProvisionalLicense(TimeStampedModel):
 
         new_number = str(last_number + 1).zfill(5)  # zero-padded 
 
+        if self.is_odai:
+            return f"ODAP/{academic_year}/{new_number}"
+
         return f"UNIP/{academic_year}/{new_number}"
     
 class UniversityProvisionalLicenseDocument(TimeStampedModel):
