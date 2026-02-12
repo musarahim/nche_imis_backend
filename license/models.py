@@ -467,7 +467,11 @@ class IntrimAuthority(TimeStampedModel):
 
         new_number = str(last_number + 1).zfill(5)  # zero-padded
 
+        if self.is_odai:
+            return f"ODAI/{academic_year}/{new_number}"
+
         return f"UNII/{academic_year}/{new_number}"
+    
     def __str__(self):
         """
         Returns the institution name as a string representation of the model.
@@ -677,11 +681,6 @@ class UniversityProvisionalLicenseDocument(TimeStampedModel):
 
 class CharterApplication(TimeStampedModel):
     """Charter Application"""
-    STATUS_CHOICES = (
-        ('draft', 'Draft'),
-        ('submitted', 'Submitted'),
-        ('pending', 'Pending'),
-    )
     application_code = models.CharField(max_length=30, null=True, blank=True, unique=True)
     institution = models.ForeignKey(Institution, on_delete=models.DO_NOTHING, null=False, blank=True)
     has_provisional_license = models.BooleanField(null=False, blank=False)
@@ -826,7 +825,7 @@ class CharterApplication(TimeStampedModel):
     detailed_programmes = models.FileField(null=True, blank=True)
     facilities = models.FileField(null=True, blank=True)
     member_cvs = models.FileField(null=True, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', blank=False)
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='draft', blank=False)
     application_date = models.DateField(null=True, blank=True, auto_now=True)
      # ODI application
     is_odai = models.BooleanField(default=False)
@@ -848,16 +847,19 @@ class CharterApplication(TimeStampedModel):
             academic_year = f"{year-1}-{year}"
 
         # Get last sequence number for this year
-        last_app = OTIProvisional.objects.filter(
-            code__contains=academic_year
+        last_app = CharterApplication.objects.filter(
+            application_code__contains=academic_year
         ).order_by("id").last()
 
         if last_app:
-            last_number = int(last_app.code.split("/")[-1])
+            last_number = int(last_app.application_code.split("/")[-1])
         else:
             last_number = 0
 
         new_number = str(last_number + 1).zfill(5)  # zero-padded
+
+        if self.is_odai:
+            return f"ODAC/{academic_year}/{new_number}"
 
         return f"UNIC/{academic_year}/{new_number}"
     

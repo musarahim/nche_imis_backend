@@ -97,7 +97,7 @@ class CertificationAndClassificationViewset(viewsets.ModelViewSet):
 
 class IntrimAuthorityViewset(viewsets.ModelViewSet):
     '''Interim Authority Application'''
-    queryset = IntrimAuthority.objects.all()
+    queryset = IntrimAuthority.objects.filter(is_odai=False)
     serializer_class = IntrimAuthoritySerializer
     permissions_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
@@ -438,7 +438,7 @@ class ODAIProvisionalLicenseViewset(viewsets.ModelViewSet):
 
 class CharterApplicationViewset(viewsets.ModelViewSet):
     '''University Grant Charter Application'''
-    queryset = CharterApplication.objects.all()
+    queryset = CharterApplication.objects.filter(is_odai=False)
     serializer_class = CharterApplicationSerializer
     permissions_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
@@ -543,9 +543,52 @@ class ODICharterApplicationViewset(viewsets.ModelViewSet):
             user = self.request.user
             institution = Institution.objects.get(user=user)
             
-            serializer.save(institution=institution, status="draft", is_odi=True)
+            serializer.save(institution=institution, status="draft", is_odai=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def partial_update(self, request, pk=None):
+        '''Partial update of the Charter Application'''
+        instance = self.get_object()
+        serializer = self.serializer_class(instance, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            # You can call service methods here if needed, e.g., service.get_prn(...)
+            if serializer.validated_data.get('status') == 'submitted':
+                print("Status is submitted, checking PRN...")
+                prn_check=service.generate_and_save_prn(
+                    {
+                    "amount": 200000,
+                    "assessmentDate": timezone.now().isoformat(),
+                    "paymentType": "DT",
+                    "referenceNo": instance.application_code,
+                    "tin": instance.institution.tin,
+                    "srcSystem": "Imis",
+                    "taxHead": "NCHE001",
+                    "taxSubHead": "",
+                    "email": instance.institution.alternative_email or instance.institution.user.email,
+                    "taxPayerName": instance.institution.name,
+                    "plot": "",
+                    "buildingName": "",
+                    "street": "",
+                    "tradeCentre": "",
+                    "district": "",
+                    "county": "",
+                    "subCounty": "",
+                    "parish": "",
+                    "village": "",
+                    "localCouncil": "",
+                    "contactNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else "",
+                    "paymentPeriod": "",
+                    "expiryDays": "",
+                    "mobileMoneyNumber": "",
+                    "mobileNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else ""
+                })  # Example call
+                print(prn_check, "result from URA PRN check")
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class OTIProvisionalViewset(viewsets.ModelViewSet):

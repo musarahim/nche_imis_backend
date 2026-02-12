@@ -211,7 +211,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 # auth cookie settings
 AUTH_COOKIE = 'access'
-AUTH_COOKIE_ACCESS_MAX_AGES = 60 * 10 # expire after 10 minutes
+AUTH_COOKIE_ACCESS_MAX_AGES = 60 * 60 # expire after 10 minutes
 AUTH_COOKIE_REFRESH_MAX_AGES = 60 * 60 * 24 * 365 # expire after 1 year
 AUTH_COOKIE_SECURE = os.environ.get('AUTH_COOKIE_SECURE',False) # set to True in production
 AUTH_COOKIE_HTTP_ONLY = True 
