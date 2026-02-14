@@ -80,3 +80,28 @@ class RegisterInstitutionSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         Institution.objects.create(user=user, **institution_data)
         return user
+    
+    def update(self, instance, validated_data):
+        '''Override update method to handle nested updates'''
+        institution_data = validated_data.pop('institution', None)
+        
+        # Update user fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # Update institution fields if provided
+        if institution_data:
+            institution = instance.institution
+            for attr, value in institution_data.items():
+                setattr(institution, attr, value)
+            institution.save()
+
+        return instance
+    
+    def partial_update(self, instance, validated_data):
+        '''Override partial_update method to handle nested updates'''
+        return self.update(instance, validated_data)
+    
+ 
+    

@@ -27,7 +27,9 @@ class InstitutionSerializer(serializers.ModelSerializer):
         representation['region'] = instance.region.name if instance.region else None
         representation['institution_type'] = instance.get_institution_type_display()
         representation['phone'] = instance.user.phone.raw_input if instance.user else ''
+        representation['email'] = instance.user.email if instance.user else ''
         return representation
+    
 
 
 

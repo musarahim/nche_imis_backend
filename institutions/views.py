@@ -1,3 +1,4 @@
+from accounts.serializers import RegisterInstitutionSerializer
 from django.shortcuts import render
 from rest_framework import permissions, viewsets
 
@@ -13,6 +14,12 @@ class InstitutionViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     search_fields = ['name',"institution_type"]
 
+    def get_serializer_class(self):
+        '''Return different serializers based on action'''
+        if self.action == 'partial_update':
+            return RegisterInstitutionSerializer
+        return super().get_serializer_class()
+
     def get_queryset(self):
         '''Return only active institutions'''
         queryset = Institution.objects.all().order_by('name')
@@ -26,6 +33,9 @@ class InstitutionViewSet(viewsets.ModelViewSet):
         else:
             data = queryset.filter(user=self.request.user)
         return data
+    
+    def patch(self, request, *args, **kwargs):
+        return super().patch(request, *args, **kwargs)
         
 
 class OtherDocumentsViewset(viewsets.ModelViewSet):
