@@ -63,7 +63,7 @@ class Program(models.Model):
       ('under_review','Under Review'),
       ('expired','Expired')
     )
-    program_accreditation = models.ForeignKey(ProgramAccreditation, on_delete=models.CASCADE, related_name='programs')
+    applications = models.ManyToManyField(ProgramAccreditation, related_name='programs')
     program_name = models.CharField(max_length=50)
     program_level = models.CharField(max_length=255, blank=True, null=True, choices=PROGRAMME_LEVELS)
     accreditation_date = models.DateField(blank=True, null=True)

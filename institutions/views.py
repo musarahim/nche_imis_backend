@@ -2,8 +2,9 @@ from accounts.serializers import RegisterInstitutionSerializer
 from django.shortcuts import render
 from rest_framework import permissions, viewsets
 
-from .models import Institution, OtherDocuments
-from .serializers import InstitutionSerializer, OtherDocumentsSerializer
+from .models import Institution, LicenseType, OtherDocuments
+from .serializers import (InstitutionSerializer, LicenseTypeSerializer,
+                          OtherDocumentsSerializer)
 
 
 # Create your views here.
@@ -63,4 +64,9 @@ class OtherDocumentsViewset(viewsets.ModelViewSet):
         return data
     
 
-
+class LicenseTypeViewset(viewsets.ModelViewSet):
+    '''License Type viewset'''
+    queryset = LicenseType.objects.all()
+    serializer_class = LicenseTypeSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    pagination_class = None

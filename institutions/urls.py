@@ -8,6 +8,7 @@ app_name = 'institutions'
 router = DefaultRouter()
 router.register(r'institutions', views.InstitutionViewSet)
 router.register(r'other-documents', views.OtherDocumentsViewset)
+router.register(r'license-types', views.LicenseTypeViewset)
 
 
 urlpatterns = [

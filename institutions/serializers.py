@@ -1,7 +1,7 @@
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from .models import Institution, OtherDocuments
+from .models import Institution, LicenseType, OtherDocuments
 
 
 class InstitutionSerializer(serializers.ModelSerializer):
@@ -16,7 +16,7 @@ class InstitutionSerializer(serializers.ModelSerializer):
             'id', 'user', 'name','acroynm','region', 'district', 'institution_type',"alternative_email",
             'landline','website','postal_address', 'contact_person', 'contact_person_phone',
             'alternative_contact_person', 'alternative_contact_person_phone','location',
-            'logo','tin'
+            'logo','tin','is_closed',
         ]
         read_only_fields = ['id', 'user']
 
@@ -39,4 +39,13 @@ class OtherDocumentsSerializer(serializers.ModelSerializer):
         '''Meta class for OtherDocuments Serializer'''
         model = OtherDocuments
         fields = ['id', 'document_name', 'document']
+        read_only_fields = ['id']
+
+
+class LicenseTypeSerializer(serializers.ModelSerializer):
+    '''Serializer for LicenseType model.'''
+    class Meta:
+        '''Meta class for LicenseType Serializer'''
+        model = LicenseType
+        fields = ['id','code', 'name']
         read_only_fields = ['id']

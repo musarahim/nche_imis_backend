@@ -24,7 +24,7 @@ class ProgramSerializer(serializers.ModelSerializer):
     '''Programs'''
     class Meta:
         model = Program
-        fields = ('id','program_accreditation','program_name','program_level', 'accreditation_date','expiry_date','status')
+        fields = ('id','applications','program_name','program_level', 'accreditation_date','expiry_date','status')
 
 
 

@@ -22,4 +22,4 @@ class ProgramAccreditationAdmin(ModelAdmin):
 class ProgramAdmin(ModelAdmin):
     '''Admin interface for Programs under an Accreditation'''
     list_display = ("id","program_name", "program_level", "accreditation_date", "expiry_date", "status")
-    fields = ("program_accreditation","program_name","program_level","accreditation_date","expiry_date")
+    fields = ("applications","program_name","program_level","accreditation_date","expiry_date")

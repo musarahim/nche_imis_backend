@@ -52,7 +52,6 @@ LEASE_RENTED=(
     )
 
 PROGRAMME_LEVELS = [
-    ('higher_education_certificate', 'Higher Education Certificate'),
     ('certificate', 'Certificate'),
     ('diploma', 'Diploma'),
     ('bachelor', 'Bachelors'),
