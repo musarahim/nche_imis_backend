@@ -1,10 +1,11 @@
 from accounts.serializers import RegisterInstitutionSerializer
 from django.shortcuts import render
-from rest_framework import permissions, viewsets
+from rest_framework import mixins, permissions, status, viewsets
+from rest_framework.response import Response
 
 from .models import Institution, LicenseType, OtherDocuments
-from .serializers import (InstitutionSerializer, LicenseTypeSerializer,
-                          OtherDocumentsSerializer)
+from .serializers import (InstitutionCreateSerializer, InstitutionSerializer,
+                          LicenseTypeSerializer, OtherDocumentsSerializer)
 
 
 # Create your views here.
@@ -70,3 +71,19 @@ class LicenseTypeViewset(viewsets.ModelViewSet):
     serializer_class = LicenseTypeSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     pagination_class = None
+
+class InstitutionOnboardingViewSet(mixins.CreateModelMixin,
+                                  mixins.ListModelMixin,
+                                  mixins.RetrieveModelMixin,
+                                  viewsets.GenericViewSet):
+    """
+    POST creates User + Institution in one request.
+    """
+    queryset = Institution.objects.select_related("user").all()
+    serializer_class = InstitutionCreateSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        institution = serializer.save()
+        return Response(self.get_serializer(institution).data, status=status.HTTP_201_CREATED)

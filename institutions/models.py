@@ -38,7 +38,7 @@ class Institution(TimeStampedModel):
     website = models.URLField(null=True, blank=True)
     location = models.TextField(null=True, blank=True)
     license = models.ForeignKey(LicenseType, on_delete=models.CASCADE, related_name='institutions', blank=False, null=True)
-    is_closed = models.BooleanField(null=False, blank=True, default=False)
+    is_closed = models.BooleanField(null=True, blank=True)
 
     
     def __str__(self):
