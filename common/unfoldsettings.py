@@ -149,6 +149,12 @@ UNFOLD = {
                     "link": reverse_lazy("admin:auth_group_changelist"),
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "manage_accounts",
+                }, 
+                {
+                    "title": _("API Keys"),
+                    "link": reverse_lazy("admin:rest_framework_api_key_apikey_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "manage_accounts",
                 },
             ],
         },

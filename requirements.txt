@@ -22,6 +22,7 @@ django-tinymce==4.1.0
 django-trench==0.3.1
 django-unfold==0.69.0
 djangorestframework==3.16.0
+djangorestframework-api-key==3.1.0
 djangorestframework_simplejwt==5.5.0
 djoser==2.3.1
 drf-base64-binaryfield==1.2.0

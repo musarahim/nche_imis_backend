@@ -4,6 +4,8 @@ from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
 from import_export.admin import ExportActionModelAdmin, ImportExportModelAdmin
+from rest_framework_api_key.admin import APIKeyModelAdmin
+from rest_framework_api_key.models import APIKey
 from simple_history.admin import SimpleHistoryAdmin
 from trench.models import MFAMethod
 from unfold.admin import ModelAdmin
@@ -35,6 +37,7 @@ class CustomUserCreationForm(UserCreationForm):
 
 # Register your models here.
 admin.site.unregister(Group)
+
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin, ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
@@ -72,4 +75,9 @@ class UserAdmin(BaseUserAdmin, ModelAdmin, ExportActionModelAdmin, ImportExportM
 
 @admin.register(Group)
 class GroupAdmin(BaseGroupAdmin, ModelAdmin):
+    pass
+
+admin.site.unregister(APIKey)
+@admin.register(APIKey)
+class APIKeyAdmin(APIKeyModelAdmin, ModelAdmin):
     pass

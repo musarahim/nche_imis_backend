@@ -58,7 +58,9 @@ class ApplicationPRNS(models.Model):
     prn = models.CharField(max_length=100, null=True, blank=True)
     prn_reconciled = models.BooleanField(default=False)
 
-
+    class Meta:
+        verbose_name = "Application PRN"
+        verbose_name_plural = "Application PRNs"
     def __str__(self):
         return self.prn
     

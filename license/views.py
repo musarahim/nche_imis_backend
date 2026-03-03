@@ -66,7 +66,7 @@ class CertificationAndClassificationViewset(viewsets.ModelViewSet):
                     "paymentType": "DT",
                     "referenceNo": instance.application_code,
                     "tin": instance.institution.tin,
-                    "srcSystem": "Imis",
+                    "srcSystem": "National Council for Higher Education",
                     "taxHead": "NCHE001",
                     "taxSubHead": "",
                     "email": instance.institution.user.email or instance.institution.alternative_email,

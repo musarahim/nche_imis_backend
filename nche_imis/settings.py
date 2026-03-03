@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "django.contrib.admin",  # required
     'import_export',
     'rest_framework',
+    "rest_framework_api_key",
     'simple_history',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',

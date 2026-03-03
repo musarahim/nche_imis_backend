@@ -12,4 +12,8 @@ router.register(r'application-prns', views.ApplicationPRNSViewSet, basename='app
 
 urlpatterns = [
     path('', include(router.urls)),
+    
+    # External API endpoints for third-party integration
+    path('external/generate-prn/', views.ExternalPRNGenerationAPIView.as_view(), name='external-generate-prn'),
+    path('external/check-prn-status/', views.ExternalPRNStatusAPIView.as_view(), name='external-check-prn-status'),
 ]
