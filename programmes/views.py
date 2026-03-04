@@ -3,8 +3,9 @@ from institutions.models import Institution
 from rest_framework import filters, parsers, permissions, status, viewsets
 from rest_framework.response import Response
 
-from .models import Program, ProgramAccreditation
-from .serializers import ProgrammeAccreditationSerializer, ProgramSerializer
+from .models import Program, ProgramAccessor, ProgramAccreditation
+from .serializers import (ProgramAccessorSerializer,
+                          ProgrammeAccreditationSerializer, ProgramSerializer)
 
 
 # Create your views here.
@@ -72,3 +73,12 @@ class ProgramViewset(viewsets.ModelViewSet):
     #         serializer.save(institution=institution)
     #         return Response(serializer.data, status=status.HTTP_201_CREATED)
     #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ProgramAccessorViewset(viewsets.ModelViewSet):
+    '''Program Accessor Viewset'''
+    queryset = ProgramAccessor.objects.order_by('-assigned_at').all()
+    serializer_class = ProgramAccessorSerializer
+    permissions_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['user__username','program_accreditation__application_number','group_leader']
+    parsers_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser] 

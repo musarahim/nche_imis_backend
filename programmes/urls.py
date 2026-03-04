@@ -8,6 +8,8 @@ app_name = 'programmes'
 router = DefaultRouter()
 router.register(r'programme-accreditation', views.ProgrammeAccreditationViewset, basename='programme-accreditation')
 router.register(r'institution-programs', views.ProgramViewset, basename='programs')
+router.register(r'program-accessors', views.ProgramAccessorViewset, basename='program-accessors')
+
 urlpatterns = [
     path('', include(router.urls)),
 ]

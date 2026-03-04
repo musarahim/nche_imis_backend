@@ -1,3 +1,4 @@
+from accounts.models import User
 from common.choices import PROGRAMME_LEVELS
 from django.db import models
 from institutions.models import Institution
@@ -55,6 +56,20 @@ class ProgramAccreditation(models.Model):
         else:
             return f"{year - 1}-{year}"
         
+# assign accessors to a programme accreditation application
+class ProgramAccessor(models.Model):
+    '''Programme accreditation accessors'''
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='programme_accessors')
+    program_accreditation = models.ForeignKey(ProgramAccreditation, on_delete=models.CASCADE, related_name='accessors')
+    group_leader = models.BooleanField(default=False)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.program_accreditation.application_number} - {'Leader' if self.group_leader else 'Accessor'}"
+
+
+
+
 
 class Program(models.Model):
     '''Model to represent individual programs under an accreditation.'''
