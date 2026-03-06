@@ -21,8 +21,8 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
     def get_queryset(self):
         '''return documents for the logged in institution'''
         queryset = self.queryset
-        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
-            data = queryset
+        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists() or self.request.user.groups.filter(name='Head Programme Accreditation').exists():
+            data = queryset.select_related('institution').order_by('institution__name', '-date_submitted')
         else:
             if hasattr(self.request.user, 'institution'):
                 data = queryset.filter(institution=self.request.user.institution)
@@ -54,7 +54,7 @@ class ProgramViewset(viewsets.ModelViewSet):
     def get_queryset(self):
         '''return documents for the logged in institution'''
         queryset = self.queryset
-        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
+        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists() or self.request.user.groups.filter(name='Head Programme Accreditation').exists():
             data = queryset
         else:
             if hasattr(self.request.user, 'institution'):

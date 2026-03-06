@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from import_export.admin import ExportActionModelAdmin, ImportExportModelAdmin
 from simple_history.admin import SimpleHistoryAdmin
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.contrib.forms.widgets import ArrayWidget, WysiwygWidget
@@ -40,7 +41,7 @@ class DepartmentAdmin(SimpleHistoryAdmin,ModelAdmin):
     list_per_page = 10
 
 @admin.register(Designation)
-class DesignationAdmin(SimpleHistoryAdmin,ModelAdmin):
+class DesignationAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     '''Admin interface for Designation model.'''
     list_display = ('code', 'name', 'created', 'modified')
     fields = ('code', 'name')

@@ -25,8 +25,8 @@ X-Api-Key: YOUR_API_KEY_HERE
   "amount": "1000",
   "referenceNo": "EXT_REF_12345",
   "taxHead": "NCHE001",
-  "taxSubHead": "PAYE",
-  "taxPayerName": "John Doe Company Ltd",
+  "taxSubHead": "DT",
+  "taxPayerName": "John Doe",
   "email": "finance@johndoe.com",
   "tin": "1234567890",
   "contactNo": "0700123456",
@@ -53,7 +53,7 @@ X-Api-Key: YOUR_API_KEY_HERE
 - `taxSubHead`, `tin`, `contactNo`, `mobileNo`, `plot`, `buildingName`, `street`, `district`, `county`, `subCounty`, `parish`, `village`
 - `paymentType` (default: "DT")
 - `srcSystem` (default: "EXTERNAL_API")
-- `expiryDays` (default: "30")
+- `expiryDays` (default: "21")
 
 **Success Response (201):**
 
