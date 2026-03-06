@@ -1,4 +1,5 @@
 from django.contrib import admin
+from import_export.admin import ExportActionModelAdmin, ImportExportModelAdmin
 from simple_history.admin import SimpleHistoryAdmin
 from unfold.admin import ModelAdmin
 
@@ -164,7 +165,7 @@ class HolidayAdmin(SimpleHistoryAdmin,ModelAdmin):
     
 
 @admin.register(Relationship)
-class RelationshipAdmin(SimpleHistoryAdmin,ModelAdmin):
+class RelationshipAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     '''Admin interface for Relationship model.'''
     list_display = ('name', 'created', 'modified')
     fields = ('name',)
