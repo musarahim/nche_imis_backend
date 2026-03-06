@@ -1,4 +1,3 @@
-from accounts.serializers import RegisterInstitutionSerializer
 from django.shortcuts import render
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.response import Response
@@ -18,8 +17,8 @@ class InstitutionViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         '''Return different serializers based on action'''
-        if self.action == 'partial_update':
-            return RegisterInstitutionSerializer
+        if self.action == 'create':
+            return InstitutionCreateSerializer
         return super().get_serializer_class()
 
     def get_queryset(self):
