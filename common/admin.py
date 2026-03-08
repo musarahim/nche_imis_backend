@@ -10,7 +10,7 @@ from .models import (County, District, EducationLevel, Holiday, Nationality,
 # Register your models here.
 
 @admin.register(District)
-class DistrictAdmin(SimpleHistoryAdmin,ModelAdmin):
+class DistrictAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     '''Admin interface for District model.'''
     list_display = ('name', 'created', 'modified')
     fields = ('name',)
@@ -34,7 +34,7 @@ class DistrictAdmin(SimpleHistoryAdmin,ModelAdmin):
         return super().get_queryset(request).filter(deleted_at__isnull=True)
     
 @admin.register(County)
-class CountyAdmin(SimpleHistoryAdmin,ModelAdmin):
+class CountyAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     '''Admin interface for District model.'''
     list_display = ('name', 'district', 'modified')
     fields = ('name', 'district' )
@@ -45,7 +45,7 @@ class CountyAdmin(SimpleHistoryAdmin,ModelAdmin):
     readonly_fields = ('created', 'modified','deleted_at')
 
 @admin.register(SubCounty)
-class SubCountyAdmin(SimpleHistoryAdmin,ModelAdmin):
+class SubCountyAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     '''Admin interface for District model.'''
     list_display = ('name', 'county', 'created', 'modified')
     fields = ('name', 'county')
@@ -56,7 +56,7 @@ class SubCountyAdmin(SimpleHistoryAdmin,ModelAdmin):
     readonly_fields = ('created', 'modified','deleted_at')
 
 @admin.register(Parish)
-class ParishAdmin(SimpleHistoryAdmin,ModelAdmin):
+class ParishAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     '''Admin interface for District model.'''
     list_display = ('name', 'sub_county', 'created', 'modified')
     fields = ('name', 'sub_county')
@@ -67,7 +67,7 @@ class ParishAdmin(SimpleHistoryAdmin,ModelAdmin):
     readonly_fields = ('created', 'modified','deleted_at')
     
 @admin.register(Village)
-class VillageAdmin(SimpleHistoryAdmin,ModelAdmin):
+class VillageAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     '''Admin interface for District model.'''
     list_display = ('name', 'parish', 'created', 'modified')
     fields = ('name', 'parish')
