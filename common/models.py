@@ -74,8 +74,11 @@ class SubCounty(TimeStampedModel):
 
 class Parish(TimeStampedModel):
     '''District model to represent a counties in the system.'''
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
     sub_county = models.ForeignKey(SubCounty, on_delete=models.CASCADE, null=False, blank=False)
+
+    class Meta:
+        unique_together = ('name', 'sub_county')
     def __str__(self):
         return self.name
 
@@ -92,6 +95,7 @@ class Village(TimeStampedModel):
 
     class Meta:
         verbose_name_plural = "Villages"
+        unique_together = ('name', 'parish')
         ordering = ['name']
 
 
