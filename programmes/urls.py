@@ -10,7 +10,7 @@ router.register(r'programme-accreditation', views.ProgrammeAccreditationViewset,
 router.register(r'institution-programs', views.ProgramViewset, basename='programs')
 router.register(r'program-accessors', views.ProgramAccessorViewset, basename='program-accessors')
 router.register(r'programme-reviewers', views.ProgrammeReviewersViewset, basename='programme-reviewers')
-router.register(r'assign-assessers', views.AssignReviewersView, basename='assign-reviewers')
+router.register(r'preliminary-reviews', views.PreminaryReviewViewset, basename='preliminary-reviews')
 
 urlpatterns = [
     path('', include(router.urls)),

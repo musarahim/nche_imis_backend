@@ -1,16 +1,16 @@
 from accounts.models import User
 from accounts.serializers import UserReviewerSerializer
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from institutions.models import Institution
 from rest_framework import filters, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import (Program, ProgramAccessor, ProgramAccreditation,
-                     ProgramReviewer)
-from .serializers import (ProgramAccessorSerializer,
-                          ProgrammeAccreditationSerializer,
-                          ProgramReviewerSerializer, ProgramSerializer)
+from .models import (PreliminaryReview, Program, ProgramAccessor,
+                     ProgramAccreditation)
+from .serializers import (PreliminaryReviewSerializer,
+                          ProgramAccessorSerializer,
+                          ProgrammeAccreditationSerializer, ProgramSerializer)
 
 
 # Create your views here.
@@ -37,6 +37,13 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
             return queryset.filter(institution=self.request.user.institution)
 
         return queryset.none()
+
+    def retrieve(self, request,pk=None):
+        '''retrieve a programme accreditation application'''
+        queryset = ProgramAccreditation.objects.all()
+        application = get_object_or_404(queryset, pk=pk)
+        serializer = self.serializer_class(application)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['get'], url_path='submitted-applications')
     def submitted_applications(self, request, pk=None):
@@ -180,25 +187,46 @@ class ProgrammeReviewersViewset(viewsets.ReadOnlyModelViewSet):
     search_fields = ['username','email','first_name','last_name','other_names']
 
 
-class AssignReviewersView(viewsets.ModelViewSet):
-    '''assign reviewers to a programme accreditation application'''
-    queryset = ProgramReviewer.objects.order_by('-assigned_at').all()
-    serializer_class = ProgramReviewerSerializer
+class PreminaryReviewViewset(viewsets.ModelViewSet):
+    '''Preliminary Review Viewset'''
+    queryset = PreliminaryReview.objects.all()
+    serializer_class = PreliminaryReviewSerializer
     permissions_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
-    search_fields = ['user__username','application__application_number']
+    search_fields = ['application__application_number','reviewer__username','comments']
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        program_reviewer = serializer.save()
-        # change the status of the application to 'Under Review' if it's not already in that status
-        application = program_reviewer.application
-        if application.status != 'under_review':
-            application.status = 'under_review'
-            application.save()
-        # TODO: Send email notification to the assigned reviewer about the new assignment
-        return Response(self.get_serializer(program_reviewer).data, status=status.HTTP_201_CREATED)
+    def get_queryset(self):
+        '''return preliminary reviews for the logged in reviewer'''
+        queryset = self.queryset
+        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists() or self.request.user.groups.filter(name='Head Programme Accreditation').exists():
+            data = queryset
+        else:
+            data = queryset.filter(reviewer=self.request.user)
+        return data
+
+    def create(self, request):
+        '''Create or update preliminary review for an application by a reviewer'''
+        serializer = self.serializer_class(data=request.data)
+        
+        if serializer.is_valid():
+            reviewer = self.request.user
+            application_id = serializer.validated_data['application'].id
+            
+            # Check if a review already exists for this reviewer and application
+            review, created = PreliminaryReview.objects.update_or_create(
+                reviewer=reviewer,
+                application_id=application_id,
+                defaults={
+                    'type_of_entry_summary': serializer.validated_data['type_of_entry_summary'],
+                    'type_of_entry_comments': serializer.validated_data.get('type_of_entry_comments', '')
+                }
+            )
+            
+            return Response(self.serializer_class(review).data, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 
 

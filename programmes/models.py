@@ -83,16 +83,6 @@ class ProgramAccessor(models.Model):
 
 
 
-class ProgramReviewer(models.Model):
-    '''Programme accreditation reviewers'''
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='programme_reviewers')
-    application = models.ForeignKey(ProgramAccreditation, on_delete=models.CASCADE, related_name='reviewers')
-    assigned_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.user.first_name} {self.user.last_name} - {self.application.application_number} - Reviewer"
-
-
 class Program(models.Model):
     '''Model to represent individual programs under an accreditation.'''
     STATUS = (
