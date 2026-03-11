@@ -98,3 +98,4 @@ STATUS_CHOICES = (
         ('deferred', 'Deferred'),
         ('rejected', 'Rejected / Not Approved'),
     )
+

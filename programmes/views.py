@@ -1,11 +1,16 @@
+from accounts.models import User
+from accounts.serializers import UserReviewerSerializer
 from django.shortcuts import render
 from institutions.models import Institution
 from rest_framework import filters, parsers, permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Program, ProgramAccessor, ProgramAccreditation
+from .models import (Program, ProgramAccessor, ProgramAccreditation,
+                     ProgramReviewer)
 from .serializers import (ProgramAccessorSerializer,
-                          ProgrammeAccreditationSerializer, ProgramSerializer)
+                          ProgrammeAccreditationSerializer,
+                          ProgramReviewerSerializer, ProgramSerializer)
 
 
 # Create your views here.
@@ -13,23 +18,102 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
     '''Programme Accreditation Applications'''
     queryset = ProgramAccreditation.objects.all()
     serializer_class = ProgrammeAccreditationSerializer
-    permissions_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['application_number','programme_name','programme_level','status','institution__name']
-    parsers_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser] 
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
 
     def get_queryset(self):
         '''return documents for the logged in institution'''
         queryset = self.queryset
-        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists() or self.request.user.groups.filter(name='Head Programme Accreditation').exists():
-            data = queryset.select_related('institution').order_by('institution__name', '-date_submitted')
-        else:
-            if hasattr(self.request.user, 'institution'):
-                data = queryset.filter(institution=self.request.user.institution)
-            else:
-                data = None
-        return data
+        if (
+            self.request.user.is_superuser
+            or self.request.user.groups.filter(name='System Administrator').exists()
+            or self.request.user.groups.filter(name='Head Programme Accreditation').exists()
+        ):
+            return queryset.select_related('institution').order_by('institution__name', '-date_submitted')
+
+        if hasattr(self.request.user, 'institution'):
+            return queryset.filter(institution=self.request.user.institution)
+
+        return queryset.none()
     
+    @action(detail=False, methods=['get'], url_path='submitted-applications')
+    def submitted_applications(self, request, pk=None):
+        """
+        GET applications submitted by the logged in user's institution.
+        """
+        queryset = self.get_queryset().filter(status='submitted')
+        if queryset is None or not queryset.exists():
+            return Response([], status=status.HTTP_200_OK)
+        
+        # Apply pagination manually for custom actions
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        # Fallback if pagination is not configured
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='under-review')
+    def under_review(self, request, pk=None):
+        """
+        GET applications under review.
+        """
+        queryset = ProgramAccreditation.objects.filter(status='under_review')
+
+        if not queryset.exists():
+            return Response([], status=status.HTTP_200_OK)
+
+        if (
+            self.request.user.is_superuser
+            or self.request.user.groups.filter(name='System Administrator').exists()
+            or self.request.user.groups.filter(name='Head Programme Accreditation').exists()
+        ):
+            queryset = queryset.select_related('institution').order_by('institution__name', '-date_submitted')
+
+        elif self.request.user.groups.filter(name='Programme Reviewers').exists():
+            queryset = queryset.filter(
+                preliminary_reviewer=self.request.user
+            ).select_related('institution').order_by('institution__name', '-date_submitted')
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'], url_path='assign-reviewer')
+    def assign_reviewer(self, request, pk=None):
+        '''assign multiple applications to a reviewer
+            applications come as a list of application ids and reviewer is the user id of the reviewer'''
+        application_ids = request.data.get('applications', [])
+        reviewer_id = request.data.get('userId')
+        
+        if not application_ids or not reviewer_id:
+            return Response({'error': 'applications and userId are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            reviewer = User.objects.get(id=reviewer_id)
+        except User.DoesNotExist:
+            return Response({'error': 'Reviewer not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        applications = ProgramAccreditation.objects.filter(id__in=application_ids)
+        
+        for application in applications:
+            application.preliminary_reviewer=reviewer
+            if application.status != 'under_review':
+                application.status = 'under_review'
+                application.save()
+            #TODO: send emails to reviewers
+        
+        return Response({'message': f'{len(applications)} applications assigned to reviewer {reviewer.username}.'}, status=status.HTTP_200_OK)
+    
+
     def create(self, request):
         '''Set institution to the logged in user's institution'''
         serializer = self.serializer_class(data=request.data)
@@ -62,6 +146,8 @@ class ProgramViewset(viewsets.ModelViewSet):
             else:
                 data = None
         return data
+
+    
     
     # def create(self, request):
     #     '''Set institution to the logged in user's institution'''
@@ -82,3 +168,37 @@ class ProgramAccessorViewset(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['user__username','program_accreditation__application_number','group_leader']
     parsers_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser] 
+
+
+class ProgrammeReviewersViewset(viewsets.ReadOnlyModelViewSet):
+    '''Programme Accreditation Reviewers'''
+    queryset = User.objects.filter(groups__name='Programme Reviewers').order_by('username')
+    serializer_class = UserReviewerSerializer
+    pagination_class = None
+    permissions_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['username','email','first_name','last_name','other_names']
+
+
+class AssignReviewersView(viewsets.ModelViewSet):
+    '''assign reviewers to a programme accreditation application'''
+    queryset = ProgramReviewer.objects.order_by('-assigned_at').all()
+    serializer_class = ProgramReviewerSerializer
+    permissions_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['user__username','application__application_number']
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        program_reviewer = serializer.save()
+        # change the status of the application to 'Under Review' if it's not already in that status
+        application = program_reviewer.application
+        if application.status != 'under_review':
+            application.status = 'under_review'
+            application.save()
+        # TODO: Send email notification to the assigned reviewer about the new assignment
+        return Response(self.get_serializer(program_reviewer).data, status=status.HTTP_201_CREATED)
+
+
+

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from .models import Program, ProgramAccessor, ProgramAccreditation
+from .models import (Program, ProgramAccessor, ProgramAccreditation,
+                     ProgramReviewer)
 
 
 class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
@@ -14,7 +15,7 @@ class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
         response = super().to_representation(instance)
         response['institution'] = instance.institution.name if instance.institution else None
         response['application_type'] = instance.get_application_type_display()
-        #response['programme_level'] = instance.get_programme_level_display()
+        response['program_level'] = instance.get_program_level_display()
         response['status'] = instance.get_status_display()
         response['date_submitted'] = instance.date_submitted.strftime('%d-%m-%Y') if instance.date_submitted else None
         return response
@@ -34,4 +35,13 @@ class ProgramAccessorSerializer(serializers.ModelSerializer):
         '''Serializer for Program Accessor'''
         model = ProgramAccessor
         fields = ('id', 'user', 'program_accreditation', 'group_leader', 'assigned_at')
+        read_only_fields = ['assigned_at']
+
+
+class ProgramReviewerSerializer(serializers.ModelSerializer):
+    '''Program Reviewer Serializer'''
+    class Meta:
+        '''Serializer for Program Reviewer'''
+        model = ProgramReviewer
+        fields = ('id', 'user', 'application', 'assigned_at')
         read_only_fields = ['assigned_at']

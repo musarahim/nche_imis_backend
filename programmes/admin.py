@@ -14,7 +14,7 @@ from .models import Program, ProgramAccreditation
 class ProgramAccreditationAdmin(ModelAdmin):
     '''Admin interface for Programme Accreditation'''
     list_display = ("id","application_number", "program_name", "institution","status","date_submitted")
-    fields = ("institution","application_type","program_level","program_name","duration_semester","campus","program_structure","letter_of_submission","program_to_renew","status")
+    fields = ("institution","application_type","program_level","program_name","duration_semester","campus","program_structure","letter_of_submission","program_to_renew","preliminary_reviewer","status")
 
 
 

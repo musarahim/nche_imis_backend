@@ -104,4 +104,18 @@ class RegisterInstitutionSerializer(serializers.ModelSerializer):
         return self.update(instance, validated_data)
     
  
-    
+
+class UserReviewerSerializer(serializers.ModelSerializer):
+    '''Serializer for user reviewers'''
+    class Meta:
+        '''Meta class for UserReviewerSerializer'''
+        model = User
+        fields = ['id', 'name']
+        ref_name = 'user reviewer'
+
+    def to_representation(self, instance):
+        '''Custom representation for UserReviewerSerializer'''
+        return {
+            'id': instance.id,
+            'name': f"{instance.first_name} {instance.last_name}"
+        }
