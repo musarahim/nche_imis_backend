@@ -42,7 +42,7 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         '''retrieve a programme accreditation application'''
         queryset = ProgramAccreditation.objects.all()
         application = get_object_or_404(queryset, pk=pk)
-        serializer = self.serializer_class(application)
+        serializer = self.get_serializer(application)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['get'], url_path='submitted-applications')
@@ -221,6 +221,7 @@ class PreminaryReviewViewset(viewsets.ModelViewSet):
                     'type_of_entry_comments': serializer.validated_data.get('type_of_entry_comments', '')
                 }
             )
+            
             
             return Response(self.serializer_class(review).data, status=status.HTTP_200_OK)
         

@@ -18,6 +18,9 @@ class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
         response['program_level'] = instance.get_program_level_display()
         response['status'] = instance.get_status_display()
         response['date_submitted'] = instance.date_submitted.strftime('%d-%m-%Y') if instance.date_submitted else None
+        request = self.context.get('request')
+        response['program_structure'] = request.build_absolute_uri(instance.program_structure.url) if instance.program_structure and request else (instance.program_structure.url if instance.program_structure else None)
+        response['letter_of_submission'] = request.build_absolute_uri(instance.letter_of_submission.url) if instance.letter_of_submission and request else (instance.letter_of_submission.url if instance.letter_of_submission else None)
         return response
     
 
@@ -43,4 +46,4 @@ class PreliminaryReviewSerializer(serializers.ModelSerializer):
         '''Serializer for Preliminary Review'''
         model = PreliminaryReview
         fields = "__all__"
-        read_only_fields = ['reviewed_at']
+        read_only_fields = ['reviewed_at','reviewer']
