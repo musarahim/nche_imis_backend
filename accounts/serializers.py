@@ -107,15 +107,15 @@ class RegisterInstitutionSerializer(serializers.ModelSerializer):
 
 class UserReviewerSerializer(serializers.ModelSerializer):
     '''Serializer for user reviewers'''
+    name = serializers.SerializerMethodField()
+
     class Meta:
         '''Meta class for UserReviewerSerializer'''
         model = User
         fields = ['id', 'name']
         ref_name = 'user reviewer'
 
-    def to_representation(self, instance):
-        '''Custom representation for UserReviewerSerializer'''
-        return {
-            'id': instance.id,
-            'name': f"{instance.first_name} {instance.last_name}"
-        }
+    def get_name(self, instance):
+        '''Return a display name for the reviewer.'''
+        full_name = " ".join(part for part in [instance.first_name, instance.last_name] if part)
+        return full_name or instance.username
