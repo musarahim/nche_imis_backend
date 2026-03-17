@@ -5,6 +5,7 @@ from .models import (PreliminaryReview, Program, ProgramAccessor,
 
 
 class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
+    '''Serializer for Programme Accreditation applications'''
     class Meta:
         model = ProgramAccreditation
         fields = '__all__'
@@ -42,8 +43,23 @@ class ProgramAccessorSerializer(serializers.ModelSerializer):
 
 class PreliminaryReviewSerializer(serializers.ModelSerializer):
     '''Preliminary Review Serializer'''
+    reviewer_name = serializers.CharField(source='reviewer.get_full_name', read_only=True)
+    application_number = serializers.CharField(source='application.application_number', read_only=True)
+    review_date = serializers.DateTimeField(source='reviewed_at', read_only=True, format='%d-%m-%Y')
+
     class Meta:
         '''Serializer for Preliminary Review'''
         model = PreliminaryReview
         fields = "__all__"
         read_only_fields = ['reviewed_at','reviewer']
+
+    def to_representation(self, instance):
+        '''Custom representation to include reviewer name and application number'''
+        response = super().to_representation(instance)
+        response['expert_progression'] = instance.get_expert_progression_display() if instance.expert_progression else None
+        response['institution'] = instance.application.institution.name if instance.application and instance.application.institution else None
+        response['programme'] = instance.application.program_name if instance.application and instance.application.program_name else None
+        response["student_total"] = instance.student_total if instance.student_total is not None else None
+        return response
+
+

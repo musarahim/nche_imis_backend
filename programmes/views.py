@@ -209,21 +209,20 @@ class PreminaryReviewViewset(viewsets.ModelViewSet):
         serializer = self.serializer_class(data=request.data)
         
         if serializer.is_valid():
-            reviewer = self.request.user
-            application_id = serializer.validated_data['application'].id
-            
-            # Check if a review already exists for this reviewer and application
-            review, created = PreliminaryReview.objects.update_or_create(
-                reviewer=reviewer,
-                application_id=application_id,
-                defaults={
-                    'type_of_entry_summary': serializer.validated_data['type_of_entry_summary'],
-                    'type_of_entry_comments': serializer.validated_data.get('type_of_entry_comments', '')
-                }
-            )
-            
-            
-            return Response(self.serializer_class(review).data, status=status.HTTP_200_OK)
+            reviewer = self.request.user  
+            application = serializer.validated_data['application']          
+            # update application status based on review comments
+            if application.status == 'under_review':
+                if 'expert_progression' in serializer.validated_data:
+                    recommendation = serializer.validated_data['expert_progression']
+                    if recommendation == 'yes':
+                        application.status = 'progressed_to_experts'
+                    elif recommendation == 'no':
+                        application.status = 'returned_for_review'
+                    application.save()
+            serializer.save(reviewer=reviewer)
+            # TODO: send email notifications to applicants and reviewers based on the review outcome
+            return Response(serializer.data, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

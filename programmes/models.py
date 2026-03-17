@@ -11,6 +11,8 @@ class ProgramAccreditation(models.Model):
     STATUS = [
         ('submitted', 'Submitted'),
         ('under_review', 'Under Review'),
+        ('progressed_to_experts', 'Progressed to Experts'),
+        ('returned_for_review', 'Returned for Review'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     ]
@@ -103,9 +105,9 @@ class Program(models.Model):
 
 class PreliminaryReview(models.Model):
     '''Model to represent preliminary review for programme accreditation applications.'''
-    YES_NO_CHOICES = (
-        (True, 'Yes'),
-        (False, 'No'),
+    PROGRESSION_CHOICES = (
+        ('yes', 'Yes'),
+        ('no', 'No'),
     )
     reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='preliminary_reviewers')
     application = models.ForeignKey(ProgramAccreditation, on_delete=models.CASCADE, related_name='preliminary_reviewers')
@@ -125,8 +127,13 @@ class PreliminaryReview(models.Model):
     evening_students = models.PositiveIntegerField(blank=True, null=True)
     weekend_students = models.PositiveIntegerField(blank=True, null=True)
     student_comment = models.TextField(blank=True, null=True)
-    expert_progression = models.BooleanField(default=False, choices=YES_NO_CHOICES)
+    expert_progression = models.CharField(max_length=10, choices=PROGRESSION_CHOICES)
     reviewed_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def student_total(self):
+        '''sum number of students'''
+        return self.day_students + self.evening_students + self.weekend_students
 
     def __str__(self):
         return f"{self.reviewer.first_name} {self.reviewer.last_name} - {self.application.application_number} - Preliminary Reviewer"
