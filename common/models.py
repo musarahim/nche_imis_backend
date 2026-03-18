@@ -52,23 +52,25 @@ class District(TimeStampedModel):
 
 class County(TimeStampedModel):
     '''District model to represent a counties in the system.'''
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, null=False, blank=False)
     district = models.ForeignKey(District, on_delete=models.CASCADE, null=False, blank=False)
     def __str__(self):
         return self.name
 
     class Meta:
         verbose_name_plural = "Counties"
+        unique_together = ('name', 'district')
         ordering = ['name']
 
 class SubCounty(TimeStampedModel):
     '''District model to represent a counties in the system.'''
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, null=False, blank=False)
     county = models.ForeignKey(County, on_delete=models.CASCADE, null=False, blank=False)
     def __str__(self):
         return self.name
 
     class Meta:
+        unique_together = ('name', 'county')
         verbose_name_plural = "Sub Counties"
         ordering = ['name']
 
@@ -79,12 +81,14 @@ class Parish(TimeStampedModel):
 
     class Meta:
         unique_together = ('name', 'sub_county')
+        verbose_name_plural = "Parishes"
+        ordering = ['name']
+
+
     def __str__(self):
         return self.name
 
-    class Meta:
-        verbose_name_plural = "Parishes"
-        ordering = ['name']
+        
 
 class Village(TimeStampedModel):
     '''District model to represent a counties in the system.'''
