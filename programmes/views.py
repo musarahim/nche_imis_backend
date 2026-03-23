@@ -6,10 +6,8 @@ from rest_framework import filters, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import (PreliminaryReview, Program, ProgramAccessor,
-                     ProgramAccreditation)
+from .models import PreliminaryReview, Program, ProgramAccreditation
 from .serializers import (PreliminaryReviewSerializer,
-                          ProgramAccessorSerializer,
                           ProgrammeAccreditationSerializer, ProgramSerializer)
 
 
@@ -120,6 +118,31 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         
         return Response({'message': f'{len(applications)} applications assigned to reviewer {reviewer.username}.'}, status=status.HTTP_200_OK)
     
+    @action(detail=False, methods=['post'], url_path='assign-assessor')
+    def assign_assessor(self, request, pk=None):
+        '''assign multiple applications to an assessor
+            applications come as a list of application ids and assessor is the user id of the assessor'''
+        application_ids = request.data.get('applications', [])
+        assessor_id = request.data.get('userId')
+        
+        if not application_ids or not assessor_id:
+            return Response({'error': 'applications and userId are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            assessor = User.objects.get(id=assessor_id)
+        except User.DoesNotExist:
+            return Response({'error': 'Assessor not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        applications = ProgramAccreditation.objects.filter(id__in=application_ids)
+        
+        for application in applications:
+            application.assessor=assessor
+            if application.status != 'under_review':
+                application.status = 'under_review'
+                application.save()
+        #TODO: send emails to assessors
+        
+        return Response({'message': f'{len(applications)} applications assigned to assessor {assessor.username}.'}, status=status.HTTP_200_OK)
 
     def create(self, request):
         '''Set institution to the logged in user's institution'''
@@ -169,12 +192,12 @@ class ProgramViewset(viewsets.ModelViewSet):
 
 class ProgramAccessorViewset(viewsets.ModelViewSet):
     '''Program Accessor Viewset'''
-    queryset = ProgramAccessor.objects.order_by('-assigned_at').all()
-    serializer_class = ProgramAccessorSerializer
+    queryset = User.objects.filter(groups__name='Programme Reviewers').order_by('username')
+    serializer_class = UserReviewerSerializer
+    pagination_class = None
     permissions_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
-    search_fields = ['user__username','program_accreditation__application_number','group_leader']
-    parsers_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser] 
+    search_fields = ['username','email','first_name','last_name','other_names']
 
 
 class ProgrammeReviewersViewset(viewsets.ReadOnlyModelViewSet):

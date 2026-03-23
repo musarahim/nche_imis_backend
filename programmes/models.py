@@ -37,6 +37,7 @@ class ProgramAccreditation(models.Model):
     # program to renew 
     program_to_renew = models.ForeignKey('programmes.Program', on_delete=models.SET_NULL, null=True, blank=True, related_name='renewals')
     preliminary_reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='preliminary_reviews')
+    assessor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assessments')
 
     class Meta:
         ordering = ['-date_submitted']
@@ -44,9 +45,9 @@ class ProgramAccreditation(models.Model):
         verbose_name_plural = 'Programme Accreditation Applications'
         permissions = [
             ('can_assign_reviewers', 'Can assign reviewers to applications'),
-            ('can_assign_accessors', 'Can assign Accessors to applications'),
+            ('can_assign_assessors', 'Can assign assessors to applications'),
             ('can_review_programme_accreditation', 'Can review programme accreditation applications'),
-            ('can_access_programme',' Can Access Programmes')
+            ('can_assess_programme',' Can Assess Programmes')
         ]
 
     def __str__(self):
@@ -72,17 +73,6 @@ class ProgramAccreditation(models.Model):
         else:
             return f"{year - 1}-{year}"
         
-# assign accessors to a programme accreditation application
-class ProgramAccessor(models.Model):
-    '''Programme accreditation accessors'''
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='programme_accessors')
-    program_accreditation = models.ForeignKey(ProgramAccreditation, on_delete=models.CASCADE, related_name='accessors')
-    group_leader = models.BooleanField(default=False)
-    assigned_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.user.first_name} {self.user.last_name} - {self.program_accreditation.application_number} - {'Leader' if self.group_leader else 'Accessor'}"
-
 
 
 class Program(models.Model):

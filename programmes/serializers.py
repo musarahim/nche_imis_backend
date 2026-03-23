@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
-from .models import (PreliminaryReview, Program, ProgramAccessor,
-                     ProgramAccreditation)
+from .models import PreliminaryReview, Program, ProgramAccreditation
 
 
 class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
@@ -33,13 +32,6 @@ class ProgramSerializer(serializers.ModelSerializer):
 
 
 
-class ProgramAccessorSerializer(serializers.ModelSerializer):
-    '''Program Accessor Serializer'''
-    class Meta:
-        '''Serializer for Program Accessor'''
-        model = ProgramAccessor
-        fields = ('id', 'user', 'program_accreditation', 'group_leader', 'assigned_at')
-        read_only_fields = ['assigned_at']
 
 class PreliminaryReviewSerializer(serializers.ModelSerializer):
     '''Preliminary Review Serializer'''
