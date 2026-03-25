@@ -143,6 +143,38 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         #TODO: send emails to assessors
         
         return Response({'message': f'{len(applications)} applications assigned to assessor {assessor.username}.'}, status=status.HTTP_200_OK)
+    
+    
+    @action(detail=False, methods=['get'], url_path='ready-for-assessment')
+    def ready_for_assessment(self, request, pk=None):
+        """
+        applications ready for assessment.
+        """
+        queryset = ProgramAccreditation.objects.filter(status='progressed_to_experts', preliminary_reviewers__expert_progression='yes')
+
+        if not queryset.exists():
+            return Response([], status=status.HTTP_200_OK)
+
+        if (
+            self.request.user.is_superuser
+            or self.request.user.groups.filter(name='System Administrator').exists()
+            or self.request.user.groups.filter(name='Head Programme Accreditation').exists()
+        ):
+            queryset = queryset.select_related('institution').order_by('institution__name', '-date_submitted')
+
+        elif self.request.user.groups.filter(name='Programme Reviewers').exists():
+            queryset = queryset.filter(
+                preliminary_reviewer=self.request.user
+            ).select_related('institution').order_by('institution__name', '-date_submitted')
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
 
     def create(self, request):
         '''Set institution to the logged in user's institution'''
@@ -192,7 +224,7 @@ class ProgramViewset(viewsets.ModelViewSet):
 
 class ProgramAccessorViewset(viewsets.ModelViewSet):
     '''Program Accessor Viewset'''
-    queryset = User.objects.filter(groups__name='Programme Reviewers').order_by('username')
+    queryset = User.objects.filter(groups__name='Programme Assessors').order_by('username')
     serializer_class = UserReviewerSerializer
     pagination_class = None
     permissions_classes = [permissions.IsAuthenticated]
