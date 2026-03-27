@@ -13,6 +13,7 @@ class ProgramAccreditation(models.Model):
         ('under_review', 'Under Review'),
         ('progressed_to_experts', 'Progressed to Experts'),
         ('returned_for_review', 'Returned for Review'),
+        ('under_assessment', 'Under Assessment'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     ]

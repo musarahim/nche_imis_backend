@@ -137,8 +137,8 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         
         for application in applications:
             application.assessor=assessor
-            if application.status != 'under_review':
-                application.status = 'under_review'
+            if application.status != 'under_assessment':
+                application.status = 'under_assessment'
                 application.save()
         #TODO: send emails to assessors
         
