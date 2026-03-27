@@ -174,6 +174,36 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='under-assessment')
+    def under_assessment(self, request, pk=None):
+        """
+        GET applications under assessment.
+        """
+        queryset = ProgramAccreditation.objects.filter(status='under_assessment')
+
+        if not queryset.exists():
+            return Response([], status=status.HTTP_200_OK)
+
+        if (
+            self.request.user.is_superuser
+            or self.request.user.groups.filter(name='System Administrator').exists()
+            or self.request.user.groups.filter(name='Head Programme Accreditation').exists()
+        ):
+            queryset = queryset.select_related('institution').order_by('institution__name', '-date_submitted')
+
+        elif self.request.user.groups.filter(name='Programme Assessors').exists():
+            queryset = queryset.filter(
+                assessor=self.request.user
+            ).select_related('institution').order_by('institution__name', '-date_submitted')
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
     
 
     def create(self, request):
