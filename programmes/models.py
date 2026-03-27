@@ -18,8 +18,9 @@ class ProgramAccreditation(models.Model):
         ('rejected', 'Rejected'),
     ]
     APPLICATION_TYPE=[
-        ('new', 'New'),
+        ('new', 'New Programme'),
         ('renewal', 'Renewal'),
+        ('revision', 'Revision'),
 
     ]
     institution = models.ForeignKey(Institution, on_delete=models.RESTRICT, related_name='programme_accreditations', blank=True)
@@ -128,5 +129,55 @@ class PreliminaryReview(models.Model):
 
     def __str__(self):
         return f"{self.reviewer.first_name} {self.reviewer.last_name} - {self.application.application_number} - Preliminary Reviewer"
+    
+
+class ProgrammeAssessment(models.Model):
+    '''Model to represent assessment details for programme accreditation applications.'''
+    RECOMMENDATION_CHOICES = [
+        ("accredit", "Accredit as is"),
+        ("minor", "Accredit with Minor Corrections"),
+        ("major", "Accredit After Major Corrections"),
+        ("reject", "Don't Accredit"),
+    ]
+    assessor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='programme_assessors')
+    application = models.ForeignKey(ProgramAccreditation, on_delete=models.CASCADE, related_name='programme_assessors')
+    assessment_date = models.DateTimeField(auto_now_add=True)
+    # asssessor's  comments on the programme
+    programme_development_process = HTMLField(blank=False, null=True)
+    rationale = HTMLField(blank=False, null=True)
+    programme_objectives = HTMLField(blank=False, null=True)
+    competences = HTMLField(blank=False, null=True)
+    learning_outcomes = HTMLField(blank=False, null=True)
+    entry_requirements = HTMLField(blank=False, null=True)
+    duration = HTMLField(blank=False, null=True)
+    grading_system = HTMLField(blank=False, null=True)
+    curriculum_structure = HTMLField(blank=False, null=True)
+    staffing_levels = HTMLField(blank=False, null=True)
+    infrastructure = HTMLField(blank=False, null=True)
+    cbe_allignment = HTMLField(blank=False, null=True)
+    other_comments = HTMLField(blank=True, null=True)
+    # course
+    course_name = models.TextField(blank=False, null=True)
+    course_code = models.TextField(blank=False, null=True)
+    course_level = models.TextField(blank=False, null=True)
+    contact_hours = models.TextField(blank=False, null=True)
+    credit_units = models.TextField(blank=False, null=True)
+    course_description = models.TextField(blank=False, null=True)
+    course_objectives = models.TextField(blank=False, null=True)
+    course_learning_outcomes = models.TextField(blank=False, null=True)
+    detailed_course_content = models.TextField(blank=False, null=True)
+    instructional_materials = models.TextField(blank=False, null=True)
+    delivery_modes = models.TextField(blank=False, null=True)
+    assessment_modes = models.TextField(blank=False, null=True)
+    writing_styles_and_grammar = models.TextField(blank=False, null=True)
+    minimum_standards = models.TextField(blank=False, null=True)
+    # overall comments and recommendation
+    institution_comments = models.TextField(blank=True, null=True)
+    nche_comments = models.TextField(blank=True, null=True)
+    recommendation = models.CharField(max_length=20, choices=RECOMMENDATION_CHOICES, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.assessor.first_name} {self.assessor.last_name} - {self.application.application_number} - Assessor"
+
 
 
