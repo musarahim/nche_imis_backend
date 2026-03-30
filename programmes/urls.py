@@ -11,6 +11,7 @@ router.register(r'institution-programs', views.ProgramViewset, basename='program
 router.register(r'programme-accessors', views.ProgramAccessorViewset, basename='programme-accessors')
 router.register(r'programme-reviewers', views.ProgrammeReviewersViewset, basename='programme-reviewers')
 router.register(r'preliminary-reviews', views.PreminaryReviewViewset, basename='preliminary-reviews')
+router.register(r'programme-assessments', views.ProgrammeAssessmentViewset, basename='programme-assessments')
 
 urlpatterns = [
     path('', include(router.urls)),

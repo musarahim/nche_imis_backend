@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from .models import PreliminaryReview, Program, ProgramAccreditation
+from .models import (PreliminaryReview, Program, ProgramAccreditation,
+                     ProgrammeAssessment)
 
 
 class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
@@ -53,5 +54,24 @@ class PreliminaryReviewSerializer(serializers.ModelSerializer):
         response['programme'] = instance.application.program_name if instance.application and instance.application.program_name else None
         response["student_total"] = instance.student_total if instance.student_total is not None else None
         return response
+    
 
+class ProgrammeAssessmentSerializer(serializers.ModelSerializer):
+    '''Serializer for Programme Assessment'''
+    assessor_name = serializers.CharField(source='assessor.get_full_name', read_only=True)
+    application_number = serializers.CharField(source='application.application_number', read_only=True)
+   
 
+    class Meta:
+        '''Serializer for Programme Assessment'''
+        model = ProgrammeAssessment
+        fields = "__all__"
+        read_only_fields = ['assessment_date','assessor']
+
+    def to_representation(self, instance):
+        '''Custom representation to include assessor name and application number'''
+        response = super().to_representation(instance)
+        response['recommendation'] = instance.get_recommendation_display() if instance.recommendation else None
+        response['institution'] = instance.application.institution.name if instance.application and instance.application.institution else None
+        response['programme'] = instance.application.program_name if instance.application and instance.application.program_name else None
+        return response

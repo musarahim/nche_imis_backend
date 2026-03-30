@@ -14,6 +14,7 @@ class ProgramAccreditation(models.Model):
         ('progressed_to_experts', 'Progressed to Experts'),
         ('returned_for_review', 'Returned for Review'),
         ('under_assessment', 'Under Assessment'),
+        ('progressed_to_director', 'Progressed to Director'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     ]
@@ -169,12 +170,23 @@ class ProgrammeAssessment(models.Model):
     instructional_materials = models.TextField(blank=False, null=True)
     delivery_modes = models.TextField(blank=False, null=True)
     assessment_modes = models.TextField(blank=False, null=True)
+    reading_list = models.TextField(blank=False, null=True)
     writing_styles_and_grammar = models.TextField(blank=False, null=True)
     minimum_standards = models.TextField(blank=False, null=True)
     # overall comments and recommendation
     institution_comments = models.TextField(blank=True, null=True)
     nche_comments = models.TextField(blank=True, null=True)
+    conclusions = models.TextField(blank=False, null=True)
     recommendation = models.CharField(max_length=20, choices=RECOMMENDATION_CHOICES, blank=True, null=True)
+
+    class Meta:
+        '''Model to represent assessment details for programme accreditation applications.'''
+        ordering = ['-assessment_date']
+        verbose_name = 'Programme Assessment'
+        verbose_name_plural = 'Programme Assessments'
+        permissions = [
+            ('can_assess_assessments', 'Can assess programme assessments'),
+        ]
 
     def __str__(self):
         return f"{self.assessor.first_name} {self.assessor.last_name} - {self.application.application_number} - Assessor"

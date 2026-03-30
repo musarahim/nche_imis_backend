@@ -6,9 +6,11 @@ from rest_framework import filters, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import PreliminaryReview, Program, ProgramAccreditation
+from .models import (PreliminaryReview, Program, ProgramAccreditation,
+                     ProgrammeAssessment)
 from .serializers import (PreliminaryReviewSerializer,
-                          ProgrammeAccreditationSerializer, ProgramSerializer)
+                          ProgrammeAccreditationSerializer,
+                          ProgrammeAssessmentSerializer, ProgramSerializer)
 
 
 # Create your views here.
@@ -312,6 +314,39 @@ class PreminaryReviewViewset(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class ProgrammeAssessmentViewset(viewsets.ModelViewSet):
+    '''Programme Assessment Viewset'''
+    queryset = ProgrammeAssessment.objects.all()
+    serializer_class = ProgrammeAssessmentSerializer
+    permissions_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['application__application_number','assessor__username','comments']
 
-
-
+    def get_queryset(self):
+        '''return assessments for the logged in assessor'''
+        queryset = self.queryset
+        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists() or self.request.user.groups.filter(name='Head Programme Accreditation').exists():
+            data = queryset
+        else:
+            data = queryset.filter(assessor=self.request.user)
+        return data
+    
+    def create(self, request):
+        '''Create or update preliminary review for an application by a reviewer'''
+        serializer = self.serializer_class(data=request.data)
+        
+        if serializer.is_valid():
+            assessor = self.request.user  
+            application = serializer.validated_data['application']          
+            # update application status based on review comments
+            if application.status == 'under_assessment':
+                if 'recommendation' in serializer.validated_data:
+                    recommendation = serializer.validated_data['recommendation']
+                    if recommendation == 'accredit' or recommendation=='minor' or recommendation=='major':
+                        application.status = 'progressed_to_director'
+                    elif recommendation == 'reject':
+                        application.status = 'returned_for_review'
+                    application.save()
+            serializer.save(assessor = assessor)
+            # TODO: send email notifications to applicants and reviewers based on the review outcome
+            return Response(serializer.data, status=status.HTTP_200_OK)
