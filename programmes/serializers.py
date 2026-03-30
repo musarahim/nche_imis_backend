@@ -60,7 +60,7 @@ class ProgrammeAssessmentSerializer(serializers.ModelSerializer):
     '''Serializer for Programme Assessment'''
     assessor_name = serializers.CharField(source='assessor.get_full_name', read_only=True)
     application_number = serializers.CharField(source='application.application_number', read_only=True)
-   
+    assessment_date = serializers.DateField(read_only=True, format='%d %B, %Y')
 
     class Meta:
         '''Serializer for Programme Assessment'''

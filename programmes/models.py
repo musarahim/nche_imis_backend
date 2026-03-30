@@ -142,7 +142,7 @@ class ProgrammeAssessment(models.Model):
     ]
     assessor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='programme_assessors')
     application = models.ForeignKey(ProgramAccreditation, on_delete=models.CASCADE, related_name='programme_assessors')
-    assessment_date = models.DateTimeField(auto_now_add=True)
+    assessment_date = models.DateField(auto_now_add=True)
     # asssessor's  comments on the programme
     programme_development_process = HTMLField(blank=False, null=True)
     rationale = HTMLField(blank=False, null=True)
