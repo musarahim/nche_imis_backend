@@ -3,6 +3,7 @@ from django.utils import timezone
 from institutions.models import Institution
 from payments.ura_payment import UraMdaPaymentService
 from rest_framework import filters, parsers, permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import (CertificationAndClassification, CharterApplication,
@@ -102,6 +103,7 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
     permissions_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['application_code','institution__name','status','application_date']
+
     def get_queryset(self):
         '''return documents for the logged in institution'''
         queryset = self.queryset
@@ -113,6 +115,26 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
             else:
                 data = None
         return data
+    
+    @action(detail=False, methods=['get'], url_path='submitted-applications')
+    def submitted_applications(self, request, pk=None):
+        """
+        GET applications submitted by the logged in user.
+        """
+        queryset = self.queryset.filter(status='submitted')
+        if queryset is None or not queryset.exists():
+            return Response([], status=status.HTTP_200_OK)
+        
+        # Apply pagination manually for custom actions
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        # Fallback if pagination is not configured
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     
     def create(self, request):
         '''Set institution to the logged in user's institution'''

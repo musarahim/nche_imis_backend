@@ -15,6 +15,7 @@ class ProgramAccreditation(models.Model):
         ('returned_for_review', 'Returned for Review'),
         ('under_assessment', 'Under Assessment'),
         ('progressed_to_director', 'Progressed to Director'),
+        ('return_to_assessor', 'Return to Assessor'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     ]
@@ -41,6 +42,8 @@ class ProgramAccreditation(models.Model):
     program_to_renew = models.ForeignKey('programmes.Program', on_delete=models.SET_NULL, null=True, blank=True, related_name='renewals')
     preliminary_reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='preliminary_reviews')
     assessor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assessments')
+    #programme head comment
+    pod_comment = models.TextField(blank=True, null=True)
 
     class Meta:
         ordering = ['-date_submitted']
@@ -50,7 +53,8 @@ class ProgramAccreditation(models.Model):
             ('can_assign_reviewers', 'Can assign reviewers to applications'),
             ('can_assign_assessors', 'Can assign assessors to applications'),
             ('can_review_programme_accreditation', 'Can review programme accreditation applications'),
-            ('can_assess_programme',' Can Assess Programmes')
+            ('can_assess_programme',' Can Assess Programmes'),
+            ('can_make_directorate_decision', 'Can make directorate decisions on programme accreditation applications'),
         ]
 
     def __str__(self):

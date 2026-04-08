@@ -74,4 +74,6 @@ class ProgrammeAssessmentSerializer(serializers.ModelSerializer):
         response['recommendation'] = instance.get_recommendation_display() if instance.recommendation else None
         response['institution'] = instance.application.institution.name if instance.application and instance.application.institution else None
         response['programme'] = instance.application.program_name if instance.application and instance.application.program_name else None
+        response['status'] = instance.application.get_status_display() if instance.application and instance.application.status else None
+        response['pod_comment'] = instance.application.pod_comment if instance.application and instance.application.pod_comment else None
         return response
