@@ -77,3 +77,26 @@ class ProgrammeAssessmentSerializer(serializers.ModelSerializer):
         response['status'] = instance.application.get_status_display() if instance.application and instance.application.status else None
         response['pod_comment'] = instance.application.pod_comment if instance.application and instance.application.pod_comment else None
         return response
+
+
+class ProgressedToDirectorateSerializer(serializers.ModelSerializer):
+    '''Serializer for Programme Accreditation applications progressed to directorate stage'''
+    preliminary_review = PreliminaryReviewSerializer(read_only=True, source='preliminary_reviewers.first')
+    assessment = ProgrammeAssessmentSerializer(read_only=True, source='programme_assessments.first')
+    class Meta:
+        model = ProgramAccreditation
+        fields = '__all__'
+        read_only_fields = ['application_number', 'date_submitted', 'status']
+
+    def to_representation(self, instance):
+        '''Custom representation to include institution name and display choices'''
+        response = super().to_representation(instance)
+        response['institution'] = instance.institution.name if instance.institution else None
+        response['application_type'] = instance.get_application_type_display()
+        response['program_level'] = instance.get_program_level_display()
+        response['status'] = instance.get_status_display()
+        response['date_submitted'] = instance.date_submitted.strftime('%d-%m-%Y') if instance.date_submitted else None
+        request = self.context.get('request')
+        response['program_structure'] = request.build_absolute_uri(instance.program_structure.url) if instance.program_structure and request else (instance.program_structure.url if instance.program_structure else None)
+        response['letter_of_submission'] = request.build_absolute_uri(instance.letter_of_submission.url) if instance.letter_of_submission and request else (instance.letter_of_submission.url if instance.letter_of_submission else None)
+        return response
