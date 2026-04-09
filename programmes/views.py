@@ -1,6 +1,7 @@
 from accounts.models import User
 from accounts.serializers import UserReviewerSerializer
 from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
 from institutions.models import Institution
 from rest_framework import filters, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -247,7 +248,30 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         serializer = ProgressedToDirectorateSerializer(application, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+    # Director's comment 
+    @action(detail=True, methods=['post'], url_path='add-director-comment')
+    def add_director_comment(self, request, pk=None):
+        """
+        POST director's comment on an application.
+        """
+        application = get_object_or_404(ProgramAccreditation, pk=pk, status='progressed_to_director')
+        comment = request.data.get('comment')
+        app_status = request.data.get('status')  # expected values: 'progressed_to_management' or 'rejected'
+        
+        if not comment:
+            return Response({'error': 'Comment is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        application.director_comment = comment
+        application.director_comment_date = timezone.now()
+        if app_status == 'progressed_to_management':
+            application.status = 'progressed_to_management'
+        elif app_status == 'rejected':
+            application.status = 'rejected'
+        application.save()
+        # TODO: send email notification to management and department head about the director's comment and application status
 
+        return Response({'message': 'Director comment added successfully.'}, status=status.HTTP_200_OK)
+    
     def create(self, request):
         '''Set institution to the logged in user's institution'''
         serializer = self.serializer_class(data=request.data)

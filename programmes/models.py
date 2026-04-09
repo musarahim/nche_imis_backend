@@ -16,6 +16,7 @@ class ProgramAccreditation(models.Model):
         ('under_assessment', 'Under Assessment'),
         ('progressed_to_director', 'Progressed to Director'),
         ('return_to_assessor', 'Return to Assessor'),
+        ('progressed_to_management', 'Progressed to Management'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     ]
@@ -44,8 +45,13 @@ class ProgramAccreditation(models.Model):
     assessor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assessments')
     #programme head comment
     pod_comment = models.TextField(blank=True, null=True)
+    pod_comment_date = models.DateTimeField(blank=True, null=True)
+    #Director's comment
+    director_comment = models.TextField(blank=True, null=True)
+    director_comment_date = models.DateTimeField(blank=True, null=True)
 
     class Meta:
+        '''Model to represent a programme accreditation application.'''
         ordering = ['-date_submitted']
         verbose_name = 'Programme Accreditation Application'
         verbose_name_plural = 'Programme Accreditation Applications'
