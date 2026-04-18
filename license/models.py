@@ -16,7 +16,7 @@ class OTIProvisional(TimeStampedModel):
         ('submitted', 'Submitted'),
         ('pending', 'Pending'),
     )
-    code = models.CharField(max_length=30, null=True, blank=True)
+    code = models.CharField(max_length=30, null=True, blank=True, unique=True)
     application_date = models.DateField(null=True, blank=True, auto_now=True)
     institute = models.ForeignKey(Institution, on_delete=models.DO_NOTHING, null=True, blank=True)
     #LOCATION AND LAND

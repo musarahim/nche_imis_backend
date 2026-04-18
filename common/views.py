@@ -5,6 +5,8 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views.generic import TemplateView
 from rest_framework import permissions, viewsets
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import (County, District, EducationLevel, FinanceYear, Holiday,
                      Nationality, Parish, Region, Religion, SubCounty, Title,
@@ -187,4 +189,19 @@ class HolidayViewSet(viewsets.ModelViewSet):
     serializer_class = HolidaySerializer
     permission_classes = [permissions.AllowAny]  
     pagination_class = None
+
+
+# Institutional Dashboard View
+class InstitutionalDashboard(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # Get institution-specific statistics
+        institution = request.user.institution  # Assuming user has an institution field
+       
+        
+        data = {
+            'current_license': "CHARTERED",
+        }
+        return Response(data)
 

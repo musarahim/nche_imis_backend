@@ -248,6 +248,15 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         serializer = ProgressedToDirectorateSerializer(application, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+    @action(detail=True, methods=['get'], url_path='progressed-to-management-details')
+    def management_stage_details(self, request, pk=None):
+        """
+        GET applications progressed to management stage.
+        """
+        application = get_object_or_404(ProgramAccreditation, pk=pk, status='progressed_to_management')
+        serializer = ProgressedToDirectorateSerializer(application, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     # Director's comment 
     @action(detail=True, methods=['post'], url_path='add-director-comment')
     def add_director_comment(self, request, pk=None):
@@ -271,6 +280,32 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         # TODO: send email notification to management and department head about the director's comment and application status
 
         return Response({'message': 'Director comment added successfully.'}, status=status.HTTP_200_OK)
+    
+    # progressed to management stage
+    @action(detail=False, methods=['get'], url_path='progressed-to-management')
+    def progressed_to_management(self, request, pk=None):
+        """
+        GET applications progressed to management stage.
+        """
+        queryset = ProgramAccreditation.objects.filter(status='progressed_to_management')
+
+        if not queryset.exists():
+            return Response([], status=status.HTTP_200_OK)
+
+        if (
+            self.request.user.is_superuser
+            or self.request.user.groups.filter(name='System Administrator').exists()
+            or self.request.user.groups.filter(name='Head Programme Accreditation').exists()
+        ):
+            queryset = queryset.select_related('institution').order_by('institution__name', '-date_submitted')
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
     
     def create(self, request):
         '''Set institution to the logged in user's institution'''

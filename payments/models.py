@@ -62,8 +62,4 @@ class ApplicationPRNS(models.Model):
         verbose_name = "Application PRN"
         verbose_name_plural = "Application PRNs"
     def __str__(self):
-        return self.prn
-    
-
-
-
+        return self.referenceNo if self.referenceNo else f"PRN for {self.taxPayerName} - {self.amount}"

@@ -173,17 +173,17 @@ class ApplicationPRNSViewSet(viewsets.ReadOnlyModelViewSet):
         if application_code:
             prn_objects = ApplicationPRNS.objects.filter(referenceNo=application_code).order_by("-assessmentDate")
             # check if prns where reconciled and update the prn_reconciled field accordingly
-            for prn in prn_objects:
-                if prn.prn and not prn.prn_reconciled:
-                    # Here you would typically call a method to check the PRN status with URA
-                    # For example: is_reconciled = check_prn_status_with_ura(prn.prn)
-                    # For demonstration, let's assume all PRNs are reconciled
-                   checked_status = service.check_prn_status(prn.prn)  # This method should call URA to get the current status of the PRN
-                   if checked_status.get("statusCode") == "T":
-                       prn.prn_reconciled = True
-                       prn.save()
-                   else:
-                       print(f"PRN {prn.prn} is not yet reconciled. Current status: {checked_status.get('statusCode')}")
+            # for prn in prn_objects:
+            #     if prn.prn and not prn.prn_reconciled:
+            #         # Here you would typically call a method to check the PRN status with URA
+            #         # For example: is_reconciled = check_prn_status_with_ura(prn.prn)
+            #         # For demonstration, let's assume all PRNs are reconciled
+            #        checked_status = service.check_prn_status(prn.prn)  # This method should call URA to get the current status of the PRN
+            #        if checked_status.get("statusCode") == "T":
+            #            prn.prn_reconciled = True
+            #            prn.save()
+            #        else:
+            #            print(f"PRN {prn.prn} is not yet reconciled. Current status: {checked_status.get('statusCode')}")
 
 
             return prn_objects
