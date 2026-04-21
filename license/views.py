@@ -1,6 +1,8 @@
 from accounts.models import User
 from accounts.serializers import UserReviewerSerializer
+from django.core.mail import EmailMessage
 from django.shortcuts import get_object_or_404, render
+from django.template.loader import render_to_string
 from django.utils import timezone
 from institutions.models import Institution
 from payments.models import ApplicationPRNS
@@ -146,6 +148,49 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+
+    # assign reviewer
+    @action(detail=False, methods=['post'], url_path='assign-desk-reviewer')
+    def assign_reviewer(self, request, pk=None):
+        '''assign multiple applications to a reviewer
+            applications come as a list of application ids and reviewer is the user id of the reviewer'''
+        application_ids = request.data.get('applications', [])
+        reviewer_id = request.data.get('userId')
+        
+        if not application_ids or not reviewer_id:
+            return Response({'error': 'applications and userId are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            reviewer = User.objects.get(id=reviewer_id)
+        except User.DoesNotExist:
+            return Response({'error': 'Reviewer not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        applications =   IntrimAuthority.objects.filter(id__in=application_ids)
+
+        
+        for application in applications:
+            application.desk_reviewer=reviewer
+            if application.status != 'prelim_review':
+                application.status = 'prelim_review'
+                application.save()
+            #send emails to reviewers
+        print('sending email notification')
+        html_message = render_to_string('emails/assign_reviewer_notification.html', {
+                'applications': applications,
+                'reviewer': reviewer,
+                'protocol': 'https',
+                'domain': 'portal.unche.or.ug/license/university/interim-authority/review',
+                'site_name': 'UNCHE IMIS',
+                })
+        email = EmailMessage(
+                subject='Interim Authority Application Preliminary Review Notification',
+                body=html_message,
+                to=[reviewer.email],
+                )
+        email.content_subtype = 'html'  # Main content is now text/html
+        email.send(fail_silently=True)
+        
+        return Response({'message': f'{len(applications)} applications assigned to reviewer {reviewer.username}.'}, status=status.HTTP_200_OK)
     
     def create(self, request):
         '''Set institution to the logged in user's institution'''

@@ -1,3 +1,4 @@
+from accounts.models import User
 from common.choices import LEASE_RENTED, STATUS_CHOICES
 from common.models import FinanceYear, TimeStampedModel
 from django.contrib.postgres.fields import ArrayField
@@ -424,6 +425,8 @@ class IntrimAuthority(TimeStampedModel):
     application_date = models.DateField(null=True, blank=True, auto_now=True)
     # ODI application
     is_odai = models.BooleanField(default=False)
+    # Desk Reviewer
+    desk_reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='desk_review_interim_authorities')
 
     class Meta:
         permissions =[
