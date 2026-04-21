@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from institutions.models import Institution
 from payments.models import ApplicationPRNS
@@ -117,6 +117,13 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
             else:
                 data = None
         return data
+    
+    def retrieve(self, request, pk=None):
+        '''Retrieve an Interim Authority Application by ID'''
+        queryset = IntrimAuthority.objects.filter(is_odai=False)
+        application = get_object_or_404(queryset, pk=pk)
+        serializer = self.serializer_class(application)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['get'], url_path='submitted-applications')
     def submitted_applications(self, request, pk=None):

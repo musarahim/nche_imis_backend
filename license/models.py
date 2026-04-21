@@ -140,21 +140,7 @@ class OTIProvisional(TimeStampedModel):
     medicine_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=False)
     veterinary_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=False)
     engineering_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=False)
-        #     12.	SIGNATURES OF THE OFFICERS OF THE INSTITUTION
-        # (i) 	Chairperson of Governing Council (print, sign and date)
-        # Name ……………………………………………………………………….
-
-        # Signature	…………………………….        Date…………………………..
-
-        # (ii) 	Principal of the institution	   
-        # Name …………………………………………………………………..…  
-
-        # Signature	……….……………………….                 Date…………………
-        
-        # (iii) 	Deputy Principal	
-        # Name  ………………………………………………………………….…              
-        
-        # Signature	…………………………………… Date …….……………………..\ attach template
+    # Documents
     signatures = models.FileField(null=True, blank=False)
     members_cvs = models.FileField(null=True, blank=False)
     financial_control_mechanism = models.FileField(null=True, blank=False)
@@ -438,6 +424,13 @@ class IntrimAuthority(TimeStampedModel):
     application_date = models.DateField(null=True, blank=True, auto_now=True)
     # ODI application
     is_odai = models.BooleanField(default=False)
+
+    class Meta:
+        permissions =[
+            ("can_review_application", "Can review application"),
+        ]
+
+        
 
     def save(self, *args, **kwargs):
         if not self.application_code:
