@@ -428,6 +428,7 @@ class IntrimAuthority(TimeStampedModel):
     class Meta:
         permissions =[
             ("can_review_application", "Can review application"),
+            ("can_assign_interim_authority_reviewer", "Can assign interim authority reviewer"),
         ]
 
         

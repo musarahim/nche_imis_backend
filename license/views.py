@@ -1,3 +1,5 @@
+from accounts.models import User
+from accounts.serializers import UserReviewerSerializer
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from institutions.models import Institution
@@ -742,3 +744,14 @@ class OTIProvisionalAwardViewset(viewsets.ModelViewSet):
             else:
                 data = None
         return data
+
+
+# Desk Reviewer
+class DeskReviewersViewset(viewsets.ReadOnlyModelViewSet):
+    '''Programme Accreditation Reviewers'''
+    queryset = User.objects.filter(groups__name='ILA Desk Review Officer').order_by('username')
+    serializer_class = UserReviewerSerializer
+    pagination_class = None
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['username','email','first_name','last_name','other_names']

@@ -17,6 +17,7 @@ router.register(r'provisional-license-odai', views.ODAIProvisionalLicenseViewset
 router.register(r'oti-provisional', views.OTIProvisionalViewset, basename='oti-provisional')
 router.register(r'certification-and-classification', views.CertificationAndClassificationViewset)
 router.register(r'oti-provisional-award', views.OTIProvisionalAwardViewset, basename='oti-provisional-award')
+router.register(r'desk-reviewers', views.DeskReviewersViewset, basename='desk-reviewers')
 
 
 urlpatterns = [
