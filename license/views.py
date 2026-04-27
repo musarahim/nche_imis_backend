@@ -65,9 +65,31 @@ class CertificationAndClassificationViewset(viewsets.ModelViewSet):
         if serializer.is_valid():
             serializer.save()
             if serializer.validated_data.get('status') == 'submitted':
-                print("Status is submitted, checking PRN...")
-                prn_check = service.generate_and_save_prn(
-                    {
+                # check if PRN is reconciled, if yes, allow submission, else return an error response
+                prn_object = ApplicationPRNS.objects.filter(referenceNo=instance.application_code).order_by("-assessmentDate").first()
+                prn_status = service.check_prn_status(prn_object.prn) if prn_object else None
+                #print(prn_status, "PRN status from URA")
+                if prn_status and prn_status.get("statusCode") == "T":
+                       prn_object.prn_reconciled = True
+                       prn_object.save()
+                       # allow the submission to proceed
+                       serializer.save()
+                       print("submitting email notification for OTI Classification and Registration License Application...")
+                       #TODO: send an email to the applicant and the NCHE secretariat
+                else:
+                    return Response({
+                        "error": "PRN is not reconciled. Please pay up the application fee before submitting."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='generate-prn')
+    def generate_prn(self, request, pk=None):
+        '''Generate PRN for the application'''
+        instance = self.get_object()
+        prn_check = service.generate_and_save_prn(
+                {
                     "amount": 200000,
                     "assessmentDate": timezone.now().isoformat(),
                     "paymentType": "DT",
@@ -94,12 +116,9 @@ class CertificationAndClassificationViewset(viewsets.ModelViewSet):
                     "mobileMoneyNumber": "",
                     "mobileNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else ""
                 })  # Example call
-                print(prn_check, "result from URA PRN check")
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    
+        print(prn_check, "result from URA PRN check")
+        response_serializer = PRNGenerationResponseSerializer(prn_check)
+        return Response({"prn_check_result": response_serializer.data}, status=status.HTTP_200_OK)
     
 
 class IntrimAuthorityViewset(viewsets.ModelViewSet):

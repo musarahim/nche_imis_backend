@@ -1,6 +1,8 @@
 from accounts.models import User
 from accounts.serializers import UserReviewerSerializer
+from django.core.mail import EmailMessage
 from django.shortcuts import get_object_or_404, render
+from django.template.loader import render_to_string
 from django.utils import timezone
 from institutions.models import Institution
 from rest_framework import filters, parsers, permissions, status, viewsets
@@ -315,6 +317,18 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
             user = self.request.user
             institution = Institution.objects.get(user=user)
             serializer.save(institution=institution)
+            # Send email notification to the institution about successful submission of the application
+            html_message = render_to_string('email/programme_submission.html', {
+                'application': serializer.instance,
+                'institution': institution,
+                })
+            email = EmailMessage(
+                subject='NCHE Programme Application Received',
+                body=html_message,
+                to=[user.email],
+                )
+            email.content_subtype = 'html'  # Main content is now text/html
+            email.send(fail_silently=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
