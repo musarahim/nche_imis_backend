@@ -1,5 +1,5 @@
 from accounts.models import User
-from common.choices import PROGRAMME_LEVELS
+from common.choices import PROGRAMME_LEVELS, YES_NO_CHOICES
 from django.db import models
 from institutions.models import Institution
 from tinymce.models import HTMLField
@@ -49,6 +49,7 @@ class ProgramAccreditation(models.Model):
     #Director's comment
     director_comment = models.TextField(blank=True, null=True)
     director_comment_date = models.DateTimeField(blank=True, null=True)
+    is_paid = models.BooleanField(default=False, blank=True, null=True, choices=YES_NO_CHOICES)
 
     class Meta:
         '''Model to represent a programme accreditation application.'''
@@ -95,7 +96,8 @@ class Program(models.Model):
       ('under_review','Under Review'),
       ('expired','Expired')
     )
-    applications = models.ManyToManyField(ProgramAccreditation, related_name='programs')
+    applications = models.ManyToManyField(ProgramAccreditation, related_name='programs', blank=True)
+    institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='programs', blank=False, null=True)
     program_name = models.CharField(max_length=50)
     program_level = models.CharField(max_length=255, blank=True, null=True, choices=PROGRAMME_LEVELS)
     accreditation_date = models.DateField(blank=True, null=True)
@@ -104,6 +106,15 @@ class Program(models.Model):
 
     def __str__(self):
         return f"{self.program_name} - {self.program_level}"
+    
+    def save(self, *args, **kwargs):
+        # compute expiry date if the status changes to active and accreditation date is provided
+        if self.status == 'active' and self.accreditation_date and not self.expiry_date:
+            self.expiry_date = self.accreditation_date.replace(year=self.accreditation_date.year + 5)
+        today = models.DateField.auto_now()
+        if self.expiry_date and self.expiry_date < today:
+            self.status = 'expired'
+        super().save(*args, **kwargs)
 
 
 class PreliminaryReview(models.Model):

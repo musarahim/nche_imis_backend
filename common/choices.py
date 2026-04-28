@@ -99,3 +99,7 @@ STATUS_CHOICES = (
         ('rejected', 'Rejected / Not Approved'),
     )
 
+YES_NO_CHOICES = (
+    (True, 'Yes'),
+    (False, 'No'),
+)
