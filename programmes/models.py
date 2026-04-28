@@ -1,6 +1,7 @@
 from accounts.models import User
 from common.choices import PROGRAMME_LEVELS, YES_NO_CHOICES
 from django.db import models
+from django.utils import timezone
 from institutions.models import Institution
 from tinymce.models import HTMLField
 
@@ -98,11 +99,18 @@ class Program(models.Model):
     )
     applications = models.ManyToManyField(ProgramAccreditation, related_name='programs', blank=True)
     institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='programs', blank=False, null=True)
-    program_name = models.CharField(max_length=50)
+    program_name = models.CharField(max_length=250)
     program_level = models.CharField(max_length=255, blank=True, null=True, choices=PROGRAMME_LEVELS)
     accreditation_date = models.DateField(blank=True, null=True)
     expiry_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=15, null=False, blank=True,default='under_review')
+
+    class Meta:
+        '''Model to represent individual programs under an accreditation.'''
+        ordering = ['-accreditation_date']
+        verbose_name = 'Program'
+        verbose_name_plural = 'Programs'
+        unique_together = ('program_name', 'institution')
 
     def __str__(self):
         return f"{self.program_name} - {self.program_level}"
@@ -111,7 +119,7 @@ class Program(models.Model):
         # compute expiry date if the status changes to active and accreditation date is provided
         if self.status == 'active' and self.accreditation_date and not self.expiry_date:
             self.expiry_date = self.accreditation_date.replace(year=self.accreditation_date.year + 5)
-        today = models.DateField.auto_now()
+        today = timezone.now().date()
         if self.expiry_date and self.expiry_date < today:
             self.status = 'expired'
         super().save(*args, **kwargs)
