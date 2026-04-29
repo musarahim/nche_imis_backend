@@ -115,26 +115,26 @@ class Program(models.Model):
     def __str__(self):
         return f"{self.program_name} - {self.program_level}"
     
-    def save(self, *args, **kwargs):
-        today = timezone.now().date()
+    # def save(self, *args, **kwargs):
+    #     today = timezone.now().date()
 
-        # Ensure expiry is derived consistently
-        if self.accreditation_date and not self.expiry_date:
-            try:
-                self.expiry_date = self.accreditation_date.replace(year=self.accreditation_date.year + 5)
-            except ValueError:
-                # Handles leap day accreditation dates in non-leap expiry years.
-                self.expiry_date = self.accreditation_date.replace(month=2, day=28, year=self.accreditation_date.year + 5)
+    #     # Ensure expiry is derived consistently
+    #     if self.accreditation_date and not self.expiry_date:
+    #         try:
+    #             self.expiry_date = self.accreditation_date.replace(year=self.accreditation_date.year + 5)
+    #         except ValueError:
+    #             # Handles leap day accreditation dates in non-leap expiry years.
+    #             self.expiry_date = self.accreditation_date.replace(month=2, day=28, year=self.accreditation_date.year + 5)
 
-        # Deterministic status precedence
-        if self.expiry_date and self.expiry_date <= today:
-            self.status = 'expired'
-        elif self.accreditation_date and self.accreditation_date <= today:
-            self.status = 'active'
-        else:
-            self.status = 'under_review'
+    #     # Deterministic status precedence
+    #     if self.expiry_date and self.expiry_date <= today:
+    #         self.status = 'expired'
+    #     elif self.accreditation_date and self.accreditation_date <= today:
+    #         self.status = 'active'
+    #     else:
+    #         self.status = 'under_review'
 
-        super().save(*args, **kwargs)
+    #     super().save(*args, **kwargs)
 
 
 class PreliminaryReview(models.Model):
