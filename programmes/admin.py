@@ -26,10 +26,15 @@ class ProgramAdmin(ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     '''Admin interface for Programs under an Accreditation'''
     export_form_class = SelectableFieldsExportForm
     import_form_class = ImportForm
-    list_display = ("id","program_name","institution", "program_level", "accreditation_date", "expiry_date", "status")
+    list_display = ("id","program_name","institution", "program_level", "accreditation_date", "expiry_date", "status_display")
     fields = ("applications","institution","program_name","program_level","accreditation_date","expiry_date")
     search_fields = ("program_name", "institution__name")
     filter = ('program_level','institution')  #
+
+    def status_display(self, obj):
+        '''Display human-readable status value instead of key'''
+        return obj.get_status_display()
+    status_display.short_description = 'Status'
     compressed_fields = False
     # Warn before leaving unsaved changes in changeform
     warn_unsaved_form = True  # Default: False

@@ -103,7 +103,7 @@ class Program(models.Model):
     program_level = models.CharField(max_length=255, blank=True, null=True, choices=PROGRAMME_LEVELS)
     accreditation_date = models.DateField(blank=True, null=True)
     expiry_date = models.DateField(blank=True, null=True)
-    status = models.CharField(max_length=15, null=False, blank=True,default='under_review')
+    status = models.CharField(max_length=15, null=False, blank=True,default='under_review', choices=STATUS)
 
     class Meta:
         '''Model to represent individual programs under an accreditation.'''
