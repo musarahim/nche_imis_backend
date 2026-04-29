@@ -120,15 +120,19 @@ class Program(models.Model):
 
         # Ensure expiry is derived consistently
         if self.accreditation_date and not self.expiry_date:
-            self.expiry_date = self.accreditation_date + timezone.timedelta(days=5 * 365)
+            try:
+                self.expiry_date = self.accreditation_date.replace(year=self.accreditation_date.year + 5)
+            except ValueError:
+                # Handles leap day accreditation dates in non-leap expiry years.
+                self.expiry_date = self.accreditation_date.replace(month=2, day=28, year=self.accreditation_date.year + 5)
 
         # Deterministic status precedence
         if self.expiry_date and self.expiry_date <= today:
-            self.status = "expired"
+            self.status = 'expired'
         elif self.accreditation_date and self.accreditation_date <= today:
-            self.status = "active"
+            self.status = 'active'
         else:
-            self.status = "under_review"
+            self.status = 'under_review'
 
         super().save(*args, **kwargs)
 
