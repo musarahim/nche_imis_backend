@@ -26,5 +26,21 @@ class ProgramAdmin(ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     '''Admin interface for Programs under an Accreditation'''
     export_form_class = SelectableFieldsExportForm
     import_form_class = ImportForm
-    list_display = ("id","program_name", "program_level", "accreditation_date", "expiry_date", "status")
-    fields = ("applications","program_name","program_level","accreditation_date","expiry_date")
+    list_display = ("id","program_name","institution", "program_level", "accreditation_date", "expiry_date", "status")
+    fields = ("applications","institution","program_name","program_level","accreditation_date","expiry_date")
+    search_fields = ("program_name", "institution__name")
+    filter = ('program_level','institution')  #
+    compressed_fields = False
+    # Warn before leaving unsaved changes in changeform
+    warn_unsaved_form = True  # Default: False
+     # Display submit button in filters
+    list_filter_submit = True
+    # Display changelist in fullwidth
+    list_fullwidth = False
+     # Position horizontal scrollbar in changelist at the top
+    list_horizontal_scrollbar_top = False
+
+    # Dsable select all action in changelist
+    list_disable_select_all = False
+    list_per_page = 20
+    list_max_show_all = 1000
