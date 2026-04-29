@@ -116,12 +116,20 @@ class Program(models.Model):
         return f"{self.program_name} - {self.program_level}"
     
     def save(self, *args, **kwargs):
-        # compute expiry date if the status changes to active and accreditation date is provided
-        if self.status == 'active' and self.accreditation_date and not self.expiry_date:
-            self.expiry_date = self.accreditation_date.replace(year=self.accreditation_date.year + 5)
         today = timezone.now().date()
-        if self.expiry_date and self.expiry_date < today:
-            self.status = 'expired'
+
+        # Ensure expiry is derived consistently
+        if self.accreditation_date and not self.expiry_date:
+            self.expiry_date = self.accreditation_date + timezone.timedelta(days=5 * 365)
+
+        # Deterministic status precedence
+        if self.expiry_date and self.expiry_date <= today:
+            self.status = "expired"
+        elif self.accreditation_date and self.accreditation_date <= today:
+            self.status = "active"
+        else:
+            self.status = "under_review"
+
         super().save(*args, **kwargs)
 
 
