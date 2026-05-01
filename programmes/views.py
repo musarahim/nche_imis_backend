@@ -349,7 +349,7 @@ class ProgramViewset(viewsets.ModelViewSet):
             data = queryset
         else:
             if hasattr(self.request.user, 'institution'):
-                data = queryset.filter(program_accreditation__institution=self.request.user.institution)
+                data = queryset.filter(institution=self.request.user.institution)
             else:
                 data = None
         return data

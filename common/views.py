@@ -7,6 +7,8 @@ from django.views.generic import TemplateView
 from rest_framework import permissions, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from institutions.models import Institution
+from programmes.models import Program, ProgramAccreditation
 
 from .models import (County, District, EducationLevel, FinanceYear, Holiday,
                      Nationality, Parish, Region, Religion, SubCounty, Title,
@@ -197,11 +199,16 @@ class InstitutionalDashboard(APIView):
 
     def get(self, request):
         # Get institution-specific statistics
-        institution = request.user.institution  # Assuming user has an institution field
-       
+        user = request.user  # Assuming user has an institution field
+        institution = Institution.objects.filter(user=user).first()
+        programs = Program.objects.filter(institution=institution)
+        active_programmes = programs.filter(status='active').count()
+        expired_programmes = programs.filter(status='expired').count()
         
         data = {
             'current_license': "CHARTERED",
+            'active_programmes': active_programmes,
+            'expired_programmes': expired_programmes,
         }
         return Response(data)
 

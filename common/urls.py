@@ -22,5 +22,6 @@ router.register(r'holidays', views.HolidayViewSet, basename='holiday')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('institution-dashboard/', views.InstitutionalDashboard.as_view(), name='institution-dashboard'),
     path('dashboard/', views.HomePageView.as_view(), name='home'),
 ]

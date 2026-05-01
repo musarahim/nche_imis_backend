@@ -31,6 +31,16 @@ class ProgramSerializer(serializers.ModelSerializer):
         model = Program
         fields = ('id','applications','institution','program_name','program_level', 'accreditation_date','expiry_date','status')
 
+    def to_representation(self, instance):
+        '''Custom representation to include institution name and display choices'''
+        response = super().to_representation(instance)
+        response['institution'] = instance.institution.name if instance.institution else None
+        response['program_level'] = instance.get_program_level_display()
+        response['status'] = instance.get_status_display()
+        response['accreditation_date'] = instance.accreditation_date.strftime('%d-%b-%Y') if instance.accreditation_date else None
+        response['expiry_date'] = instance.expiry_date.strftime('%d-%b-%Y') if instance.expiry_date else None
+        return response
+
 
 
 

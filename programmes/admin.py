@@ -29,7 +29,7 @@ class ProgramAdmin(ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     list_display = ("id","program_name","institution", "program_level", "accreditation_date", "expiry_date", "status_display")
     fields = ("applications","institution","program_name","program_level","accreditation_date","expiry_date")
     search_fields = ("program_name", "institution__name")
-    filter = ('program_level','institution')  #
+    list_filter = ('status', 'institution')
 
     def status_display(self, obj):
         '''Display human-readable status value instead of key'''
