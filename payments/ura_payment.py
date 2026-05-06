@@ -34,7 +34,7 @@ class UgHubClient:
         }
         data = {
             "grant_type": "client_credentials",
-            "scope": "prn-services/generate-prn prn-services/get-prn-details"
+            "scope": "prn-services/generate-prn prn-services/get-prn-details mda-services/get-tin-details"
         }
         
         with httpx.Client(timeout=30.0, verify=True) as client:
@@ -141,12 +141,8 @@ class UraMdaPaymentService:
         body = {"prn": prn}
         return self._post("prn-services/get-prn-details", body)
 
-    # 3) Check Tax Clearance Status
-    def check_tax_clearance_status(self, certificate_number: str) -> Dict[str, Any]:
-        body = {"CheckTaxClearanceStatus": {"certificateNumber": certificate_number}}
-        return self._post("checkTaxClearanceStatus", body)
-
     # 4) Get Client Registration
     def get_client_registration(self, tin: str) -> Dict[str, Any]:
-        body = {"GetClientRegistration": {"TIN": tin}}
-        return self._post("getClientRegistration", body)
+        body = {"TIN": tin}
+        return self._post("mda-services/get-tin-details", body)
+    

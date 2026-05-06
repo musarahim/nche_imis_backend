@@ -314,6 +314,7 @@ URA_TOKEN_ENDPOINT = os.environ.get("URA_TOKEN_ENDPOINT")
 URA_CONSUMER_KEY = os.environ.get("URA_CONSUMER_KEY")
 URA_CONSUMER_SECRET = os.environ.get("URA_CONSUMER_SECRET")
 URA_BASE_URL = os.environ.get("URA_BASE_URL")
+URA_TIN_ENDPOINT = os.environ.get("URA_TIN_ENDPOINT")
 
 
 # Make sure Django cache is configured to use Memcached

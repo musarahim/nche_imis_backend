@@ -27,7 +27,7 @@ class ExternalAPITestCase(APITestCase):
             "taxHead": "LICENSE_FEE",
             "taxPayerName": "Test Company Ltd",
             "email": "test@example.com",
-            "tin": "1234567890"
+            "tin": "1017779749"
         }
         
         self.mock_ura_response = {
