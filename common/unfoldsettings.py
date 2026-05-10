@@ -316,7 +316,7 @@ UNFOLD = {
             ],
         },
         {
-            "title": _("Programs"),
+            "title": _("Programmes"),
             "icon": "contract",
             "collapsible": True,
             "permission": lambda request: request.user.is_superuser,
@@ -324,6 +324,12 @@ UNFOLD = {
                 {
                     "title": _("Program Applications"),
                     "link": reverse_lazy("admin:programmes_programaccreditation_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "rule_settings",
+                },
+                {
+                    "title": _("Preliminary Reviews"),
+                    "link": reverse_lazy("admin:programmes_preliminaryreview_changelist"),
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "rule_settings",
                 },

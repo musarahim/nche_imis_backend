@@ -110,3 +110,24 @@ class ProgressedToDirectorateSerializer(serializers.ModelSerializer):
         response['program_structure'] = request.build_absolute_uri(instance.program_structure.url) if instance.program_structure and request else (instance.program_structure.url if instance.program_structure else None)
         response['letter_of_submission'] = request.build_absolute_uri(instance.letter_of_submission.url) if instance.letter_of_submission and request else (instance.letter_of_submission.url if instance.letter_of_submission else None)
         return response
+    
+
+# invoicing serializer
+class ProgrammeInvoiceSerializer(serializers.ModelSerializer):
+    '''Serializer for invoicing Programme Accreditation applications'''
+    class Meta:
+        model = ProgramAccreditation
+        fields = ('id','invoice_file','invoice_number','invoice_amount')
+
+    # def to_representation(self, instance):
+    #     '''Custom representation to include institution name and display choices'''
+    #     response = super().to_representation(instance)
+    #     response['institution'] = instance.institution.name if instance.institution else None
+    #     response['application_type'] = instance.get_application_type_display()
+    #     response['program_level'] = instance.get_program_level_display()
+    #     response['status'] = instance.get_status_display()
+    #     response['date_submitted'] = instance.date_submitted.strftime('%d-%m-%Y') if instance.date_submitted else None
+    #     request = self.context.get('request')
+    #     response['program_structure'] = request.build_absolute_uri(instance.program_structure.url) if instance.program_structure and request else (instance.program_structure.url if instance.program_structure else None)
+    #     response['letter_of_submission'] = request.build_absolute_uri(instance.letter_of_submission.url) if instance.letter_of_submission and request else (instance.letter_of_submission.url if instance.letter_of_submission else None)
+    #     return response

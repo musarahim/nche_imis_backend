@@ -14,7 +14,7 @@ from .models import (PreliminaryReview, Program, ProgramAccreditation,
 from .serializers import (PreliminaryReviewSerializer,
                           ProgrammeAccreditationSerializer,
                           ProgrammeAssessmentSerializer, ProgramSerializer,
-                          ProgressedToDirectorateSerializer)
+                          ProgressedToDirectorateSerializer,ProgrammeInvoiceSerializer)
 
 
 # Create your views here.
@@ -181,6 +181,39 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+
+    # progressed tp accounting stage
+    @action(detail=False, methods=['get'], url_path='ready-for-invoicing')
+    def ready_for_invoicing(self, request, pk=None):
+        """
+        applications ready for invoicing.
+        """
+        queryset = ProgramAccreditation.objects.filter(status='progressed_to_accounting')
+
+        if not queryset.exists():
+            return Response([], status=status.HTTP_200_OK)
+
+        if (
+            self.request.user.is_superuser
+            or self.request.user.groups.filter(name='System Administrator').exists()
+            or self.request.user.groups.filter(name='Head Programme Accreditation').exists()
+        ):
+            queryset = queryset.select_related('institution').order_by('institution__name', '-date_submitted')
+
+        elif self.request.user.groups.filter(name='Programme Reviewers').exists():
+            queryset = queryset.filter(
+                preliminary_reviewer=self.request.user
+            ).select_related('institution').order_by('institution__name', '-date_submitted')
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+
     @action(detail=False, methods=['get'], url_path='under-assessment')
     def under_assessment(self, request, pk=None):
         """
@@ -282,6 +315,40 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         # TODO: send email notification to management and department head about the director's comment and application status
 
         return Response({'message': 'Director comment added successfully.'}, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'], url_path='post_invoice')
+    def invoice(self, request, pk=None):
+        """
+        Add an invoice to an applications.
+        """
+        application = get_object_or_404(ProgramAccreditation, pk=pk, status='progressed_to_accounting')
+        self.serializer_class = ProgrammeInvoiceSerializer
+        serializer = self.get_serializer(application, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            # send email notification to the institution about the invoice details
+            html_message = render_to_string('email/invoice_details.html', {
+                'application': application,
+                'institution': application.institution,
+                'invoice_amount': serializer.validated_data.get('invoice_amount'),
+                'invoice_number': serializer.validated_data.get('invoice_number'),
+                'invoice_date': serializer.validated_data.get('invoice_date'),
+            })
+            email = EmailMessage(
+                subject='NCHE Programme Application Invoice Details',
+                body=html_message,
+                to=[application.institution.user.email],
+                )
+            email.content_subtype = 'html'  # Main content is now text/html
+            # Attach the invoice file
+            invoice_file = serializer.validated_data.get('invoice_file')
+            if invoice_file:
+                invoice_file.seek(0)
+                email.attach(invoice_file.name, invoice_file.read(), invoice_file.content_type)
+            email.send(fail_silently=False)
+            return Response({'message': 'Invoice details added successfully.'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
     
     # progressed to management stage
     @action(detail=False, methods=['get'], url_path='progressed-to-management')
@@ -416,7 +483,7 @@ class PreminaryReviewViewset(viewsets.ModelViewSet):
                 if 'expert_progression' in serializer.validated_data:
                     recommendation = serializer.validated_data['expert_progression']
                     if recommendation == 'yes':
-                        application.status = 'progressed_to_experts'
+                        application.status = 'progressed_to_accounting'
                     elif recommendation == 'no':
                         application.status = 'returned_for_review'
                     application.save()

@@ -1,0 +1,169 @@
+{% load i18n %}
+ {% load static %}
+{% block subject %}
+ {% blocktrans %} NCHE Programme Application Invoice {% endblocktrans %}
+ {% endblock subject %} 
+ {% block html_body %}
+<div style="padding: 10px; width: 100%; max-width: 600px; margin: 0 auto">
+  <style>
+    @media only screen and (max-width: 600px) {
+      .email-container {
+        padding: 10px !important;
+        margin: 0 !important;
+        width: 100% !important;
+      }
+      .email-inner {
+        width: 100% !important;
+        padding: 10px !important;
+      }
+      .email-logo {
+        overflow: hidden !important;
+      }
+      .email-logo img {
+        height: 60px !important;
+        margin-bottom: -20px !important;
+        max-width: 100% !important;
+      }
+      .email-content {
+        padding: 15px 5px 10px 5px !important;
+      }
+    }
+  </style>
+  <div
+    class="email-container"
+    style="
+      background-color: #1a5677;
+      padding: 40px;
+      margin: 0 auto;
+      border-radius: 10px 10px 0 0;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: center;
+    "
+  >
+    <div
+      class="email-inner"
+      style="
+        width: 80%;
+        padding: 20px;
+        border-radius: 10px;
+        min-height: 40vh;
+        max-height: 80vh;
+        margin: 0 auto;
+      "
+    >
+      <div
+        class="email-logo"
+        style="
+          background-color: #f5f5f5;
+          border-radius: 10px 10px 0 0;
+          position: relative;
+          overflow: hidden;
+        "
+      >
+        <img
+          src="https://imis.unche.or.ug/Images/logo.png"
+          alt="logo"
+          style="
+            height: 125px;
+            display: block;
+            margin: 0 auto;
+            margin-bottom: -75px;
+            max-width: 100%;
+          "
+        />
+      </div>
+
+      {% block text_body %}
+      <div
+        class="email-content"
+        style="
+          background-color: #f9f9f9;
+          padding: 30px 20px 20px 20px;
+          border-radius: 0 0 10px 10px;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        "
+      >
+        Dear {{ institution.name|default:"Institution" }}, <br /><br />
+
+        The Uganda National Council for Higher Education (NCHE) has issued an
+        invoice for your programme accreditation application. Please find the
+        invoice attached to this email and refer to the details below.
+
+        <div
+          style="
+            background-color: #ffffff;
+            border: 1px solid #e6e6e6;
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin: 14px 0;
+          "
+        >
+          <p style="margin: 0 0 10px 0">
+            <strong>{% trans "Invoice Details" %}</strong>
+          </p>
+          <ul
+            style="
+              list-style-type: none;
+              padding: 0;
+              margin: 0;
+              line-height: 1.8;
+            "
+          >
+            <li>
+              <strong>{% trans "Invoice Number:" %}</strong>
+              {{ invoice_number|default:"N/A" }}
+            </li>
+            <li>
+              <strong>{% trans "Invoice Amount (UGX):" %}</strong>
+              {{ invoice_amount|default:"N/A" }}
+            </li>
+            <li>
+              <strong>{% trans "Application Number:" %}</strong>
+              {{ application.application_number|default:"Pending" }}
+            </li>
+            <li>
+              <strong>{% trans "Institution:" %}</strong>
+              {{ institution.name|default:"N/A" }}
+            </li>
+            <li>
+              <strong>{% trans "Programme Name:" %}</strong>
+              {{ application.program_name|default:"N/A" }}
+            </li>
+            <li>
+              <strong>{% trans "Programme Level:" %}</strong>
+              {{ application.get_program_level_display|default:"N/A" }}
+            </li>
+            <li>
+              <strong>{% trans "Application Type:" %}</strong>
+              {{ application.get_application_type_display|default:"N/A" }}
+            </li>
+          </ul>
+        </div>
+
+        Please settle this invoice promptly to allow your application to proceed
+        through the NCHE review process. If you have any queries regarding this
+        invoice, please contact us.
+
+        <p style="text-align: center">
+          <strong
+            >{% trans "Uganda National Council for Higher Education" %}</strong
+          >
+        </p>
+      </div>
+      {% endblock text_body %}
+    </div>
+  </div>
+  <div
+    style="
+      background-color: #af001d;
+      height: 50px;
+      margin: 0 auto;
+      border-radius: 0 0 10px 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+    "
+  ></div>
+</div>
+{% endblock html_body %}
+

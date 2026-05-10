@@ -15,6 +15,7 @@ class ProgramAccreditation(models.Model):
         ('progressed_to_experts', 'Progressed to Experts'),
         ('returned_for_review', 'Returned for Review'),
         ('under_assessment', 'Under Assessment'),
+        ('progressed_to_accounting', 'Progressed to Accounting'),
         ('progressed_to_director', 'Progressed to Director'),
         ('return_to_assessor', 'Return to Assessor'),
         ('progressed_to_management', 'Progressed to Management'),
@@ -27,6 +28,10 @@ class ProgramAccreditation(models.Model):
         ('revision', 'Revision'),
 
     ]
+    INVOICE_STATUS=(
+        ('pending', 'Pending Payment'),
+        ('paid', 'Paid'),
+    )
     institution = models.ForeignKey(Institution, on_delete=models.RESTRICT, related_name='programme_accreditations', blank=True)
     #  PGAC/2024-2025/00715
     application_number = models.CharField(max_length=100, unique=True, blank=True)
@@ -40,9 +45,18 @@ class ProgramAccreditation(models.Model):
     #Attach detailed Programme(Course) Structure 
     program_structure = models.FileField(upload_to='programmes/', blank=True, null=True)
     letter_of_submission = models.FileField(upload_to='programmes/', blank=True, null=True)
+    
     # program to renew 
     program_to_renew = models.ForeignKey('programmes.Program', on_delete=models.SET_NULL, null=True, blank=True, related_name='renewals')
     preliminary_reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='preliminary_reviews')
+    # attach invoice and verify its payment before progressing application to assessment
+    invoice_file = models.FileField(upload_to='invoices/', blank=True, null=True)
+    invoice_status = models.CharField(max_length=20, choices=INVOICE_STATUS, default='pending', blank=True)
+    invoice_number = models.CharField(max_length=100, blank=True, null=True)
+    invoice_date = models.DateField(blank=True, null=True)
+    invoice_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    invoice_payment_date = models.DateField(blank=True, null=True)
+   # assessor assigned to review the application after the invoice is verified as paid  
     assessor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assessments')
     #programme head comment
     pod_comment = models.TextField(blank=True, null=True)
@@ -63,6 +77,7 @@ class ProgramAccreditation(models.Model):
             ('can_review_programme_accreditation', 'Can review programme accreditation applications'),
             ('can_assess_programme',' Can Assess Programmes'),
             ('can_make_directorate_decision', 'Can make directorate decisions on programme accreditation applications'),
+            ('can_manage_invoices', 'Can manage invoices for programme accreditation applications'),
         ]
 
     def __str__(self):
