@@ -8,6 +8,7 @@ from institutions.models import Institution
 from rest_framework import filters, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db import transaction
 
 from .models import (PreliminaryReview, Program, ProgramAccreditation,
                      ProgrammeAssessment)
@@ -156,7 +157,7 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         """
         applications ready for assessment.
         """
-        queryset = ProgramAccreditation.objects.filter(status='progressed_to_experts', preliminary_reviewers__expert_progression='yes')
+        queryset = ProgramAccreditation.objects.filter(status='invoice_reconciled', preliminary_reviewers__expert_progression='yes')
 
         if not queryset.exists():
             return Response([], status=status.HTTP_200_OK)
@@ -322,10 +323,10 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         Add an invoice to an applications.
         """
         application = get_object_or_404(ProgramAccreditation, pk=pk, status='progressed_to_accounting')
-        self.serializer_class = ProgrammeInvoiceSerializer
-        serializer = self.get_serializer(application, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
+        serializer = ProgrammeInvoiceSerializer(application, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        with transaction.atomic():
+            serializer.save(status='invoiced', invoice_status='pending', invoice_cleared=False, invoice_date=timezone.now())
             # send email notification to the institution about the invoice details
             html_message = render_to_string('email/invoice_details.html', {
                 'application': application,
@@ -349,7 +350,47 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
             return Response({'message': 'Invoice details added successfully.'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-    
+    # invoice applications 
+    @action(detail=False, methods=['get'], url_path='invoiced-applications')
+    def invoiced_applications(self, request, pk=None):
+        """
+        GET applications that have been invoiced.
+        """
+        queryset = ProgramAccreditation.objects.filter(invoice_number__isnull=False, invoice_amount__isnull=False)
+
+        if not queryset.exists():
+            return Response([], status=status.HTTP_200_OK)
+
+        if (
+            self.request.user.is_superuser
+            or self.request.user.groups.filter(name='System Administrator').exists()
+            or self.request.user.groups.filter(name='Head Programme Accreditation').exists()
+        ):
+            queryset = queryset.select_related('institution').order_by('institution__name', '-date_submitted')
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    # Reconcile invoice
+    @action(detail=True, methods=['post'], url_path='reconcile-invoice')
+    def reconcile_invoice(self, request, pk=None):
+        """
+        POST reconcile an invoice for an application.
+        """
+        application = get_object_or_404(ProgramAccreditation, pk=pk, invoice_status='pending', invoice_cleared=False, status='invoiced')
+        
+        
+        application.invoice_cleared = True
+        application.invoice_status = 'paid'
+        application.status = 'invoice_reconciled'
+        application.save()
+        return Response({'message': 'Invoice reconciled successfully.'}, status=status.HTTP_200_OK)
+        
     # progressed to management stage
     @action(detail=False, methods=['get'], url_path='progressed-to-management')
     def progressed_to_management(self, request, pk=None):

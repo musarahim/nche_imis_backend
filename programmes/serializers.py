@@ -18,7 +18,9 @@ class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
         response['application_type'] = instance.get_application_type_display()
         response['program_level'] = instance.get_program_level_display()
         response['status'] = instance.get_status_display()
+        response['invoice_status'] = instance.get_invoice_status_display() if instance.invoice_status else None
         response['date_submitted'] = instance.date_submitted.strftime('%d-%m-%Y') if instance.date_submitted else None
+        response['invoice_date'] = instance.invoice_date.strftime('%d-%m-%Y') if instance.invoice_date else None
         request = self.context.get('request')
         response['program_structure'] = request.build_absolute_uri(instance.program_structure.url) if instance.program_structure and request else (instance.program_structure.url if instance.program_structure else None)
         response['letter_of_submission'] = request.build_absolute_uri(instance.letter_of_submission.url) if instance.letter_of_submission and request else (instance.letter_of_submission.url if instance.letter_of_submission else None)
@@ -105,6 +107,7 @@ class ProgressedToDirectorateSerializer(serializers.ModelSerializer):
         response['application_type'] = instance.get_application_type_display()
         response['program_level'] = instance.get_program_level_display()
         response['status'] = instance.get_status_display()
+        response['invoice_status'] = instance.get_invoice_status_display() if instance.invoice_status else None
         response['date_submitted'] = instance.date_submitted.strftime('%d-%m-%Y') if instance.date_submitted else None
         request = self.context.get('request')
         response['program_structure'] = request.build_absolute_uri(instance.program_structure.url) if instance.program_structure and request else (instance.program_structure.url if instance.program_structure else None)

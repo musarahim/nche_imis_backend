@@ -12,10 +12,12 @@ class ProgramAccreditation(models.Model):
     STATUS = [
         ('submitted', 'Submitted'),
         ('under_review', 'Under Review'),
+        ('invoice_reconciled', 'Invoice Reconciled'),
         ('progressed_to_experts', 'Progressed to Experts'),
         ('returned_for_review', 'Returned for Review'),
         ('under_assessment', 'Under Assessment'),
         ('progressed_to_accounting', 'Progressed to Accounting'),
+        ('invoiced', 'Invoiced'),
         ('progressed_to_director', 'Progressed to Director'),
         ('return_to_assessor', 'Return to Assessor'),
         ('progressed_to_management', 'Progressed to Management'),
@@ -56,11 +58,13 @@ class ProgramAccreditation(models.Model):
     invoice_date = models.DateField(blank=True, null=True)
     invoice_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     invoice_payment_date = models.DateField(blank=True, null=True)
+    invoice_cleared = models.BooleanField(default=False, blank=True, null=True)
    # assessor assigned to review the application after the invoice is verified as paid  
     assessor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assessments')
     #programme head comment
     pod_comment = models.TextField(blank=True, null=True)
     pod_comment_date = models.DateTimeField(blank=True, null=True)
+    dep_meeting_minutes = models.FileField(null=True, blank=True)
     #Director's comment
     director_comment = models.TextField(blank=True, null=True)
     director_comment_date = models.DateTimeField(blank=True, null=True)
