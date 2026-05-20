@@ -69,6 +69,7 @@ class ProgramAccreditation(models.Model):
     director_comment = models.TextField(blank=True, null=True)
     director_comment_date = models.DateTimeField(blank=True, null=True)
     is_paid = models.BooleanField(default=False, blank=True, null=True, choices=YES_NO_CHOICES)
+    # management decision
 
     class Meta:
         '''Model to represent a programme accreditation application.'''
@@ -82,6 +83,7 @@ class ProgramAccreditation(models.Model):
             ('can_assess_programme',' Can Assess Programmes'),
             ('can_make_directorate_decision', 'Can make directorate decisions on programme accreditation applications'),
             ('can_manage_invoices', 'Can manage invoices for programme accreditation applications'),
+            ('can_approve_programme_at_management_level', 'Can approve programme at management level'),
         ]
 
     def __str__(self):
