@@ -459,7 +459,7 @@ class ProgramViewset(viewsets.ModelViewSet):
             if hasattr(self.request.user, 'institution'):
                 data = queryset.filter(institution=self.request.user.institution)
             else:
-                data = None
+                data = queryset.none()
         return data
 
     
