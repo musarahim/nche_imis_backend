@@ -42,7 +42,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('homePage', HomePageView.as_view(), name='home'),
     path("api/accounts/", include("accounts.urls", namespace="accounts")),
-    path('api/auth/', include('trench.urls.jwt')),
     path('api/', include('djoser.urls')),
     path('api/common/', include('common.urls', namespace='common')),
     path('api/leave/', include('leave.urls', namespace='leave')),
