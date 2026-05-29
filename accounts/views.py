@@ -2,28 +2,23 @@ from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
-from trench.utils import user_token_generator
-from trench.views.jwt import MFASecondStepJWTView
+from rest_framework_simplejwt.views import (TokenObtainPairView,
+                                            TokenRefreshView, TokenVerifyView)
 
 # views 
 
-class CustomMFAJWTView(MFASecondStepJWTView):
-    '''Overiding the jwt token to include cookie based auth '''
+class CustomTokenObtainPairView(TokenObtainPairView):
+    """Issue JWT pair from username/password and set auth cookies."""
 
     def post(self, request, *args, **kwargs):
-        '''Overiding the jwt token to include cookie based auth '''
-        print(request.data, 'request data in custom mfa view')
+        """Issue JWT pair from username/password and set auth cookies."""
         response = super().post(request, *args, **kwargs)
-        ephemeral_token = request.data.get('ephemeral_token')
-        # getting the user from the token
-        user = user_token_generator.check_token(user=None, token=ephemeral_token)
-        token = RefreshToken.for_user(user=user)
-        access_token = str(token.access_token)
-        refresh_token = str(token)
-        print(access_token, 'access_token')
-        # print(refresh_token, 'refresh_token')
+        access_token = response.data.get("access")
+        refresh_token = response.data.get("refresh")
+
+        if not access_token or not refresh_token:
+            return response
+
         response.set_cookie(
             "access", access_token,
             max_age=settings.AUTH_COOKIE_ACCESS_MAX_AGES,
@@ -31,17 +26,16 @@ class CustomMFAJWTView(MFASecondStepJWTView):
             secure=settings.AUTH_COOKIE_SECURE,
             httponly=settings.AUTH_COOKIE_HTTP_ONLY,
             samesite=settings.AUTH_COOKIE_SAMESITE,
-            
-            )
+        )
         response.set_cookie(
-                'refresh',
-                refresh_token,
-                max_age=settings.AUTH_COOKIE_REFRESH_MAX_AGES,
-                path=settings.AUTH_COOKIE_PATH,
-                secure=settings.AUTH_COOKIE_SECURE,
-                httponly=settings.AUTH_COOKIE_HTTP_ONLY,
-                samesite=settings.AUTH_COOKIE_SAMESITE,
-            )
+            'refresh',
+            refresh_token,
+            max_age=settings.AUTH_COOKIE_REFRESH_MAX_AGES,
+            path=settings.AUTH_COOKIE_PATH,
+            secure=settings.AUTH_COOKIE_SECURE,
+            httponly=settings.AUTH_COOKIE_HTTP_ONLY,
+            samesite=settings.AUTH_COOKIE_SAMESITE,
+        )
         
         return response
     
@@ -52,7 +46,6 @@ class CustomTokenRefreshView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
         '''set the access token as a cookie'''
         refresh_token = request.COOKIES.get('refresh')
-        print(refresh_token, 'refresh token')
         if refresh_token:
             request.data['refresh'] = refresh_token
         response = super(CustomTokenRefreshView, self).post(request, *args, **kwargs)
@@ -83,7 +76,7 @@ class CustomTokenVerifyView(TokenVerifyView):
 
 class LogoutView(APIView):
     '''logout the user by deleting the cookies'''
-    def post(self, request):
+    def post(self, _request):
         '''logout the user by deleting the cookies'''
         response = Response(status=status.HTTP_200_OK)
         response.delete_cookie('access')

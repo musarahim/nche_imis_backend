@@ -1,4 +1,3 @@
-import pyotp
 from django.contrib import admin
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
@@ -6,34 +5,12 @@ from django.contrib.auth.models import Group
 from import_export.admin import ExportActionModelAdmin, ImportExportModelAdmin
 from rest_framework_api_key.admin import APIKeyModelAdmin
 from rest_framework_api_key.models import APIKey
-from simple_history.admin import SimpleHistoryAdmin
-from trench.models import MFAMethod
 from unfold.admin import ModelAdmin
-from unfold.contrib.import_export.forms import (ExportForm, ImportForm,
-                                                SelectableFieldsExportForm)
+from unfold.contrib.import_export.forms import SelectableFieldsExportForm
 from unfold.forms import (AdminPasswordChangeForm, UserChangeForm,
                           UserCreationForm)
 
 from .models import User
-
-
-class CustomUserCreationForm(UserCreationForm):
-    """Custom user creation form that creates MFAMethod."""
-    
-    def save(self, commit=True):
-        user = super().save(commit=commit)
-        if commit:
-            # Create MFAMethod for the new user
-            MFAMethod.objects.get_or_create(
-                user=user,
-                name='email',
-                defaults={
-                    'is_active': True,
-                    'is_primary': True,
-                    'secret': pyotp.random_base32(length=32)
-                }
-            )
-        return user
 
 # Register your models here.
 admin.site.unregister(Group)
@@ -46,7 +23,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin, ExportActionModelAdmin, ImportExportM
     search_fields = ('username', 'email', 'first_name', 'last_name')
     export_form_class = SelectableFieldsExportForm
     form = UserChangeForm
-    add_form = CustomUserCreationForm  # Use our custom form
+    add_form = UserCreationForm
     change_password_form = AdminPasswordChangeForm
     fieldsets = (
         (None, {'fields': ('username', 'password', 'email')}),

@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
-import string
 from datetime import timedelta
 from pathlib import Path
 
@@ -58,7 +57,6 @@ INSTALLED_APPS = [
     'simple_history',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
-    "trench",
     "djoser",
     'drf_yasg',
     'phonenumber_field',
@@ -230,35 +228,6 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 EMAIL_PORT = os.environ.get("EMAIL_PORT", 587)  # Default SMTP port for TLS
 EMAIL_USE_SSL = False
 EMAIL_USE_TLS = True
-
-
-TRENCH_AUTH = {
-    "USER_MFA_MODEL": "trench.MFAMethod",
-    "USER_ACTIVE_FIELD": "is_active",
-    "BACKUP_CODES_QUANTITY": 5,
-    "BACKUP_CODES_LENGTH": 12,
-    "BACKUP_CODES_CHARACTERS": (string.ascii_letters + string.digits),
-    "SECRET_KEY_LENGTH": 32,
-    "DEFAULT_VALIDITY_PERIOD": 30,
-    "CONFIRM_DISABLE_WITH_CODE": False,
-    "CONFIRM_BACKUP_CODES_REGENERATION_WITH_CODE": True,
-    "ALLOW_BACKUP_CODES_REGENERATION": True,
-    "ENCRYPT_BACKUP_CODES": True,
-    "APPLICATION_ISSUER_NAME": "National Council for Higher Education",
-    "MFA_METHODS": {
-        "email": {
-            "VERBOSE_NAME": _("email"),
-            "VALIDITY_PERIOD": 60 * 10,
-            "HANDLER": "accounts.basic_email.SendMailMessageDispatcher",
-            #"HANDLER": "trench.backends.basic_mail.SendMailMessageDispatcher",
-            "SOURCE_FIELD": "email",
-            "EMAIL_SUBJECT": _("Your verification code"),
-            "EMAIL_PLAIN_TEMPLATE": "trench/backends/email/code.txt",
-            "EMAIL_HTML_TEMPLATE": "trench/backends/email/code.html",
-        },
-        # Your other backends here
-    }  
-}
 
 # Django session settings
 SESSION_COOKIE_AGE = 60 * 60

@@ -1,11 +1,9 @@
-import pyotp
 from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager,
                                         PermissionsMixin)
 from django.db import models
 from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
 from simple_history.models import HistoricalRecords
-from trench.models import MFAMethod
 
 # Create your models here.
 # accounts/models.py
@@ -26,16 +24,6 @@ class CustomUserManager(BaseUserManager):
         user = self.model(email=email,username=username, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
-        
-        if user:
-            # Create a default MFA method for the user
-            MFAMethod.objects.get_or_create(
-                user=user,
-                name='email',
-                is_active=True,
-                is_primary=True,
-                secret = pyotp.random_base32(length=32)  # Generate a random secret for the user
-                )
         return user
 
     def create_superuser(self, email,username, password=None, **extra_fields):
@@ -92,21 +80,3 @@ class User(AbstractBaseUser, PermissionsMixin):
         """
         return self.username
 
-    def save(self, *args, **kwargs):
-        """
-        Override save method to ensure MFAMethod is created for new users.
-        """
-        is_new = self._state.adding  # Check if this is a new instance
-        super().save(*args, **kwargs)
-        
-        # Create MFAMethod for new users (only if not already exists)
-        if is_new:
-            MFAMethod.objects.get_or_create(
-                user=self,
-                name='email',
-                defaults={
-                    'is_active': True,
-                    'is_primary': True,
-                    'secret': pyotp.random_base32(length=32)
-                }
-            )

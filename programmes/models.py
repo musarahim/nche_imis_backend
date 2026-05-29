@@ -108,7 +108,7 @@ class Program(models.Model):
     STATUS = (
       ('active','Active'),
       ('under_review','Under Review'),
-      ('expired','Expired')
+      ('due_for_review','Due for Review')
     )
     applications = models.ManyToManyField(ProgramAccreditation, related_name='programs', blank=True)
     institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='programs', blank=False, null=True)

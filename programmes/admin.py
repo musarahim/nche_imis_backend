@@ -28,7 +28,7 @@ class ProgramAdmin(ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     export_form_class = SelectableFieldsExportForm
     import_form_class = ImportForm
     list_display = ("id","program_name","institution", "program_level", "accreditation_date", "expiry_date", "status_display")
-    fields = ("applications","institution","program_name","program_level","accreditation_date","expiry_date")
+    fields = ("applications","institution","program_name","program_level","accreditation_date","expiry_date","status")
     search_fields = ("program_name", "institution__name")
     list_filter = ('status', 'institution')
 
