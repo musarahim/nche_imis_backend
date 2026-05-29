@@ -30,10 +30,7 @@ class ProgramAccreditation(models.Model):
         ('revision', 'Revision'),
 
     ]
-    INVOICE_STATUS=(
-        ('pending', 'Pending Payment'),
-        ('paid', 'Paid'),
-    )
+   
     institution = models.ForeignKey(Institution, on_delete=models.RESTRICT, related_name='programme_accreditations', blank=True)
     #  PGAC/2024-2025/00715
     application_number = models.CharField(max_length=100, unique=True, blank=True)
@@ -53,12 +50,7 @@ class ProgramAccreditation(models.Model):
     preliminary_reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='preliminary_reviews')
     # attach invoice and verify its payment before progressing application to assessment
     invoice_file = models.FileField(upload_to='invoices/', blank=True, null=True)
-    invoice_status = models.CharField(max_length=20, choices=INVOICE_STATUS, default='pending', blank=True)
-    invoice_number = models.CharField(max_length=100, blank=True, null=True)
-    invoice_date = models.DateField(blank=True, null=True)
-    invoice_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    invoice_payment_date = models.DateField(blank=True, null=True)
-    invoice_cleared = models.BooleanField(default=False, blank=True, null=True)
+
    # assessor assigned to review the application after the invoice is verified as paid  
     assessor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assessments')
     #programme head comment
@@ -254,4 +246,69 @@ class ProgrammeAssessment(models.Model):
         return f"{self.assessor.first_name} {self.assessor.last_name} - {self.application.application_number} - Assessor"
 
 
+class ProgrammeInvoice(models.Model):
+    '''Model to represent invoice details for programme accreditation applications.'''
+    STATUS_CHOICES = (
+        ('draft', 'Draft'),
+        ('issued', 'Issued'),
+        ('paid', 'Paid'),
+        ('cancelled', 'Cancelled'),
+    )
+    application = models.ForeignKey(ProgramAccreditation, on_delete=models.CASCADE, related_name='programme_invoices')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    invoice_number = models.CharField(max_length=100, unique=True, blank=True)
+    invoice_date = models.DateField(auto_now_add=True)
+    grand_total = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_date = models.DateField(blank=True, null=True)
+    cleared = models.BooleanField(default=False)
 
+    def mark_as_paid(self, payment_date=None):
+        '''Mark the invoice as paid and update the related application status.'''
+        self.status = "paid"
+        self.payment_date = payment_date or timezone.now().date()
+        self.cleared = True
+        self.save()
+
+        self.status = "paid"
+        self.cleared = True
+        self.application.is_paid = True
+        self.application.save()
+        self.save()
+
+    def __str__(self):
+        return f"Invoice {self.invoice_number} - {self.application.application_number} - {self.status}"
+    
+class InvoiceItemType(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+
+    default_rate = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=0
+    )
+
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+    
+class InvoiceItem(models.Model):
+    '''Model to represent individual items in an invoice.'''
+    invoice = models.ForeignKey(ProgrammeInvoice, on_delete=models.CASCADE, related_name='items')
+    item_type = models.ForeignKey(InvoiceItemType,on_delete=models.RESTRICT,related_name="invoice_items",null=True)
+    persons_number = models.PositiveIntegerField()
+    number_of_days = models.PositiveIntegerField()
+    rate = models.DecimalField(max_digits=10, decimal_places=2)
+    total = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
+
+    def save(self, *args, **kwargs):
+        '''Calculate total price for the item before saving.'''
+        self.total = self.persons_number * self.number_of_days * self.rate
+        super().save(*args, **kwargs)
+
+    
+
+    def __str__(self):
+        return f"{self.item_type.name} - {self.total}"
+
+    

@@ -339,6 +339,24 @@ UNFOLD = {
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "contract",
                 },
+                {
+                    "title": _("Programme Invoices"),
+                    "link": reverse_lazy("admin:programmes_programmeinvoice_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "receipt",
+                },
+                {
+                    "title": _("Invoice Items"),
+                    "link": reverse_lazy("admin:programmes_invoiceitem_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "receipt_long",
+                },
+                {
+                    "title": _("Invoice Item Types"),
+                    "link": reverse_lazy("admin:programmes_invoiceitemtype_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "receipt_long",
+                },
                 
                 # ... add your other uncommented configuration items here
             ],

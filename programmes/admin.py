@@ -10,7 +10,8 @@ from unfold.contrib.import_export.forms import (ExportForm, ImportForm,
                                                 SelectableFieldsExportForm)
 from unfold.paginator import InfinitePaginator
 
-from .models import Program, ProgramAccreditation, PreliminaryReview
+from .models import (InvoiceItem, InvoiceItemType, PreliminaryReview, Program,
+                     ProgramAccreditation, ProgrammeInvoice)
 
 
 @admin.register(ProgramAccreditation)
@@ -66,6 +67,68 @@ class PreliminaryReviewAdmin(ModelAdmin):
     # Display changelist in fullwidth
     list_fullwidth = False
      # Position horizontal scrollbar in changelist at the top
+    list_horizontal_scrollbar_top = False
+    # Dsable select all action in changelist
+    list_disable_select_all = False
+    list_per_page = 20
+    list_max_show_all = 1000
+
+@admin.register(ProgrammeInvoice)
+class ProgrammeInvoiceAdmin(ModelAdmin):
+    '''Admin interface for Programme Invoices'''
+    list_display = ("application","invoice_number", "grand_total", "status", "invoice_date")
+    fields = ("application","invoice_number", "grand_total", "status", "invoice_date", "invoice_file")
+    search_fields = ("application__application_number", "invoice_number")
+    list_filter = ('status', 'application')
+    compressed_fields = False
+    # Warn before leaving unsaved changes in changeform
+    warn_unsaved_form = True  # Default: False
+     # Display submit button in filters
+    list_filter_submit = True   
+    # Display changelist in fullwidth
+    list_fullwidth = False
+        # Position horizontal scrollbar in changelist at the top
+    list_horizontal_scrollbar_top = False
+    # Dsable select all action in changelist
+    list_disable_select_all = False
+    list_per_page = 20
+    list_max_show_all = 1000
+
+@admin.register(InvoiceItem)
+class InvoiceItemAdmin(ModelAdmin):
+    '''Admin interface for Invoice Items'''
+    list_display = ("invoice","item_type", "persons_number", "number_of_days")
+    fields = ("invoice","item_type", "persons_number", "number_of_days")
+    search_fields = ("invoice__application__application_number", "item_type__name")
+    list_filter = ('item_type', 'invoice')
+    compressed_fields = False
+    # Warn before leaving unsaved changes in changeform
+    warn_unsaved_form = True  # Default: False
+     # Display submit button in filters
+    list_filter_submit = True   
+    # Display changelist in fullwidth
+    list_fullwidth = False
+        # Position horizontal scrollbar in changelist at the top
+    list_horizontal_scrollbar_top = False
+    # Dsable select all action in changelist
+    list_disable_select_all = False
+    list_per_page = 20
+    list_max_show_all = 1000
+
+@admin.register(InvoiceItemType)
+class InvoiceItemTypeAdmin(ModelAdmin):
+    '''Admin interface for Invoice Item Types'''
+    list_display = ("name", "default_rate",'is_active')
+    fields = ("name", "default_rate", "is_active")
+    search_fields = ("name",)
+    compressed_fields = False
+    # Warn before leaving unsaved changes in changeform
+    warn_unsaved_form = True  # Default: False
+     # Display submit button in filters
+    list_filter_submit = True   
+    # Display changelist in fullwidth
+    list_fullwidth = False
+        # Position horizontal scrollbar in changelist at the top
     list_horizontal_scrollbar_top = False
     # Dsable select all action in changelist
     list_disable_select_all = False

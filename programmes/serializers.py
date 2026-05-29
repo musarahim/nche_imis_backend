@@ -1,7 +1,8 @@
 from rest_framework import serializers
 
-from .models import (PreliminaryReview, Program, ProgramAccreditation,
-                     ProgrammeAssessment)
+from .models import (InvoiceItem, InvoiceItemType, PreliminaryReview, Program,
+                     ProgramAccreditation, ProgrammeAssessment,
+                     ProgrammeInvoice)
 
 
 class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
@@ -18,9 +19,7 @@ class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
         response['application_type'] = instance.get_application_type_display()
         response['program_level'] = instance.get_program_level_display()
         response['status'] = instance.get_status_display()
-        response['invoice_status'] = instance.get_invoice_status_display() if instance.invoice_status else None
         response['date_submitted'] = instance.date_submitted.strftime('%d-%m-%Y') if instance.date_submitted else None
-        response['invoice_date'] = instance.invoice_date.strftime('%d-%m-%Y') if instance.invoice_date else None
         request = self.context.get('request')
         response['program_structure'] = request.build_absolute_uri(instance.program_structure.url) if instance.program_structure and request else (instance.program_structure.url if instance.program_structure else None)
         response['letter_of_submission'] = request.build_absolute_uri(instance.letter_of_submission.url) if instance.letter_of_submission and request else (instance.letter_of_submission.url if instance.letter_of_submission else None)
@@ -134,3 +133,30 @@ class ProgrammeInvoiceSerializer(serializers.ModelSerializer):
     #     response['program_structure'] = request.build_absolute_uri(instance.program_structure.url) if instance.program_structure and request else (instance.program_structure.url if instance.program_structure else None)
     #     response['letter_of_submission'] = request.build_absolute_uri(instance.letter_of_submission.url) if instance.letter_of_submission and request else (instance.letter_of_submission.url if instance.letter_of_submission else None)
     #     return response
+
+class InvoiceItemTypeSerializer(serializers.ModelSerializer):
+    '''Serializer for Invoice Item Type'''
+    class Meta:
+        model = InvoiceItemType
+        fields = '__all__'
+
+class InvoiceItemSerializer(serializers.ModelSerializer):
+    '''Serializer for Invoice Item'''
+    item_type = InvoiceItemTypeSerializer(read_only=True)
+    class Meta:
+        model = InvoiceItem
+        fields = ('id', 'invoice', 'item_type', 'persons_number', 'number_of_days', 'total_amount')
+
+    def save(self, **kwargs):
+        '''Custom save method to handle nested item type'''
+        item_type_data = self.initial_data.get('item_type')
+        if item_type_data:
+            item_type, created = InvoiceItemType.objects.get_or_create(**item_type_data)
+            self.validated_data['item_type'] = item_type
+        return super().save(**kwargs)
+    
+    def to_representation(self, instance):
+        '''Custom representation to include item type name'''
+        response = super().to_representation(instance)
+        response['item_type'] = instance.item_type.name if instance.item_type else None
+        return response

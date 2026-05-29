@@ -1,6 +1,7 @@
 from accounts.models import User
 from accounts.serializers import UserReviewerSerializer
 from django.core.mail import EmailMessage
+from django.db import transaction
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -8,14 +9,16 @@ from institutions.models import Institution
 from rest_framework import filters, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db import transaction
 
-from .models import (PreliminaryReview, Program, ProgramAccreditation,
-                     ProgrammeAssessment)
-from .serializers import (PreliminaryReviewSerializer,
+from .models import (InvoiceItemType, PreliminaryReview, Program,
+                     ProgramAccreditation, ProgrammeAssessment,
+                     ProgrammeInvoice)
+from .serializers import (InvoiceItemSerializer, InvoiceItemTypeSerializer,
+                          PreliminaryReviewSerializer,
                           ProgrammeAccreditationSerializer,
-                          ProgrammeAssessmentSerializer, ProgramSerializer,
-                          ProgressedToDirectorateSerializer,ProgrammeInvoiceSerializer)
+                          ProgrammeAssessmentSerializer,
+                          ProgrammeInvoiceSerializer, ProgramSerializer,
+                          ProgressedToDirectorateSerializer)
 
 
 # Create your views here.
@@ -571,3 +574,22 @@ class ProgrammeAssessmentViewset(viewsets.ModelViewSet):
             serializer.save(assessor = assessor)
             # TODO: send email notifications to applicants and reviewers based on the review outcome
             return Response(serializer.data, status=status.HTTP_200_OK)
+        
+
+class ProgrammeInvoiceViewset(viewsets.ModelViewSet):
+    '''Programme Invoice Viewset'''
+    queryset = ProgrammeInvoice.objects.all()
+    serializer_class = ProgrammeInvoiceSerializer
+    permissions_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['application__application_number','invoice_number']
+
+
+class InvoiceTypeViewset(viewsets.ModelViewSet):
+    '''Invoice Item Type Viewset'''
+    queryset = InvoiceItemType.objects.filter(is_active=True).order_by('name')
+    serializer_class = InvoiceItemTypeSerializer
+    permissions_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name','default_rate']
+    pagination_class = None
