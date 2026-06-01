@@ -1,3 +1,5 @@
+import json
+
 from rest_framework import serializers
 
 from .models import (InvoiceItem, InvoiceItemType, PreliminaryReview, Program,
@@ -10,7 +12,7 @@ class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProgramAccreditation
         fields = '__all__'
-        read_only_fields = ['application_number', 'date_submitted', 'status']
+        read_only_fields = ['application_number', 'date_submitted']
 
     def to_representation(self, instance):
         '''Custom representation to include institution name and display choices'''
@@ -23,6 +25,9 @@ class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         response['program_structure'] = request.build_absolute_uri(instance.program_structure.url) if instance.program_structure and request else (instance.program_structure.url if instance.program_structure else None)
         response['letter_of_submission'] = request.build_absolute_uri(instance.letter_of_submission.url) if instance.letter_of_submission and request else (instance.letter_of_submission.url if instance.letter_of_submission else None)
+        response['review_date'] = instance.preliminary_reviewers.first().reviewed_at.strftime('%d-%m-%Y') if instance.preliminary_reviewers.first() and instance.preliminary_reviewers.first().reviewed_at else None
+        response['expert_progression'] = instance.preliminary_reviewers.first().get_expert_progression_display() if instance.preliminary_reviewers.first() and instance.preliminary_reviewers.first().expert_progression else None
+        response['review_id'] = instance.preliminary_reviewers.first().id if instance.preliminary_reviewers.first() else None
         return response
     
 
@@ -113,50 +118,88 @@ class ProgressedToDirectorateSerializer(serializers.ModelSerializer):
         response['letter_of_submission'] = request.build_absolute_uri(instance.letter_of_submission.url) if instance.letter_of_submission and request else (instance.letter_of_submission.url if instance.letter_of_submission else None)
         return response
     
-
-# invoicing serializer
-class ProgrammeInvoiceSerializer(serializers.ModelSerializer):
-    '''Serializer for invoicing Programme Accreditation applications'''
-    class Meta:
-        model = ProgramAccreditation
-        fields = ('id','invoice_file','invoice_number','invoice_amount')
-
-    # def to_representation(self, instance):
-    #     '''Custom representation to include institution name and display choices'''
-    #     response = super().to_representation(instance)
-    #     response['institution'] = instance.institution.name if instance.institution else None
-    #     response['application_type'] = instance.get_application_type_display()
-    #     response['program_level'] = instance.get_program_level_display()
-    #     response['status'] = instance.get_status_display()
-    #     response['date_submitted'] = instance.date_submitted.strftime('%d-%m-%Y') if instance.date_submitted else None
-    #     request = self.context.get('request')
-    #     response['program_structure'] = request.build_absolute_uri(instance.program_structure.url) if instance.program_structure and request else (instance.program_structure.url if instance.program_structure else None)
-    #     response['letter_of_submission'] = request.build_absolute_uri(instance.letter_of_submission.url) if instance.letter_of_submission and request else (instance.letter_of_submission.url if instance.letter_of_submission else None)
-    #     return response
-
 class InvoiceItemTypeSerializer(serializers.ModelSerializer):
     '''Serializer for Invoice Item Type'''
     class Meta:
         model = InvoiceItemType
         fields = '__all__'
 
+
 class InvoiceItemSerializer(serializers.ModelSerializer):
     '''Serializer for Invoice Item'''
     item_type = InvoiceItemTypeSerializer(read_only=True)
     class Meta:
         model = InvoiceItem
-        fields = ('id', 'invoice', 'item_type', 'persons_number', 'number_of_days', 'total_amount')
+        fields = ('id', 'invoice', 'item_type', 'persons_number', 'number_of_days', 'total')
 
-    def save(self, **kwargs):
-        '''Custom save method to handle nested item type'''
-        item_type_data = self.initial_data.get('item_type')
-        if item_type_data:
-            item_type, created = InvoiceItemType.objects.get_or_create(**item_type_data)
-            self.validated_data['item_type'] = item_type
-        return super().save(**kwargs)
     
     def to_representation(self, instance):
         '''Custom representation to include item type name'''
         response = super().to_representation(instance)
         response['item_type'] = instance.item_type.name if instance.item_type else None
         return response
+
+# invoicing serializer
+class ProgrammeInvoiceSerializer(serializers.ModelSerializer):
+    '''Serializer for invoicing Programme Accreditation applications'''
+    invoice_items = InvoiceItemSerializer(many=True, read_only=True)
+    class Meta:
+        model = ProgrammeInvoice
+        fields = ('id','application','status','invoice_number','invoice_date','grand_total','payment_date','cleared','invoice_items')
+        extra_kwargs = {
+            'invoice_number': {'required': False, 'allow_blank': True},
+            'grand_total': {'required': False},
+        }
+
+    def _parse_invoice_items(self):
+        """Accept invoice items from JSON string or list and normalize payload."""
+        raw_items = self.initial_data.get('invoice_items', [])
+
+        if isinstance(raw_items, str):
+            try:
+                raw_items = json.loads(raw_items)
+            except json.JSONDecodeError:
+                raw_items = []
+
+        if isinstance(raw_items, dict):
+            raw_items = [raw_items]
+
+        if not isinstance(raw_items, list):
+            return []
+
+        normalized = []
+        for item in raw_items:
+            if not isinstance(item, dict):
+                continue
+
+            item_type = item.get('item_type')
+            if isinstance(item_type, dict):
+                item_type = item_type.get('id')
+
+            normalized.append({
+                'item_type_id': item_type,
+                'persons_number': int(item.get('persons_number') or 1),
+                'number_of_days': int(item.get('number_of_days') or 1),
+                'rate': item.get('rate') or 0,
+            })
+
+        return normalized
+    
+    def save(self, **kwargs):
+        '''Override save to handle nested invoice items'''
+        invoice_items_data = self._parse_invoice_items()
+        invoice = super().save(**kwargs)
+
+        for item_data in invoice_items_data:
+            InvoiceItem.objects.create(invoice=invoice, **item_data)
+
+        invoice.recalculate_grand_total(commit=True)
+        return invoice
+    # def to_representation(self, instance):
+    #     '''Custom representation to include institution name and display choices'''
+    #     response = super().to_representation(instance)
+    #     response['institution'] = instance.institution.name if instance.institution else None
+    #     return response
+
+
+

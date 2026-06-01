@@ -18,7 +18,7 @@ from .models import (InvoiceItem, InvoiceItemType, PreliminaryReview, Program,
 class ProgramAccreditationAdmin(ModelAdmin):
     '''Admin interface for Programme Accreditation'''
     list_display = ("application_number", "program_name", "institution","status","date_submitted")
-    fields = ("institution","application_type","program_level","program_name","duration_semester","campus","program_structure","letter_of_submission","program_to_renew","preliminary_reviewer","status", "invoice_file", "invoice_number", "invoice_amount","invoice_status","invoice_date","dep_meeting_minutes")
+    fields = ("institution","application_type","program_level","program_name","duration_semester","campus","program_structure","letter_of_submission","program_to_renew","preliminary_reviewer","status","dep_meeting_minutes","rejection_reason")
 
 
 
@@ -77,7 +77,7 @@ class PreliminaryReviewAdmin(ModelAdmin):
 class ProgrammeInvoiceAdmin(ModelAdmin):
     '''Admin interface for Programme Invoices'''
     list_display = ("application","invoice_number", "grand_total", "status", "invoice_date")
-    fields = ("application","invoice_number", "grand_total", "status", "invoice_date", "invoice_file")
+    fields = ("application","invoice_number", "grand_total", "status", "invoice_date")
     search_fields = ("application__application_number", "invoice_number")
     list_filter = ('status', 'application')
     compressed_fields = False
@@ -97,8 +97,8 @@ class ProgrammeInvoiceAdmin(ModelAdmin):
 @admin.register(InvoiceItem)
 class InvoiceItemAdmin(ModelAdmin):
     '''Admin interface for Invoice Items'''
-    list_display = ("invoice","item_type", "persons_number", "number_of_days")
-    fields = ("invoice","item_type", "persons_number", "number_of_days")
+    list_display = ("invoice","item_type", "persons_number", "number_of_days",'total')
+    fields = ("invoice","item_type", "persons_number", "number_of_days","rate")
     search_fields = ("invoice__application__application_number", "item_type__name")
     list_filter = ('item_type', 'invoice')
     compressed_fields = False

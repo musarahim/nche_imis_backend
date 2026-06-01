@@ -52,6 +52,57 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         application = get_object_or_404(queryset, pk=pk)
         serializer = self.get_serializer(application)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def _send_rejection_email(self, application, reason):
+        '''Send rejection notification email to the applicant institution.'''
+        if not application or not application.institution:
+            return
+
+        institution_user = getattr(application.institution, 'user', None)
+        recipient = getattr(institution_user, 'email', None)
+
+        if not recipient:
+            return
+
+        html_message = render_to_string('email/programme_rejection.html', {
+            'application': application,
+            'institution': application.institution,
+            'reason': reason,
+        })
+
+        email = EmailMessage(
+            subject='NCHE Programme Application Rejected',
+            body=html_message,
+            to=[recipient],
+        )
+        email.content_subtype = 'html'
+        email.send(fail_silently=True)
+
+    def partial_update(self, request, *args, **kwargs):
+        '''Patch application and notify applicant when status changes to rejected.'''
+        application = self.get_object()
+        previous_status = application.status
+
+        response = super().partial_update(request, *args, **kwargs)
+
+        application.refresh_from_db()
+        if previous_status != 'rejected' and application.status == 'rejected':
+            reason = (
+                request.data.get('rejection_reason')
+                or request.data.get('director_comment')
+                or request.data.get('pod_comment')
+                or application.rejection_reason
+                or application.director_comment
+                or application.pod_comment
+            )
+
+            if reason and not application.rejection_reason:
+                application.rejection_reason = reason
+                application.save(update_fields=['rejection_reason'])
+
+            self._send_rejection_email(application, reason)
+
+        return response
     
     @action(detail=False, methods=['get'], url_path='submitted-applications')
     def submitted_applications(self, request, pk=None):
@@ -93,6 +144,24 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
             queryset = queryset.filter(
                 preliminary_reviewer=self.request.user
             ).select_related('institution').order_by('institution__name', '-date_submitted')
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='reviewed-applications')
+    def reviewed_applications(self, request, pk=None):
+        """
+        GET applications that have been reviewed.
+        """
+        queryset = ProgramAccreditation.objects.filter(status='reviewed')
+
+        if not queryset.exists():
+            return Response([], status=status.HTTP_200_OK)
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -315,7 +384,11 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
             application.status = 'progressed_to_management'
         elif app_status == 'rejected':
             application.status = 'rejected'
+            application.rejection_reason = comment
         application.save()
+
+        if app_status == 'rejected':
+            self._send_rejection_email(application, comment)
         # TODO: send email notification to management and department head about the director's comment and application status
 
         return Response({'message': 'Director comment added successfully.'}, status=status.HTTP_200_OK)
@@ -344,11 +417,6 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
                 to=[application.institution.user.email],
                 )
             email.content_subtype = 'html'  # Main content is now text/html
-            # Attach the invoice file
-            invoice_file = serializer.validated_data.get('invoice_file')
-            if invoice_file:
-                invoice_file.seek(0)
-                email.attach(invoice_file.name, invoice_file.read(), invoice_file.content_type)
             email.send(fail_silently=False)
             return Response({'message': 'Invoice details added successfully.'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -504,7 +572,7 @@ class PreminaryReviewViewset(viewsets.ModelViewSet):
     serializer_class = PreliminaryReviewSerializer
     permissions_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
-    search_fields = ['application__application_number','reviewer__username','comments']
+    search_fields = ['application__application_number','reviewer__username','comments','application__status']
 
     def get_queryset(self):
         '''return preliminary reviews for the logged in reviewer'''
@@ -525,11 +593,7 @@ class PreminaryReviewViewset(viewsets.ModelViewSet):
             # update application status based on review comments
             if application.status == 'under_review':
                 if 'expert_progression' in serializer.validated_data:
-                    recommendation = serializer.validated_data['expert_progression']
-                    if recommendation == 'yes':
-                        application.status = 'progressed_to_accounting'
-                    elif recommendation == 'no':
-                        application.status = 'returned_for_review'
+                    application.status = 'reviewed'
                     application.save()
             serializer.save(reviewer=reviewer)
             # TODO: send email notifications to applicants and reviewers based on the review outcome

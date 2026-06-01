@@ -1,6 +1,9 @@
+from decimal import Decimal
+
 from accounts.models import User
 from common.choices import PROGRAMME_LEVELS, YES_NO_CHOICES
 from django.db import models
+from django.db.models import Sum
 from django.utils import timezone
 from institutions.models import Institution
 from tinymce.models import HTMLField
@@ -12,9 +15,10 @@ class ProgramAccreditation(models.Model):
     STATUS = [
         ('submitted', 'Submitted'),
         ('under_review', 'Under Review'),
-        ('invoice_reconciled', 'Invoice Reconciled'),
-        ('progressed_to_experts', 'Progressed to Experts'),
+        ('reviewed', 'Reviewed'),
         ('returned_for_review', 'Returned for Review'),
+        ('progressed_to_experts', 'Progressed to Experts'),
+        ('invoice_reconciled', 'Invoice Reconciled'),
         ('under_assessment', 'Under Assessment'),
         ('progressed_to_accounting', 'Progressed to Accounting'),
         ('invoiced', 'Invoiced'),
@@ -48,9 +52,6 @@ class ProgramAccreditation(models.Model):
     # program to renew 
     program_to_renew = models.ForeignKey('programmes.Program', on_delete=models.SET_NULL, null=True, blank=True, related_name='renewals')
     preliminary_reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='preliminary_reviews')
-    # attach invoice and verify its payment before progressing application to assessment
-    invoice_file = models.FileField(upload_to='invoices/', blank=True, null=True)
-
    # assessor assigned to review the application after the invoice is verified as paid  
     assessor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assessments')
     #programme head comment
@@ -62,6 +63,7 @@ class ProgramAccreditation(models.Model):
     director_comment_date = models.DateTimeField(blank=True, null=True)
     is_paid = models.BooleanField(default=False, blank=True, null=True, choices=YES_NO_CHOICES)
     # management decision
+    rejection_reason = models.TextField(blank=True, null=True)
 
     class Meta:
         '''Model to represent a programme accreditation application.'''
@@ -261,6 +263,41 @@ class ProgrammeInvoice(models.Model):
     grand_total = models.DecimalField(max_digits=10, decimal_places=2)
     payment_date = models.DateField(blank=True, null=True)
     cleared = models.BooleanField(default=False)
+
+    def _generate_invoice_number(self):
+        """Generate invoice number in the format INV/YYYY/00001."""
+        year = timezone.now().year
+        prefix = f"INV/{year}/"
+
+        last_invoice = (
+            ProgrammeInvoice.objects
+            .filter(invoice_number__startswith=prefix)
+            .order_by('id')
+            .last()
+        )
+
+        next_sequence = 1
+        if last_invoice and last_invoice.invoice_number:
+            tail = last_invoice.invoice_number.replace(prefix, "")
+            if tail.isdigit():
+                next_sequence = int(tail) + 1
+
+        return f"{prefix}{str(next_sequence).zfill(5)}"
+
+    def recalculate_grand_total(self, commit=True):
+        """Recompute grand total from related invoice items."""
+        total = self.items.aggregate(total=Sum('total')).get('total') or Decimal("0.00")
+        self.grand_total = total
+        if commit:
+            self.save(update_fields=['grand_total'])
+        return self.grand_total
+
+    def save(self, *args, **kwargs):
+        if not self.invoice_number:
+            self.invoice_number = self._generate_invoice_number()
+        if self.grand_total is None:
+            self.grand_total = Decimal("0.00")
+        super().save(*args, **kwargs)
 
     def mark_as_paid(self, payment_date=None):
         '''Mark the invoice as paid and update the related application status.'''
