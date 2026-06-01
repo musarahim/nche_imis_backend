@@ -4,11 +4,11 @@ from django.db.models import Count
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.generic import TemplateView
+from institutions.models import Institution
+from programmes.models import Program, ProgramAccreditation
 from rest_framework import permissions, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from institutions.models import Institution
-from programmes.models import Program, ProgramAccreditation
 
 from .models import (County, District, EducationLevel, FinanceYear, Holiday,
                      Nationality, Parish, Region, Religion, SubCounty, Title,
@@ -203,12 +203,14 @@ class InstitutionalDashboard(APIView):
         institution = Institution.objects.filter(user=user).first()
         programs = Program.objects.filter(institution=institution)
         active_programmes = programs.filter(status='active').count()
-        expired_programmes = programs.filter(status='expired').count()
+        expired_programmes = programs.filter(status='due_for_review').count()
+        under_review_programmes = programs.filter(status='under_review').count()
         
         data = {
             'current_license': "CHARTERED",
             'active_programmes': active_programmes,
             'expired_programmes': expired_programmes,
+            'under_review_programmes': under_review_programmes,
         }
         return Response(data)
 
