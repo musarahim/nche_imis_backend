@@ -195,11 +195,15 @@ class ProgrammeInvoiceSerializer(serializers.ModelSerializer):
 
         invoice.recalculate_grand_total(commit=True)
         return invoice
-    # def to_representation(self, instance):
-    #     '''Custom representation to include institution name and display choices'''
-    #     response = super().to_representation(instance)
-    #     response['institution'] = instance.institution.name if instance.institution else None
-    #     return response
+    def to_representation(self, instance):
+        '''Custom representation to include institution name and display choices'''
+        response = super().to_representation(instance)
+        response['application'] = instance.application.application_number if instance.application else None
+        response['status'] = instance.get_status_display() if instance.status else None
+        response['invoice_date'] = instance.invoice_date.strftime('%d-%m-%Y') if instance.invoice_date else None
+        response['invoice_items'] = InvoiceItemSerializer(instance.items.all(), many=True).data
+        response['institution'] = instance.application.institution.name if instance.application and instance.application.institution else None
+        return response
 
 
 

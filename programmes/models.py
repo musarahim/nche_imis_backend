@@ -251,13 +251,12 @@ class ProgrammeAssessment(models.Model):
 class ProgrammeInvoice(models.Model):
     '''Model to represent invoice details for programme accreditation applications.'''
     STATUS_CHOICES = (
-        ('draft', 'Draft'),
         ('issued', 'Issued'),
         ('paid', 'Paid'),
         ('cancelled', 'Cancelled'),
     )
     application = models.ForeignKey(ProgramAccreditation, on_delete=models.CASCADE, related_name='programme_invoices')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='issued')
     invoice_number = models.CharField(max_length=100, unique=True, blank=True)
     invoice_date = models.DateField(auto_now_add=True)
     grand_total = models.DecimalField(max_digits=10, decimal_places=2)

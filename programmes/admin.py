@@ -77,7 +77,7 @@ class PreliminaryReviewAdmin(ModelAdmin):
 class ProgrammeInvoiceAdmin(ModelAdmin):
     '''Admin interface for Programme Invoices'''
     list_display = ("application","invoice_number", "grand_total", "status", "invoice_date")
-    fields = ("application","invoice_number", "grand_total", "status", "invoice_date")
+    fields = ("application","invoice_number", "grand_total", "status")
     search_fields = ("application__application_number", "invoice_number")
     list_filter = ('status', 'application')
     compressed_fields = False
