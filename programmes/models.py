@@ -253,6 +253,7 @@ class ProgrammeInvoice(models.Model):
     STATUS_CHOICES = (
         ('issued', 'Issued'),
         ('paid', 'Paid'),
+        ('reconciled', 'Reconciled'),
         ('cancelled', 'Cancelled'),
     )
     application = models.ForeignKey(ProgramAccreditation, on_delete=models.CASCADE, related_name='programme_invoices')
@@ -262,6 +263,13 @@ class ProgrammeInvoice(models.Model):
     grand_total = models.DecimalField(max_digits=10, decimal_places=2)
     payment_date = models.DateField(blank=True, null=True)
     cleared = models.BooleanField(default=False)
+    payment_reference = models.CharField(max_length=255, blank=True, null=True)
+    payment_receipt = models.FileField(upload_to='programme_invoices/', blank=True, null=True)
+    class Meta:
+        '''Model to represent invoice details for programme accreditation applications.'''
+        ordering = ['-invoice_date']
+        verbose_name = 'Programme Invoice'
+        verbose_name_plural = 'Programme Invoices'
 
     def _generate_invoice_number(self):
         """Generate invoice number in the format INV/YYYY/00001."""

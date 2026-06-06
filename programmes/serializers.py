@@ -145,7 +145,7 @@ class ProgrammeInvoiceSerializer(serializers.ModelSerializer):
     invoice_items = InvoiceItemSerializer(many=True, read_only=True)
     class Meta:
         model = ProgrammeInvoice
-        fields = ('id','application','status','invoice_number','invoice_date','grand_total','payment_date','cleared','invoice_items')
+        fields = ('id','application','status','invoice_number','invoice_date','grand_total','payment_date','cleared','invoice_items','payment_reference','payment_receipt')
         extra_kwargs = {
             'invoice_number': {'required': False, 'allow_blank': True},
             'grand_total': {'required': False},
@@ -198,6 +198,7 @@ class ProgrammeInvoiceSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         '''Custom representation to include institution name and display choices'''
         response = super().to_representation(instance)
+        response['application_id'] = instance.application.id if instance.application else None
         response['application'] = instance.application.application_number if instance.application else None
         response['status'] = instance.get_status_display() if instance.status else None
         response['invoice_date'] = instance.invoice_date.strftime('%d-%m-%Y') if instance.invoice_date else None

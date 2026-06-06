@@ -735,18 +735,20 @@ class OTIProvisionalViewset(viewsets.ModelViewSet):
                 prn_status = service.check_prn_status(prn_object.prn) if prn_object else None
                 #print(prn_status, "PRN status from URA")
                 if prn_status and prn_status.get("statusCode") == "T":
-                       prn_object.prn_reconciled = True
-                       prn_object.save()
-                       # allow the submission to proceed
-                       serializer.save()
-                       print("submitting email notification for OTI Provisional License Application...")
-                       #TODO: send an email to the applicant and the NCHE secretariat
+                    prn_object.prn_reconciled = True
+                    prn_object.save()
+                    # allow the submission to proceed
+                    serializer.save()
+                    print("submitting email notification for OTI Provisional License Application...")
+                    #TODO: send an email to the applicant and the NCHE secretariat
                 else:
                     return Response({
                         "error": "PRN is not reconciled. Please pay up the application fee before submitting."
                     }, status=status.HTTP_400_BAD_REQUEST)
-               
-                
+            else:
+                # Persist regular step-by-step draft updates.
+                serializer.save()
+
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
