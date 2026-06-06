@@ -251,18 +251,25 @@ class ProgrammeAssessment(models.Model):
 class ProgrammeInvoice(models.Model):
     '''Model to represent invoice details for programme accreditation applications.'''
     STATUS_CHOICES = (
-        ('draft', 'Draft'),
         ('issued', 'Issued'),
         ('paid', 'Paid'),
+        ('reconciled', 'Reconciled'),
         ('cancelled', 'Cancelled'),
     )
     application = models.ForeignKey(ProgramAccreditation, on_delete=models.CASCADE, related_name='programme_invoices')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='issued')
     invoice_number = models.CharField(max_length=100, unique=True, blank=True)
     invoice_date = models.DateField(auto_now_add=True)
     grand_total = models.DecimalField(max_digits=10, decimal_places=2)
     payment_date = models.DateField(blank=True, null=True)
     cleared = models.BooleanField(default=False)
+    payment_reference = models.CharField(max_length=255, blank=True, null=True)
+    payment_receipt = models.FileField(upload_to='programme_invoices/', blank=True, null=True)
+    class Meta:
+        '''Model to represent invoice details for programme accreditation applications.'''
+        ordering = ['-invoice_date']
+        verbose_name = 'Programme Invoice'
+        verbose_name_plural = 'Programme Invoices'
 
     def _generate_invoice_number(self):
         """Generate invoice number in the format INV/YYYY/00001."""
