@@ -63,23 +63,27 @@ class CertificationAndClassificationViewset(viewsets.ModelViewSet):
         serializer = self.serializer_class(instance, data=request.data, partial=True)
         
         if serializer.is_valid():
-            serializer.save()
+            # You can call service methods here if needed, e.g., service.get_prn(...)
             if serializer.validated_data.get('status') == 'submitted':
                 # check if PRN is reconciled, if yes, allow submission, else return an error response
-                prn_object = ApplicationPRNS.objects.filter(referenceNo=instance.application_code).order_by("-assessmentDate").first()
+                prn_object = ApplicationPRNS.objects.filter(referenceNo=instance.code).order_by("-assessmentDate").first()
                 prn_status = service.check_prn_status(prn_object.prn) if prn_object else None
                 #print(prn_status, "PRN status from URA")
                 if prn_status and prn_status.get("statusCode") == "T":
-                       prn_object.prn_reconciled = True
-                       prn_object.save()
-                       # allow the submission to proceed
-                       serializer.save()
-                       print("submitting email notification for OTI Classification and Registration License Application...")
-                       #TODO: send an email to the applicant and the NCHE secretariat
+                    prn_object.prn_reconciled = True
+                    prn_object.save()
+                    # allow the submission to proceed
+                    serializer.save()
+                    print("submitting email notification for OTI Provisional License Application...")
+                    #TODO: send an email to the applicant and the NCHE secretariat
                 else:
                     return Response({
                         "error": "PRN is not reconciled. Please pay up the application fee before submitting."
                     }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                # Persist regular step-by-step draft updates.
+                serializer.save()
+
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -232,43 +236,69 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
         serializer = self.serializer_class(instance, data=request.data, partial=True)
         
         if serializer.is_valid():
-            serializer.save()
-            # check if status is submitted, then call service method to generate PRN
             if serializer.validated_data.get('status') == 'submitted':
-                print("Status is submitted, checking PRN...")
-                prn_check=service.generate_and_save_prn(
-                    {
-                    "amount": 200000,
-                    "assessmentDate": timezone.now().isoformat(),
-                    "paymentType": "DT",
-                    "referenceNo": instance.application_code,
-                    "tin": instance.institution.tin,
-                    "srcSystem": "Imis",
-                    "taxHead": "NCHE001",
-                    "taxSubHead": "",
-                    "email": instance.institution.alternative_email or instance.institution.user.email,
-                    "taxPayerName": instance.institution.name,
-                    "plot": "",
-                    "buildingName": "",
-                    "street": "",
-                    "tradeCentre": "",
-                    "district": "",
-                    "county": "",
-                    "subCounty": "",
-                    "parish": "",
-                    "village": "",
-                    "localCouncil": "",
-                    "contactNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else "",
-                    "paymentPeriod": "",
-                    "expiryDays": "",
-                    "mobileMoneyNumber": "",
-                    "mobileNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else ""
-                })  # Example call
-                print(prn_check, "result from URA PRN check")
+                # check if PRN is reconciled, if yes, allow submission, else return an error response
+                prn_object = ApplicationPRNS.objects.filter(referenceNo=instance.code).order_by("-assessmentDate").first()
+                prn_status = service.check_prn_status(prn_object.prn) if prn_object else None
+                #print(prn_status, "PRN status from URA")
+                if prn_status and prn_status.get("statusCode") == "T":
+                    prn_object.prn_reconciled = True
+                    prn_object.save()
+                    # allow the submission to proceed
+                    serializer.save()
+                    print("submitting email notification for OTI Provisional License Application...")
+                    #TODO: send an email to the applicant and the NCHE 
+                else:
+                    return Response({
+                        "error": "PRN is not reconciled. Please pay up the application fee before submitting."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                # Persist regular step-by-step draft updates.
+                serializer.save()
+
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @action(detail=True, methods=['post'], url_path='generate-prn')
+    def generate_prn(self, request, pk=None):
+        "Generate PRN for the application"
+        instance = self.get_object()
+        prn = service.generate_and_save_prn(
+            {
+                "amount": 200000,
+                "assessmentDate": timezone.now().isoformat(),
+                "paymentType": "DT",
+                "referenceNo": instance.application_code,
+                "tin": instance.institution.tin,
+                "srcSystem": "National Council for Higher Education",
+                "taxHead": "NCHE001",
+                "taxSubHead": "",
+                "email": instance.institution.user.email or instance.institution.alternative_email,
+                "taxPayerName": instance.institution.name,
+                "plot": "",
+                "buildingName": "",
+                "street": "",
+                "tradeCentre": "",
+                "district": instance.institution.district.name if instance.institution.district else "",
+                "county": "",
+                "subCounty": "",
+                "parish": "",
+                "village": "",
+                "localCouncil": "",
+                "contactNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else "",
+                "paymentPeriod": "",
+                "expiryDays": "",
+                "mobileMoneyNumber": "",
+                "mobileNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else ""
+            }
+        )
+        response_serializer = PRNGenerationResponseSerializer(prn)
+        return Response({"prn_check_result": response_serializer.data}, status=status.HTTP_200_OK)
+
+
+
+
 # intrim authority ODI
 class IntrimAuthorityODIViewset(viewsets.ModelViewSet):
     '''ODI Interim Authority Application'''
@@ -310,43 +340,65 @@ class IntrimAuthorityODIViewset(viewsets.ModelViewSet):
         serializer = self.serializer_class(instance, data=request.data, partial=True)
         
         if serializer.is_valid():
-            serializer.save()
-            # You can call service methods here if needed, e.g., service.get_prn(...)
             if serializer.validated_data.get('status') == 'submitted':
-                print("Status is submitted, checking PRN...")
-                prn_check=service.generate_and_save_prn(
-                    {
-                    "amount": 200000,
-                    "assessmentDate": timezone.now().isoformat(),
-                    "paymentType": "DT",
-                    "referenceNo": instance.application_code,
-                    "tin": instance.institution.tin,
-                    "srcSystem": "Imis",
-                    "taxHead": "NCHE001",
-                    "taxSubHead": "",
-                    "email": instance.institution.alternative_email or instance.institution.user.email,
-                    "taxPayerName": instance.institution.name,
-                    "plot": "",
-                    "buildingName": "",
-                    "street": "",
-                    "tradeCentre": "",
-                    "district": "",
-                    "county": "",
-                    "subCounty": "",
-                    "parish": "",
-                    "village": "",
-                    "localCouncil": "",
-                    "contactNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else "",
-                    "paymentPeriod": "",
-                    "expiryDays": "",
-                    "mobileMoneyNumber": "",
-                    "mobileNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else ""
-                })  # Example call
-                print(prn_check, "result from URA PRN check")
+                # check if PRN is reconciled, if yes, allow submission, else return an error response
+                prn_object = ApplicationPRNS.objects.filter(referenceNo=instance.code).order_by("-assessmentDate").first()
+                prn_status = service.check_prn_status(prn_object.prn) if prn_object else None
+                #print(prn_status, "PRN status from URA")
+                if prn_status and prn_status.get("statusCode") == "T":
+                    prn_object.prn_reconciled = True
+                    prn_object.save()
+                    # allow the submission to proceed
+                    serializer.save()
+                    print("submitting ODAI Interim Authority Application...")
+                    #TODO: send an email to the applicant and the NCHE secretariat
+                else:
+                    return Response({
+                        "error": "PRN is not reconciled. Please pay up the application fee before submitting."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                # Persist regular step-by-step draft updates.
+                serializer.save()
+
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @action(detail=True, methods=['post'], url_path='generate-prn')
+    def generate_prn(self, request, pk=None):
+        "Generate PRN for the application"
+        instance = self.get_object()
+        prn = service.generate_and_save_prn(
+            {
+                "amount": 200000,
+                "assessmentDate": timezone.now().isoformat(),
+                "paymentType": "DT",
+                "referenceNo": instance.application_code,
+                "tin": instance.institution.tin,
+                "srcSystem": "National Council for Higher Education",
+                "taxHead": "NCHE001",
+                "taxSubHead": "",
+                "email": instance.institution.user.email or instance.institution.alternative_email,
+                "taxPayerName": instance.institution.name,
+                "plot": "",
+                "buildingName": "",
+                "street": "",
+                "tradeCentre": "",
+                "district": instance.institution.district.name if instance.institution.district else "",
+                "county": "",
+                "subCounty": "",
+                "parish": "",
+                "village": "",
+                "localCouncil": "",
+                "contactNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else "",
+                "paymentPeriod": "",
+                "expiryDays": "",
+                "mobileMoneyNumber": "",
+                "mobileNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else ""
+            }
+        )
+        response_serializer = PRNGenerationResponseSerializer(prn)
+        return Response({"prn_check_result": response_serializer.data}, status=status.HTTP_200_OK)
 
 
 class InterimDiscussionViewset(viewsets.ModelViewSet):
