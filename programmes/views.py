@@ -719,53 +719,53 @@ class ProgrammeInvoiceViewset(viewsets.ModelViewSet):
         buffer.close()
         return pdf_bytes
 
-        def _notify_head_programme_accreditation(self, invoice, subject, intro_message):
-            """Send invoice workflow notification to Head Programme Accreditation users."""
-            recipients = list(
-                User.objects.filter(groups__name='Head Programme Accreditation')
-                .exclude(email__isnull=True)
-                .exclude(email__exact='')
-                .values_list('email', flat=True)
-                .distinct()
-            )
+    def _notify_head_programme_accreditation(self, invoice, subject, intro_message):
+        """Send invoice workflow notification to Head Programme Accreditation users."""
+        recipients = list(
+            User.objects.filter(groups__name='Head Programme Accreditation')
+            .exclude(email__isnull=True)
+            .exclude(email__exact='')
+            .values_list('email', flat=True)
+            .distinct()
+        )
 
-            if not recipients:
-                return
+        if not recipients:
+            return
 
-            application = invoice.application
-            institution = application.institution if application else None
+        application = invoice.application
+        institution = application.institution if application else None
 
-            html_message = """
-    <div style=\"font-family: Arial, sans-serif; line-height: 1.6;\">
-        <p>{intro_message}</p>
-        <ul>
-            <li><strong>Invoice Number:</strong> {invoice_number}</li>
-            <li><strong>Application Number:</strong> {application_number}</li>
-            <li><strong>Institution:</strong> {institution_name}</li>
-            <li><strong>Programme:</strong> {programme_name}</li>
-            <li><strong>Status:</strong> {status}</li>
-            <li><strong>Payment Reference:</strong> {payment_reference}</li>
-            <li><strong>Grand Total (UGX):</strong> {grand_total}</li>
-        </ul>
-    </div>
-    """.format(
-                intro_message=intro_message,
-                invoice_number=invoice.invoice_number or '-',
-                application_number=application.application_number if application else '-',
-                institution_name=institution.name if institution else '-',
-                programme_name=application.program_name if application else '-',
-                status=invoice.status,
-                payment_reference=invoice.payment_reference or '-',
-                grand_total=f"{invoice.grand_total:,.2f}",
-            )
+        html_message = """
+                            <div style=\"font-family: Arial, sans-serif; line-height: 1.6;\">
+                                <p>{intro_message}</p>
+                                <ul>
+                                    <li><strong>Invoice Number:</strong> {invoice_number}</li>
+                                    <li><strong>Application Number:</strong> {application_number}</li>
+                                    <li><strong>Institution:</strong> {institution_name}</li>
+                                    <li><strong>Programme:</strong> {programme_name}</li>
+                                    <li><strong>Status:</strong> {status}</li>
+                                    <li><strong>Payment Reference:</strong> {payment_reference}</li>
+                                    <li><strong>Grand Total (UGX):</strong> {grand_total}</li>
+                                </ul>
+                            </div>
+            """.format(
+            intro_message=intro_message,
+            invoice_number=invoice.invoice_number or '-',
+            application_number=application.application_number if application else '-',
+            institution_name=institution.name if institution else '-',
+            programme_name=application.program_name if application else '-',
+            status=invoice.status,
+            payment_reference=invoice.payment_reference or '-',
+            grand_total=f"{invoice.grand_total:,.2f}",
+        )
 
-            email = EmailMessage(
-                subject=subject,
-                body=html_message,
-                to=recipients,
-            )
-            email.content_subtype = 'html'
-            email.send(fail_silently=True)
+        email = EmailMessage(
+            subject=subject,
+            body=html_message,
+            to=recipients,
+        )
+        email.content_subtype = 'html'
+        email.send(fail_silently=True)
 
     def create(self, request):
         """Create invoice, notify institution, and attach generated invoice PDF."""
