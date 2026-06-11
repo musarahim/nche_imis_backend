@@ -64,7 +64,7 @@ class ApplicationPRNSAdmin(SimpleHistoryAdmin, ModelAdmin, ExportActionModelAdmi
         "statusCode",
         "statusDesc",
         "searchCode",
-        "prn",
+        #"prn",
     )
     fields = (
         "referenceNo",
@@ -104,13 +104,13 @@ class ApplicationPRNSAdmin(SimpleHistoryAdmin, ModelAdmin, ExportActionModelAdmi
     export_form_class = SelectableFieldsExportForm
     list_per_page = 10
 
-    def has_add_permission(self, request):
-        """Disable adding new records."""
-        return False
+    # def has_add_permission(self, request):
+    #     """Disable adding new records."""
+    #     return False
 
-    def has_change_permission(self, request, obj=None):
-        """Disable editing records."""
-        return False
+    # def has_change_permission(self, request, obj=None):
+    #     """Disable editing records."""
+    #     return False
 
     # def has_delete_permission(self, request, obj=None):
     #     """Disable deleting records."""

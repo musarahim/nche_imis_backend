@@ -1,3 +1,6 @@
+import logging
+
+import httpx
 from accounts.models import User
 from accounts.serializers import UserReviewerSerializer
 from django.core.mail import EmailMessage
@@ -23,7 +26,24 @@ from .serializers import (CertificationAndClassificationSerializer,
                           OTIProvisionalSerializer,
                           UniversityProvisionalLicenseSerializer)
 
+logger = logging.getLogger(__name__)
 service = UraMdaPaymentService()
+
+
+def _safe_check_prn_status(prn_object):
+    if not prn_object:
+        return None, None
+
+    try:
+        return service.check_prn_status(prn_object.prn), None
+    except httpx.HTTPError:
+        logger.warning("Failed to verify PRN status with URA for PRN %s", prn_object.prn)
+        return None, Response(
+            {"error": "Unable to verify PRN status right now. Please try again shortly."},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+
 # Create your views here.
 
 class CertificationAndClassificationViewset(viewsets.ModelViewSet):
@@ -67,7 +87,9 @@ class CertificationAndClassificationViewset(viewsets.ModelViewSet):
             if serializer.validated_data.get('status') == 'submitted':
                 # check if PRN is reconciled, if yes, allow submission, else return an error response
                 prn_object = ApplicationPRNS.objects.filter(referenceNo=instance.code).order_by("-assessmentDate").first()
-                prn_status = service.check_prn_status(prn_object.prn) if prn_object else None
+                prn_status, error_response = _safe_check_prn_status(prn_object)
+                if error_response:
+                    return error_response
                 #print(prn_status, "PRN status from URA")
                 if prn_status and prn_status.get("statusCode") == "T":
                     prn_object.prn_reconciled = True
@@ -239,7 +261,9 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
             if serializer.validated_data.get('status') == 'submitted':
                 # check if PRN is reconciled, if yes, allow submission, else return an error response
                 prn_object = ApplicationPRNS.objects.filter(referenceNo=instance.code).order_by("-assessmentDate").first()
-                prn_status = service.check_prn_status(prn_object.prn) if prn_object else None
+                prn_status, error_response = _safe_check_prn_status(prn_object)
+                if error_response:
+                    return error_response
                 #print(prn_status, "PRN status from URA")
                 if prn_status and prn_status.get("statusCode") == "T":
                     prn_object.prn_reconciled = True
@@ -343,7 +367,9 @@ class IntrimAuthorityODIViewset(viewsets.ModelViewSet):
             if serializer.validated_data.get('status') == 'submitted':
                 # check if PRN is reconciled, if yes, allow submission, else return an error response
                 prn_object = ApplicationPRNS.objects.filter(referenceNo=instance.code).order_by("-assessmentDate").first()
-                prn_status = service.check_prn_status(prn_object.prn) if prn_object else None
+                prn_status, error_response = _safe_check_prn_status(prn_object)
+                if error_response:
+                    return error_response
                 #print(prn_status, "PRN status from URA")
                 if prn_status and prn_status.get("statusCode") == "T":
                     prn_object.prn_reconciled = True
@@ -784,7 +810,9 @@ class OTIProvisionalViewset(viewsets.ModelViewSet):
             if serializer.validated_data.get('status') == 'submitted':
                 # check if PRN is reconciled, if yes, allow submission, else return an error response
                 prn_object = ApplicationPRNS.objects.filter(referenceNo=instance.code).order_by("-assessmentDate").first()
-                prn_status = service.check_prn_status(prn_object.prn) if prn_object else None
+                prn_status, error_response = _safe_check_prn_status(prn_object)
+                if error_response:
+                    return error_response
                 #print(prn_status, "PRN status from URA")
                 if prn_status and prn_status.get("statusCode") == "T":
                     prn_object.prn_reconciled = True

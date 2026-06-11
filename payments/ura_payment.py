@@ -1,5 +1,6 @@
 import base64
-import json
+import logging
+import time
 from dataclasses import dataclass
 from typing import Any, Dict
 
@@ -7,7 +8,9 @@ import httpx
 from django.conf import settings
 from django.utils.dateparse import parse_date
 
-from .models import ApplicationPRNS, PaymentCode
+from .models import ApplicationPRNS
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -36,12 +39,22 @@ class UgHubClient:
             "grant_type": "client_credentials",
             "scope": "prn-services/generate-prn prn-services/get-prn-details mda-services/get-tin-details"
         }
-        
+
         with httpx.Client(timeout=30.0, verify=True) as client:
-            r = client.post(self.token_endpoint, data=data, headers=headers)
-            r.raise_for_status()
-            print(r.json())
-            return r.json()["access_token"]
+            for attempt in range(1, 4):
+                try:
+                    r = client.post(self.token_endpoint, data=data, headers=headers)
+                    r.raise_for_status()
+                    return r.json()["access_token"]
+                except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as exc:
+                    if attempt == 3:
+                        raise
+                    logger.warning(
+                        "URA token request failed (attempt %s/3): %s",
+                        attempt,
+                        exc,
+                    )
+                    time.sleep(attempt)
 
 
 
@@ -59,19 +72,33 @@ class UraMdaPaymentService:
 
     def _post(self, resource: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         token = self.client.get_access_token()  # Bearer token, per spec
-        url = f"{self.client.base_url}/{resource}"
-        print(f"POST {url} with payload: {json.dumps(payload)}")
+        url = f"{self.client.base_url.rstrip('/')}/{resource.lstrip('/')}"
+        logger.debug("POST %s with payload keys: %s", url, list(payload.keys()))
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
         }
         with httpx.Client(timeout=60.0, verify=True) as http:
-            r = http.post(url, json=payload, headers=headers)
-            # Handle typical error envelopes from spec (401 invalid creds, 400 invalid data, etc.)
-            if r.status_code >= 400:
-                # Let the caller see the exact spec payload for debugging/UX
-                raise httpx.HTTPStatusError(f"{r.status_code}: {r.text}", request=r.request, response=r)
-            return r.json()
+            for attempt in range(1, 4):
+                try:
+                    r = http.post(url, json=payload, headers=headers)
+                    # Handle typical error envelopes from spec (401 invalid creds, 400 invalid data, etc.)
+                    if r.status_code >= 400:
+                        # Let the caller see the exact spec payload for debugging/UX
+                        raise httpx.HTTPStatusError(f"{r.status_code}: {r.text}", request=r.request, response=r)
+                    return r.json()
+                except httpx.HTTPStatusError:
+                    raise
+                except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as exc:
+                    if attempt == 3:
+                        raise
+                    logger.warning(
+                        "URA request failed for %s (attempt %s/3): %s",
+                        resource,
+                        attempt,
+                        exc,
+                    )
+                    time.sleep(attempt)
 
     # 1) Get PRN
     def get_prn(self, prn_request: Dict[str, Any]) -> Dict[str, Any]:
@@ -81,7 +108,7 @@ class UraMdaPaymentService:
         """
       
         body = prn_request
-        print(f"Generating PRN with request: {body}")
+        logger.info("Generating PRN for referenceNo=%s", body.get("referenceNo"))
         return self._post("prn-services/generate-prn", body)
 
     def generate_and_save_prn(self, prn_request: Dict[str, Any]) -> ApplicationPRNS:
@@ -133,7 +160,7 @@ class UraMdaPaymentService:
             expiryDate=parse_date(response.get("expiryDate")) if response.get("expiryDate") else None,
         )
         
-        print(f"Created ApplicationPRNS record with Application Reference No: {app_prn.referenceNo}")
+        logger.info("Created ApplicationPRNS record with referenceNo=%s", app_prn.referenceNo)
         return app_prn
 
     # 2) Check PRN Status
