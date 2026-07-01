@@ -11,7 +11,8 @@ from unfold.contrib.import_export.forms import (ExportForm, ImportForm,
 from unfold.paginator import InfinitePaginator
 
 from .models import (InvoiceItem, InvoiceItemType, PreliminaryReview, Program,
-                     ProgramAccreditation, ProgrammeInvoice)
+                     ProgramAccreditation, ProgrammeAssessment,
+                     ProgrammeAssessmentInvoice, ProgrammeInvoice)
 
 
 @admin.register(ProgramAccreditation)
@@ -121,6 +122,48 @@ class InvoiceItemTypeAdmin(ModelAdmin):
     list_display = ("name", "default_rate",'is_active')
     fields = ("name", "default_rate", "is_active")
     search_fields = ("name",)
+    compressed_fields = False
+    # Warn before leaving unsaved changes in changeform
+    warn_unsaved_form = True  # Default: False
+     # Display submit button in filters
+    list_filter_submit = True   
+    # Display changelist in fullwidth
+    list_fullwidth = False
+        # Position horizontal scrollbar in changelist at the top
+    list_horizontal_scrollbar_top = False
+    # Dsable select all action in changelist
+    list_disable_select_all = False
+    list_per_page = 20
+    list_max_show_all = 1000
+
+@admin.register(ProgrammeAssessment)
+class ProgrammeAssessmentAdmin(ModelAdmin):
+    '''Admin interface for Programme Assessments'''
+    list_display = ("assessor","application", "assessment_date", "recommendation")
+    #fields = ("application","assessor","assessment_date","recommendation","comments")
+    search_fields = ("application__application_number", "assessor__username")
+    list_filter = ('recommendation', 'application','assessor')
+    compressed_fields = False
+    # Warn before leaving unsaved changes in changeform
+    warn_unsaved_form = True  # Default: False
+     # Display submit button in filters
+    list_filter_submit = True   
+    # Display changelist in fullwidth
+    list_fullwidth = False
+        # Position horizontal scrollbar in changelist at the top
+    list_horizontal_scrollbar_top = False
+    # Dsable select all action in changelist
+    list_disable_select_all = False
+    list_per_page = 20
+    list_max_show_all = 1000
+
+@admin.register(ProgrammeAssessmentInvoice)
+class ProgrammeAssessmentInvoiceAdmin(ModelAdmin):
+    '''Admin interface for Programme Assessment Invoices'''
+    list_display = ("application","invoice_number", "grand_total", "status", "invoice_date")
+    fields = ("application","desk_review_fee", "status", "payment_date", "cleared", "payment_reference", "payment_receipt")
+    search_fields = ("application__application_number", "invoice_number")
+    list_filter = ('status', 'application')
     compressed_fields = False
     # Warn before leaving unsaved changes in changeform
     warn_unsaved_form = True  # Default: False

@@ -249,7 +249,7 @@ class ProgrammeAssessment(models.Model):
 
 
 class ProgrammeInvoice(models.Model):
-    '''Model to represent invoice details for programme accreditation applications.'''
+    '''Model to represent invoice details for programme accreditation inspection.'''
     STATUS_CHOICES = (
         ('issued', 'Issued'),
         ('paid', 'Paid'),
@@ -355,4 +355,68 @@ class InvoiceItem(models.Model):
     def __str__(self):
         return f"{self.item_type.name} - {self.total}"
 
+
+class ProgrammeAssessmentInvoice(models.Model):
+    '''Model to represent invoice details for programme accreditation assessment.'''
+    STATUS_CHOICES = (
+        ('draft', 'Draft'),
+        ('issued', 'Issued'),
+        ('paid', 'Paid'),
+        ('reconciled', 'Reconciled'),
+        ('cancelled', 'Cancelled'),
+    )
+    application = models.ForeignKey(ProgramAccreditation, on_delete=models.CASCADE, related_name='assessment_invoices')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    #Invoice Number for example 052/PROG/2026
+    invoice_number = models.CharField(max_length=100, unique=True, blank=True)
+    invoice_date = models.DateField(auto_now_add=True)
+    desk_review_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # 10% of the desk review fee
+    administrative_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    grand_total = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_date = models.DateField(blank=True, null=True)
+    cleared = models.BooleanField(default=False)
+    payment_reference = models.CharField(max_length=255, blank=True, null=True)
+    payment_receipt = models.FileField(upload_to='assessment_invoices/', blank=True, null=True)
+
+    class Meta:
+        '''Model to represent invoice details for programme accreditation applications.'''
+        ordering = ['-invoice_date']
+        verbose_name = 'Programme Assessment Invoice'
+        verbose_name_plural = 'Programme Assessment Invoices'
+
+
+
+    def _generate_invoice_number(self):
+        year = timezone.now().year
+
+        last_invoice = (
+            ProgrammeAssessmentInvoice.objects
+            .filter(invoice_number__endswith=f"/PROG/{year}")
+            .order_by("-id")
+            .first()
+        )
+
+        next_sequence = 1
+
+        if last_invoice:
+            try:
+                next_sequence = int(
+                    last_invoice.invoice_number.split("/")[0]
+                ) + 1
+            except (ValueError, IndexError):
+                pass
+
+        return f"{next_sequence:03d}/PROG/{year}"
     
+    def save(self, *args, **kwargs):
+        if not self.administrative_fee and self.desk_review_fee:
+            self.administrative_fee = self.desk_review_fee * Decimal("0.10")
+        if not self.invoice_number:
+            self.invoice_number = self._generate_invoice_number()
+        if self.grand_total is None:
+            self.grand_total = self.desk_review_fee + self.administrative_fee
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Invoice {self.invoice_number} - {self.application.application_number} - {self.status}"

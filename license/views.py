@@ -144,7 +144,7 @@ class CertificationAndClassificationViewset(viewsets.ModelViewSet):
                 })  # Example call
         print(prn_check, "result from URA PRN check")
         response_serializer = PRNGenerationResponseSerializer(prn_check)
-        return Response({"prn_check_result": response_serializer.data}, status=status.HTTP_200_OK)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
     
 
 class IntrimAuthorityViewset(viewsets.ModelViewSet):
@@ -318,7 +318,7 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
             }
         )
         response_serializer = PRNGenerationResponseSerializer(prn)
-        return Response({"prn_check_result": response_serializer.data}, status=status.HTTP_200_OK)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
 
 
 
@@ -424,7 +424,7 @@ class IntrimAuthorityODIViewset(viewsets.ModelViewSet):
             }
         )
         response_serializer = PRNGenerationResponseSerializer(prn)
-        return Response({"prn_check_result": response_serializer.data}, status=status.HTTP_200_OK)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
 
 
 class InterimDiscussionViewset(viewsets.ModelViewSet):
@@ -456,14 +456,14 @@ class UniversityProvisionalLicenseViewset(viewsets.ModelViewSet):
     '''University Provisional License Application'''
     queryset = UniversityProvisionalLicense.objects.filter(is_odai=False)
     serializer_class = UniversityProvisionalLicenseSerializer
-    permissions_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['application_code','institution__name','status','application_date']
     
     def get_queryset(self):
         '''return documents for the logged in institution'''
         queryset = self.queryset
-        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
+        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists() or self.request.user.has_perm('license.can_review_provisional_license_application'):
             data = queryset
         else:
             if hasattr(self.request.user, 'institution'):
@@ -493,56 +493,83 @@ class UniversityProvisionalLicenseViewset(viewsets.ModelViewSet):
         serializer = self.serializer_class(instance, data=request.data, partial=True)
         
         if serializer.is_valid():
-            serializer.save()
-            # You can call service methods here if needed, e.g., service.get_prn(...)
             if serializer.validated_data.get('status') == 'submitted':
-                print("Status is submitted, checking PRN...")
-                prn_check=service.generate_and_save_prn(
-                    {
-                    "amount": 200000,
-                    "assessmentDate": timezone.now().isoformat(),
-                    "paymentType": "DT",
-                    "referenceNo": instance.application_code,
-                    "tin": instance.institution.tin,
-                    "srcSystem": "Imis",
-                    "taxHead": "NCHE001",
-                    "taxSubHead": "",
-                    "email": instance.institution.alternative_email or instance.institution.user.email,
-                    "taxPayerName": instance.institution.name,
-                    "plot": "",
-                    "buildingName": "",
-                    "street": "",
-                    "tradeCentre": "",
-                    "district": "",
-                    "county": "",
-                    "subCounty": "",
-                    "parish": "",
-                    "village": "",
-                    "localCouncil": "",
-                    "contactNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else "",
-                    "paymentPeriod": "",
-                    "expiryDays": "",
-                    "mobileMoneyNumber": "",
-                    "mobileNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else ""
-                })  # Example call
-                print(prn_check, "result from URA PRN check")
+                # check if PRN is reconciled, if yes, allow submission, else return an error response
+                prn_object = ApplicationPRNS.objects.filter(referenceNo=instance.application_code).order_by("-assessmentDate").first()
+                prn_status, error_response = _safe_check_prn_status(prn_object)
+                if error_response:
+                    return error_response
+                #print(prn_status, "PRN status from URA")
+                if prn_status and prn_status.get("statusCode") == "T":
+                    prn_object.prn_reconciled = True
+                    prn_object.save()
+                    # allow the submission to proceed
+                    serializer.save()
+                    print("submitting email notification for OTI Provisional License Application...")
+                    #TODO: send an email to the applicant and the NCHE 
+                else:
+                    return Response({
+                        "error": "PRN is not reconciled. Please pay up the application fee before submitting."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                # Persist regular step-by-step draft updates.
+                serializer.save()
+
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+           
+        
+    @action(detail=True, methods=['post'], url_path='generate-prn')
+    def generate_prn(self, request, pk=None):
+        "Generate PRN for the application"
+        instance = self.get_object()
+        prn = service.generate_and_save_prn(
+            {
+                "amount": 200000,
+                "assessmentDate": timezone.now().isoformat(),
+                "paymentType": "DT",
+                "referenceNo": instance.application_code,
+                "tin": instance.institution.tin,
+                "srcSystem": "National Council for Higher Education",
+                "taxHead": "NCHE001",
+                "taxSubHead": "",
+                "email": instance.institution.user.email or instance.institution.alternative_email,
+                "taxPayerName": instance.institution.name,
+                "plot": "",
+                "buildingName": "",
+                "street": "",
+                "tradeCentre": "",
+                "district": instance.institution.district.name if instance.institution.district else "",
+                "county": "",
+                "subCounty": "",
+                "parish": "",
+                "village": "",
+                "localCouncil": "",
+                "contactNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else "",
+                "paymentPeriod": "",
+                "expiryDays": "",
+                "mobileMoneyNumber": "",
+                "mobileNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else ""
+            }
+        )
+        response_serializer = PRNGenerationResponseSerializer(prn)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
 
 # provisional license ODI
 class ODAIProvisionalLicenseViewset(viewsets.ModelViewSet):
     '''University Provisional License Application'''
     queryset = UniversityProvisionalLicense.objects.filter(is_odai=True)
     serializer_class = UniversityProvisionalLicenseSerializer
-    permissions_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['application_code','institution__name','status','application_date']
     
     def get_queryset(self):
         '''return documents for the logged in institution'''
         queryset = self.queryset
-        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
+        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists() or self.request.user.has_perm('license.can_review_provisional_license_application'):
             data = queryset
         else:
             if hasattr(self.request.user, 'institution'):
@@ -634,7 +661,7 @@ class ODAIProvisionalLicenseViewset(viewsets.ModelViewSet):
             }
         )
         response_serializer = PRNGenerationResponseSerializer(prn)
-        return Response({"prn_check_result": response_serializer.data}, status=status.HTTP_200_OK)       
+        return Response(response_serializer.data, status=status.HTTP_200_OK)       
 
 
 class CharterApplicationViewset(viewsets.ModelViewSet):
@@ -648,7 +675,7 @@ class CharterApplicationViewset(viewsets.ModelViewSet):
     def get_queryset(self):
         '''return documents for the logged in institution'''
         queryset = self.queryset
-        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
+        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists() or self.request.user.has_perm('license.can_review_charter_application'):
             data = queryset
         else:
             if hasattr(self.request.user, 'institution'):
@@ -677,42 +704,67 @@ class CharterApplicationViewset(viewsets.ModelViewSet):
         serializer = self.serializer_class(instance, data=request.data, partial=True)
         
         if serializer.is_valid():
-            serializer.save()
-            # You can call service methods here if needed, e.g., service.get_prn(...)
             if serializer.validated_data.get('status') == 'submitted':
-                print("Status is submitted, checking PRN...")
-                prn_check=service.generate_and_save_prn(
-                    {
-                    "amount": 200000,
-                    "assessmentDate": timezone.now().isoformat(),
-                    "paymentType": "DT",
-                    "referenceNo": instance.application_code,
-                    "tin": instance.institution.tin,
-                    "srcSystem": "Imis",
-                    "taxHead": "NCHE001",
-                    "taxSubHead": "",
-                    "email": instance.institution.alternative_email or instance.institution.user.email,
-                    "taxPayerName": instance.institution.name,
-                    "plot": "",
-                    "buildingName": "",
-                    "street": "",
-                    "tradeCentre": "",
-                    "district": "",
-                    "county": "",
-                    "subCounty": "",
-                    "parish": "",
-                    "village": "",
-                    "localCouncil": "",
-                    "contactNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else "",
-                    "paymentPeriod": "",
-                    "expiryDays": "",
-                    "mobileMoneyNumber": "",
-                    "mobileNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else ""
-                })  # Example call
-                print(prn_check, "result from URA PRN check")
+                # check if PRN is reconciled, if yes, allow submission, else return an error response
+                prn_object = ApplicationPRNS.objects.filter(referenceNo=instance.application_code).order_by("-assessmentDate").first()
+                prn_status, error_response = _safe_check_prn_status(prn_object)
+                if error_response:
+                    return error_response
+                #print(prn_status, "PRN status from URA")
+                if prn_status and prn_status.get("statusCode") == "T":
+                    prn_object.prn_reconciled = True
+                    prn_object.save()
+                    # allow the submission to proceed
+                    serializer.save()
+                    print("submitting email notification for OTI Provisional License Application...")
+                    #TODO: send an email to the applicant and the NCHE 
+                else:
+                    return Response({
+                        "error": "PRN is not reconciled. Please pay up the application fee before submitting."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                # Persist regular step-by-step draft updates.
+                serializer.save()
+
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='generate-prn')
+    def generate_prn(self, request, pk=None):
+        "Generate PRN for the application"
+        instance = self.get_object()
+        prn = service.generate_and_save_prn(
+            {
+                "amount": 200000,
+                "assessmentDate": timezone.now().isoformat(),
+                "paymentType": "DT",
+                "referenceNo": instance.application_code,
+                "tin": instance.institution.tin,
+                "srcSystem": "National Council for Higher Education",
+                "taxHead": "NCHE001",
+                "taxSubHead": "",
+                "email": instance.institution.user.email or instance.institution.alternative_email,
+                "taxPayerName": instance.institution.name,
+                "plot": "",
+                "buildingName": "",
+                "street": "",
+                "tradeCentre": "",
+                "district": instance.institution.district.name if instance.institution.district else "",
+                "county": "",
+                "subCounty": "",
+                "parish": "",
+                "village": "",
+                "localCouncil": "",
+                "contactNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else "",
+                "paymentPeriod": "",
+                "expiryDays": "",
+                "mobileMoneyNumber": "",
+                "mobileNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else ""
+            }
+        )
+        response_serializer = PRNGenerationResponseSerializer(prn)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
     
 
 # ODI charter application
@@ -755,42 +807,68 @@ class ODICharterApplicationViewset(viewsets.ModelViewSet):
         serializer = self.serializer_class(instance, data=request.data, partial=True)
         
         if serializer.is_valid():
-            serializer.save()
-            # You can call service methods here if needed, e.g., service.get_prn(...)
             if serializer.validated_data.get('status') == 'submitted':
-                print("Status is submitted, checking PRN...")
-                prn_check=service.generate_and_save_prn(
-                    {
-                    "amount": 200000,
-                    "assessmentDate": timezone.now().isoformat(),
-                    "paymentType": "DT",
-                    "referenceNo": instance.application_code,
-                    "tin": instance.institution.tin,
-                    "srcSystem": "Imis",
-                    "taxHead": "NCHE001",
-                    "taxSubHead": "",
-                    "email": instance.institution.alternative_email or instance.institution.user.email,
-                    "taxPayerName": instance.institution.name,
-                    "plot": "",
-                    "buildingName": "",
-                    "street": "",
-                    "tradeCentre": "",
-                    "district": "",
-                    "county": "",
-                    "subCounty": "",
-                    "parish": "",
-                    "village": "",
-                    "localCouncil": "",
-                    "contactNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else "",
-                    "paymentPeriod": "",
-                    "expiryDays": "",
-                    "mobileMoneyNumber": "",
-                    "mobileNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else ""
-                })  # Example call
-                print(prn_check, "result from URA PRN check")
+                # check if PRN is reconciled, if yes, allow submission, else return an error response
+                prn_object = ApplicationPRNS.objects.filter(referenceNo=instance.application_code).order_by("-assessmentDate").first()
+                prn_status, error_response = _safe_check_prn_status(prn_object)
+                if error_response:
+                    return error_response
+                #print(prn_status, "PRN status from URA")
+                if prn_status and prn_status.get("statusCode") == "T":
+                    prn_object.prn_reconciled = True
+                    prn_object.save()
+                    # allow the submission to proceed
+                    serializer.save()
+                    print("submitting ODAI Provisional License Application...")
+                    #TODO: send an email to the applicant and the NCHE secretariat
+                else:
+                    return Response({
+                        "error": "PRN is not reconciled. Please pay up the application fee before submitting."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                # Persist regular step-by-step draft updates.
+                serializer.save()
+
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+           
+
+    @action(detail=True, methods=['post'], url_path='generate-prn')
+    def generate_prn(self, request, pk=None):
+        "Generate PRN for the application"
+        instance = self.get_object()
+        prn = service.generate_and_save_prn(
+            {
+                "amount": 200000,
+                "assessmentDate": timezone.now().isoformat(),
+                "paymentType": "DT",
+                "referenceNo": instance.application_code,
+                "tin": instance.institution.tin,
+                "srcSystem": "National Council for Higher Education",
+                "taxHead": "NCHE001",
+                "taxSubHead": "",
+                "email": instance.institution.user.email or instance.institution.alternative_email,
+                "taxPayerName": instance.institution.name,
+                "plot": "",
+                "buildingName": "",
+                "street": "",
+                "tradeCentre": "",
+                "district": instance.institution.district.name if instance.institution.district else "",
+                "county": "",
+                "subCounty": "",
+                "parish": "",
+                "village": "",
+                "localCouncil": "",
+                "contactNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else "",
+                "paymentPeriod": "",
+                "expiryDays": "",
+                "mobileMoneyNumber": "",
+                "mobileNo": f'0{instance.institution.contact_person_phone.national_number}' if instance.institution.contact_person_phone else ""
+            }
+        )
+        response_serializer = PRNGenerationResponseSerializer(prn)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
 
 class OTIProvisionalViewset(viewsets.ModelViewSet):
     '''OTI Provisional License Application'''
@@ -879,7 +957,7 @@ class OTIProvisionalViewset(viewsets.ModelViewSet):
             "buildingName": "",
             "street": "",
             "tradeCentre": "",
-            "district": "",
+            "district": instance.institute.district.name if instance.institute.district else "",
             "county": "",
             "subCounty": "",
             "parish": "",
@@ -893,7 +971,7 @@ class OTIProvisionalViewset(viewsets.ModelViewSet):
         })  # Example call
         print(prn_check, "result from URA PRN check")
         response_serializer = PRNGenerationResponseSerializer(prn_check)
-        return Response({"prn_check_result": response_serializer.data}, status=status.HTTP_200_OK)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
     
     
 class OTIProvisionalAwardViewset(viewsets.ModelViewSet):

@@ -16,10 +16,11 @@ from rest_framework.response import Response
 
 from .models import (InvoiceItemType, PreliminaryReview, Program,
                      ProgramAccreditation, ProgrammeAssessment,
-                     ProgrammeInvoice)
+                     ProgrammeAssessmentInvoice, ProgrammeInvoice)
 from .serializers import (InvoiceItemSerializer, InvoiceItemTypeSerializer,
                           PreliminaryReviewSerializer,
                           ProgrammeAccreditationSerializer,
+                          ProgrammeAssessmentInvoiceSerializer,
                           ProgrammeAssessmentSerializer,
                           ProgrammeInvoiceSerializer, ProgramSerializer,
                           ProgressedToDirectorateSerializer)
@@ -865,3 +866,229 @@ class InvoiceTypeViewset(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['name','default_rate']
     pagination_class = None
+
+
+class ProgrammeAssessmentInvoiceViewset(viewsets.ModelViewSet):
+    '''Programme Assessment Invoice Viewset'''
+    queryset = ProgrammeAssessmentInvoice.objects.all()
+    serializer_class = ProgrammeAssessmentInvoiceSerializer
+    permissions_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['application__application_number','invoice_number','application__institution__name','status','payment_reference']
+
+    def get_queryset(self):
+        """Limit invoice visibility to owner institution for non-privileged users."""
+        queryset = self.queryset.select_related('application', 'application__institution')
+
+        if (
+            self.request.user.is_superuser
+            or self.request.user.groups.filter(name='System Administrator').exists()
+            or self.request.user.groups.filter(name='Head Programme Accreditation').exists()
+            or self.request.user.groups.filter(name='Finance Officer').exists()
+        ):
+            return queryset.order_by('-invoice_date')
+
+        if hasattr(self.request.user, 'institution'):
+            return queryset.filter(
+                application__institution=self.request.user.institution
+            ).order_by('-invoice_date')
+
+        return queryset.none()
+    
+    def _generate_invoice_pdf(self, invoice):
+        """Generate a simple invoice PDF and return its bytes."""
+        buffer = BytesIO()
+        pdf = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
+
+        y = height - 50
+        pdf.setFont("Helvetica-Bold", 14)
+        pdf.drawString(50, y, "NCHE Programme Invoice")
+
+        y -= 30
+        pdf.setFont("Helvetica", 10)
+        pdf.drawString(50, y, f"Invoice Number: {invoice.invoice_number or '-'}")
+        y -= 16
+        pdf.drawString(50, y, f"Invoice Date: {invoice.invoice_date or '-'}")
+        y -= 16
+        pdf.drawString(50, y, f"Application Number: {invoice.application.application_number if invoice.application else '-'}")
+        y -= 16
+        pdf.drawString(50, y, f"Institution: {invoice.application.institution.name if invoice.application and invoice.application.institution else '-'}")
+        y -= 24
+
+        pdf.setFont("Helvetica-Bold", 11)
+        pdf.drawString(50, y, "Invoice Items")
+        y -= 18
+
+        pdf.setFont("Helvetica-Bold", 10)
+        pdf.drawString(50, y, "Item")
+        pdf.drawString(280, y, "Persons")
+        pdf.drawString(360, y, "Days")
+        pdf.drawString(430, y, "Total (UGX)")
+        y -= 12
+        pdf.line(50, y, width - 50, y)
+        y -= 14
+
+        pdf.setFont("Helvetica", 10)
+        items = invoice.items.select_related("item_type").all()
+        for item in items:
+            if y < 70:
+                pdf.showPage()
+                y = height - 50
+                pdf.setFont("Helvetica", 10)
+
+            pdf.drawString(50, y, str(item.item_type.name if item.item_type else "-"))
+            pdf.drawString(280, y, str(item.persons_number))
+            pdf.drawString(360, y, str(item.number_of_days))
+            pdf.drawRightString(width - 50, y, f"{item.total:,.2f}")
+            y -= 16
+
+        y -= 6
+        pdf.line(50, y, width - 50, y)
+        y -= 20
+        pdf.setFont("Helvetica-Bold", 11)
+        pdf.drawString(50, y, "Grand Total (UGX):")
+        pdf.drawRightString(width - 50, y, f"{invoice.grand_total:,.2f}")
+
+        pdf.showPage()
+        pdf.save()
+        pdf_bytes = buffer.getvalue()
+        buffer.close()
+        return pdf_bytes
+
+    def _notify_head_programme_accreditation(self, invoice, subject, intro_message):
+        """Send invoice workflow notification to Head Programme Accreditation users."""
+        recipients = list(
+            User.objects.filter(groups__name='Head Programme Accreditation')
+            .exclude(email__isnull=True)
+            .exclude(email__exact='')
+            .values_list('email', flat=True)
+            .distinct()
+        )
+
+        if not recipients:
+            return
+
+        application = invoice.application
+        institution = application.institution if application else None
+
+        html_message = """
+                            <div style=\"font-family: Arial, sans-serif; line-height: 1.6;\">
+                                <p>{intro_message}</p>
+                                <ul>
+                                    <li><strong>Invoice Number:</strong> {invoice_number}</li>
+                                    <li><strong>Application Number:</strong> {application_number}</li>
+                                    <li><strong>Institution:</strong> {institution_name}</li>
+                                    <li><strong>Programme:</strong> {programme_name}</li>
+                                    <li><strong>Status:</strong> {status}</li>
+                                    <li><strong>Payment Reference:</strong> {payment_reference}</li>
+                                    <li><strong>Grand Total (UGX):</strong> {grand_total}</li>
+                                </ul>
+                            </div>
+            """.format(
+            intro_message=intro_message,
+            invoice_number=invoice.invoice_number or '-',
+            application_number=application.application_number if application else '-',
+            institution_name=institution.name if institution else '-',
+            programme_name=application.program_name if application else '-',
+            status=invoice.status,
+            payment_reference=invoice.payment_reference or '-',
+            grand_total=f"{invoice.grand_total:,.2f}",
+        )
+
+        email = EmailMessage(
+            subject=subject,
+            body=html_message,
+            to=recipients,
+        )
+        email.content_subtype = 'html'
+        email.send(fail_silently=True)
+
+    def create(self, request):
+        """Create invoice, notify institution, and attach generated invoice PDF."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        with transaction.atomic():
+            invoice = serializer.save(status='issued', cleared=False)
+            application = invoice.application
+            if application.status != 'invoiced':
+                application.status = 'invoiced'
+                application.save(update_fields=['status'])
+
+            institution = application.institution if application else None
+            recipient = (
+                institution.user.email
+                if institution and hasattr(institution, 'user') and institution.user
+                else None
+            )
+
+            if recipient:
+                html_message = render_to_string('email/invoice_details.html', {
+                    'application': application,
+                    'institution': institution,
+                    'invoice_amount': f"{invoice.grand_total:,.2f}",
+                    'invoice_number': invoice.invoice_number,
+                    'invoice_date': invoice.invoice_date,
+                })
+
+                email = EmailMessage(
+                    subject='NCHE Programme Accreditation Invoice Details',
+                    body=html_message,
+                    to=[recipient],
+                )
+                email.content_subtype = 'html'
+
+                pdf_bytes = self._generate_invoice_pdf(invoice)
+                filename = f"{(invoice.invoice_number or 'invoice').replace('/', '-')}.pdf"
+                email.attach(filename, pdf_bytes, 'application/pdf')
+                email.send(fail_silently=False)
+
+        response_serializer = self.get_serializer(invoice)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+
+    # Reconcile invoice
+    @action(detail=True, methods=['post'], url_path='reconcile-invoice')
+    def reconcile_invoice(self, request, pk=None):
+        """
+        POST reconcile an invoice for an application.
+        """
+        invoice = get_object_or_404(ProgrammeInvoice, pk=pk, status='paid', cleared=False)
+        invoice.cleared = True
+        invoice.status = 'reconciled'
+        invoice.save()
+        invoice_application = invoice.application
+        invoice_application.status = 'invoice_reconciled'
+        invoice_application.save()
+        self._notify_head_programme_accreditation(
+            invoice,
+            subject='NCHE Programme Invoice Reconciled',
+            intro_message='An invoice has been reconciled and the related application is ready for the next stage.',
+        )
+        return Response({'message': 'Invoice reconciled successfully.'}, status=status.HTTP_200_OK)
+        
+    # add payment receipt and payment reference and send email to notify head of programmes accreditation
+    @action(detail=True, methods=['post'], url_path='add-payment-details')
+    def add_payment_details(self, request, pk=None):
+        """
+        POST add payment details to an invoice.
+        """
+        invoice = get_object_or_404(ProgrammeInvoice, pk=pk, status='issued', cleared=False)
+        payment_reference = request.data.get('payment_reference')
+        payment_receipt = request.data.get('payment_receipt')
+
+        if not payment_reference or not payment_receipt:
+            return Response({'error': 'Payment reference and receipt are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        invoice.payment_reference = payment_reference
+        invoice.payment_receipt = payment_receipt
+        invoice.status = 'paid'
+        invoice.save()
+        self._notify_head_programme_accreditation(
+            invoice,
+            subject='NCHE Programme Invoice Payment Submitted',
+            intro_message='Payment details have been added to an invoice and are ready for reconciliation review.',
+        )
+        
+        return Response({'message': 'Payment details added successfully.'}, status=status.HTTP_200_OK)

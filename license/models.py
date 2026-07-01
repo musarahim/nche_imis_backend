@@ -630,11 +630,18 @@ class UniversityProvisionalLicense(TimeStampedModel):
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='draft', blank=False)
     is_odai = models.BooleanField(default=False)
 
+    class Meta:
+        permissions =[
+            ("can_review_provisional_license_application", "Can review provisional license application"),
+            ("can_assign_university_provisional_reviewer", "Can assign university provisional reviewer"),
+        ]
+
     def __str__(self):
         """
         Returns the institution name as a string representation of the model.
         """
         return self.institution.name
+    
     
     def save(self, *args, **kwargs):
         if not self.application_code:
@@ -827,13 +834,21 @@ class CharterApplication(TimeStampedModel):
      # ODI application
     is_odai = models.BooleanField(default=False)
 
+    class Meta:
+        permissions =[
+            ("can_review_charter_application", "Can review charter application"),
+            ("can_assign_charter_reviewer", "Can assign charter reviewer"),
+        ]
+
     def __str__(self):
         return self.institution
     
     def save(self, *args, **kwargs):
         if not self.application_code:
             self.application_code = self.generate_code()
-        super().save(*args, **kwargs)   
+        super().save(*args, **kwargs)  
+
+     
 
     def generate_code(self):
         # Academic year format (e.g., 2024-2025)

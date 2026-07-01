@@ -33,7 +33,7 @@ class PaymentCodeAdmin(
 class ApplicationPRNSAdmin(SimpleHistoryAdmin, ModelAdmin, ExportActionModelAdmin):
     """Admin interface for ApplicationPRNS model (Read-only)."""
 
-    list_display = ("referenceNo", "amount", "assessmentDate", "paymentType", "prn", "statusCode")
+    list_display = ("referenceNo", "amount", "assessmentDate", "paymentType", "prn", "prn_reconciled")
     readonly_fields = (
         "referenceNo",
         "amount",

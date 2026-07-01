@@ -14,6 +14,7 @@ router.register(r'preliminary-reviews', views.PreminaryReviewViewset, basename='
 router.register(r'programme-assessments', views.ProgrammeAssessmentViewset, basename='programme-assessments')
 router.register(r'invoice-types', views.InvoiceTypeViewset, basename='invoice-types')
 router.register(r'programme-invoices', views.ProgrammeInvoiceViewset, basename='programme-invoices')
+router.register(r'programme-assessment-invoices', views.ProgrammeAssessmentInvoiceViewset, basename='programme-assessment-invoices')
 urlpatterns = [
     path('', include(router.urls)),
 ]
