@@ -334,13 +334,25 @@ UNFOLD = {
                     "icon": "rule_settings",
                 },
                 {
+                    "title": _("Programme Assessments"),
+                    "link": reverse_lazy("admin:programmes_programmeassessment_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "rule_settings",
+                },
+                {
                     "title": _("Accredited Programs"),
                     "link": reverse_lazy("admin:programmes_program_changelist"),
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "contract",
                 },
                 {
-                    "title": _("Programme Invoices"),
+                    "title": _("Programme Assessment Invoices"),
+                    "link": reverse_lazy("admin:programmes_programmeassessmentinvoice_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "receipt",
+                },
+                {
+                    "title": _("Facility Verification Invoices"),
                     "link": reverse_lazy("admin:programmes_programmeinvoice_changelist"),
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "receipt",
