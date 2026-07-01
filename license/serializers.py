@@ -1,4 +1,5 @@
 from drf_extra_fields.fields import Base64FileField
+from payments.models import ApplicationPRNS
 from rest_framework import serializers
 
 from .models import (CertificationAndClassification, CharterApplication,
@@ -18,6 +19,8 @@ class CertificationAndClassificationSerializer(serializers.ModelSerializer):
         response = super().to_representation(instance)
         response['institution'] = instance.institution.name
         response['provisional_license_value'] = instance.provisional_license.code if instance.provisional_license else None
+        response['prn'] = ApplicationPRNS.objects.filter(referenceNo=instance.application_code).last().prn if ApplicationPRNS.objects.filter(referenceNo=instance.application_code).exists() else None
+        response['status'] = instance.get_status_display()
         return response
 
 
@@ -33,6 +36,8 @@ class IntrimAuthoritySerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         response = super().to_representation(instance)
         response['institution'] = instance.institution.name
+        response['status'] = instance.get_status_display()
+        response['prn'] = ApplicationPRNS.objects.filter(referenceNo=instance.application_code).last().prn if ApplicationPRNS.objects.filter(referenceNo=instance.application_code).exists() else None
         return response
     
 class InterimDiscussionSerializer(serializers.ModelSerializer):
@@ -66,8 +71,8 @@ class UniversityProvisionalLicenseSerializer(serializers.ModelSerializer):
         '''Custom representation to include institution name'''
         response = super().to_representation(instance)
         response['institution'] = instance.institution.name
-
-        #response['publication_years'] = ', '.join(instance.publication_years) if instance.publication_years else ''
+        response['status'] = instance.get_status_display()
+        response['prn'] = ApplicationPRNS.objects.filter(referenceNo=instance.application_code).last().prn if ApplicationPRNS.objects.filter(referenceNo=instance.application_code).exists() else None
         return response
     
 
@@ -85,6 +90,8 @@ class CharterApplicationSerializer(serializers.ModelSerializer):
         '''Custom representation to include institution name'''
         response = super().to_representation(instance)
         response['institution'] = instance.institution.name
+        response['status'] = instance.get_status_display()
+        response['prn'] = ApplicationPRNS.objects.filter(referenceNo=instance.application_code).last().prn if ApplicationPRNS.objects.filter(referenceNo=instance.application_code).exists() else None
         return response
     
 
@@ -103,6 +110,8 @@ class OTIProvisionalSerializer(serializers.ModelSerializer):
         '''Custom representation to include institution name'''
         response = super().to_representation(instance)
         response['institute'] = instance.institute.name
+        response['status'] = instance.get_status_display()
+        response['prn'] = ApplicationPRNS.objects.filter(referenceNo=instance.code).last().prn if ApplicationPRNS.objects.filter(referenceNo=instance.code).exists() else None
         return response
     
 class OTIProvisionalAwardSerializer(serializers.ModelSerializer):
