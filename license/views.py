@@ -342,6 +342,25 @@ class IntrimAuthorityODIViewset(viewsets.ModelViewSet):
             else:
                 data = None
         return data
+
+    @action(detail=False, methods=['get'], url_path='submitted-applications')
+    def submitted_applications(self, request, pk=None):
+        """
+        GET applications submitted by the logged in user.
+        """
+        queryset = IntrimAuthority.objects.filter(status='submitted', is_odai=True)
+        if queryset is None or not queryset.exists():
+            return Response([], status=status.HTTP_200_OK)
+        
+        # Apply pagination manually for custom actions
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        # Fallback if pagination is not configured
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
     
     def create(self, request):
         '''Set institution to the logged in user's institution'''
