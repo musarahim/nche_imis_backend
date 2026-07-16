@@ -34,6 +34,10 @@ class ProgramAccreditation(models.Model):
         ('revision', 'Revision'),
 
     ]
+    DURATION_TYPE =(
+        ('semester','Semesters'),
+        ('tri_semester','Tri-Semesters')
+    )
    
     institution = models.ForeignKey(Institution, on_delete=models.RESTRICT, related_name='programme_accreditations', blank=True)
     #  PGAC/2024-2025/00715
@@ -41,7 +45,9 @@ class ProgramAccreditation(models.Model):
     application_type = models.CharField(max_length=100, choices=APPLICATION_TYPE, default='new')
     program_level = models.CharField(max_length=100, choices=PROGRAMME_LEVELS)
     program_name = models.CharField(max_length=255)
-    duration_semester = models.PositiveIntegerField()
+    number_of_years = models.PositiveIntegerField(null=True, blank=False)
+    duration = models.PositiveIntegerField()
+    duration_type = models.CharField(max_length=20, null=True, blank=False, choices=DURATION_TYPE)
     campus = models.CharField(max_length=255, blank=True, null=True)
     date_submitted = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=50, choices=STATUS, default='submitted', blank=True)
@@ -357,7 +363,7 @@ class InvoiceItem(models.Model):
 
 
 class ProgrammeAssessmentInvoice(models.Model):
-    '''Model to represent invoice details for programme accreditation assessment.'''
+    '''Model to represent invoice details for programme accreditation desk review.'''
     STATUS_CHOICES = (
         ('draft', 'Draft'),
         ('issued', 'Issued'),
@@ -380,10 +386,10 @@ class ProgrammeAssessmentInvoice(models.Model):
     payment_receipt = models.FileField(upload_to='assessment_invoices/', blank=True, null=True)
 
     class Meta:
-        '''Model to represent invoice details for programme accreditation applications.'''
+        '''Model to represent invoice details for programme accreditation desk review.'''
         ordering = ['-invoice_date']
-        verbose_name = 'Programme Assessment Invoice'
-        verbose_name_plural = 'Programme Assessment Invoices'
+        verbose_name = 'Programme Desk Review Invoice'
+        verbose_name_plural = 'Programme Desk Review Invoices'
 
 
 

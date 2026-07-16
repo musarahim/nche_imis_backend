@@ -125,10 +125,15 @@ class EmployeeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         '''Return employees, optionally filtered by department or designation'''
-        queryset = self.queryset
-        user_id = self.request.user.id
-        if not self.request.user.is_superuser:
-            queryset =queryset.filter(system_account__id=user_id)
+        if self.request.user.is_superuser or  self.request.user.groups.filter(name='Human Resource').exists():
+            # If the user is not a superuser, filter by the user's employee record
+            try:
+                queryset = self.queryset.all()
+            except Employee.DoesNotExist:
+                queryset = self.queryset.none()  # No employee record found for the user
+        else:
+            # If the user is a superuser, return all employees
+            queryset = self.queryset.filter(system_account=self.request.user)
         return queryset
     
     @action(detail=False, methods=['get'], url_path='employee-dropdown')

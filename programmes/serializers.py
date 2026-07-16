@@ -28,6 +28,7 @@ class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
         response['review_date'] = instance.preliminary_reviewers.first().reviewed_at.strftime('%d-%m-%Y') if instance.preliminary_reviewers.first() and instance.preliminary_reviewers.first().reviewed_at else None
         response['expert_progression'] = instance.preliminary_reviewers.first().get_expert_progression_display() if instance.preliminary_reviewers.first() and instance.preliminary_reviewers.first().expert_progression else None
         response['review_id'] = instance.preliminary_reviewers.first().id if instance.preliminary_reviewers.first() else None
+        response['duration_type'] = instance.get_duration_type_display()
         return response
     
 
@@ -69,6 +70,7 @@ class PreliminaryReviewSerializer(serializers.ModelSerializer):
         response['institution'] = instance.application.institution.name if instance.application and instance.application.institution else None
         response['programme'] = instance.application.program_name if instance.application and instance.application.program_name else None
         response["student_total"] = instance.student_total if instance.student_total is not None else None
+        response['application_status'] = instance.application.get_status_display() if instance.application and instance.application.status else None
         return response
     
 

@@ -139,6 +139,16 @@ class Employee(TimeStampedModel):
     signature = models.ImageField(upload_to='employees_signatures/', null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
+    class Meta:
+        '''Meta information for the Employee model'''
+        verbose_name = "Employee"
+        verbose_name_plural = "Employees"
+        ordering = ['employee_number']
+        permissions = [
+            ("manage_employee", "Can manage employee"),
+            
+        ]
+
 
     def __str__(self):
         if self.system_account:
@@ -150,6 +160,7 @@ class Employee(TimeStampedModel):
         if self.system_account:
             return self.system_account.get_full_name()
         return "No Name"
+    
     
 
 class Dependent(TimeStampedModel):
