@@ -11,7 +11,7 @@ MARITAL_STATUS=(
     ('divorced', 'Divorced'),
     ('widow', 'Widow'),
     ('widower', 'Widower'),
-    ('seperated', 'Seperated'),
+    ('separated', 'Separated'),
 )
 
 # parent status

@@ -119,3 +119,19 @@ class UserReviewerSerializer(serializers.ModelSerializer):
         '''Return a display name for the reviewer.'''
         full_name = " ".join(part for part in [instance.first_name, instance.last_name] if part)
         return full_name or instance.username
+    
+
+class EmployeeUserSerializer(serializers.ModelSerializer):
+    '''Serializer for employee users'''
+    name = serializers.SerializerMethodField()
+
+    class Meta:
+        '''Meta class for EmployeeUserSerializer'''
+        model = User
+        fields = ['id', 'name']
+        ref_name = 'employee user'
+
+    def get_name(self, instance):
+        '''Return a display name for the employee user.'''
+        full_name = f"{instance.email} - {instance.first_name} {instance.last_name} {instance.other_names or ''}".strip()
+        return full_name or instance.username
