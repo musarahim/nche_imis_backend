@@ -19,6 +19,7 @@ router.register(r'titles', views.TitleViewSet, basename='title')
 router.register(r'religions', views.ReligionViewSet, basename='religion')
 router.register(r'finance-years', views.FinanceYearViewSet, basename='finance-year')
 router.register(r'holidays', views.HolidayViewSet, basename='holiday')
+router.register(r'relationships', views.RelationshipViewSet, basename='relationship')
 
 urlpatterns = [
     path('', include(router.urls)),

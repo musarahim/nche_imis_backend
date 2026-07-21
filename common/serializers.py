@@ -1,8 +1,8 @@
 from rest_framework import serializers
 
 from .models import (County, District, EducationLevel, FinanceYear, Holiday,
-                     Nationality, Parish, Region, Religion, SubCounty, Title,
-                     Tribe, Village)
+                     Nationality, Parish, Region, Relationship, Religion,
+                     SubCounty, Title, Tribe, Village)
 
 
 class DistrictSerializer(serializers.ModelSerializer):
@@ -100,3 +100,10 @@ class HolidaySerializer(serializers.ModelSerializer):
         '''meta class for Holiday serializer'''
         model = Holiday
         fields = ['id','name','date']
+
+class RelationshipSerializer(serializers.ModelSerializer):
+    """Relationship serializer"""
+    class Meta:
+        '''meta class for Relationship serializer'''
+        model = Relationship
+        fields = ['id', 'name']

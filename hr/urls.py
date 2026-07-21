@@ -15,6 +15,8 @@ router.register(r'education-histories', views.EducationHistoryViewSet, basename=
 router.register(r'work-histories', views.WorkHistoryViewSet, basename='work-history')
 router.register(r'referees', views.RefereeViewSet, basename='referee')
 router.register(r'employees', views.EmployeeViewSet, basename='employee')
+router.register(r'user-dropdown', views.UserDropdownViewSet, basename='user-dropdown')
+router.register(r'employee-dropdown', views.EmployeeDropdownViewSet, basename='employee-dropdown')
 urlpatterns = [
     path('', include(router.urls)),
 ]

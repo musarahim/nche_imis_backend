@@ -11,14 +11,15 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import (County, District, EducationLevel, FinanceYear, Holiday,
-                     Nationality, Parish, Region, Religion, SubCounty, Title,
-                     Tribe, Village)
+                     Nationality, Parish, Region, Relationship, Religion,
+                     SubCounty, Title, Tribe, Village)
 from .serializers import (CountySerializer, DistrictSerializer,
                           EducationLevelSerializer, FinanceYearSerializer,
                           HolidaySerializer, NationalitySerializer,
                           ParishSerializer, RegionSerializer,
-                          ReligionSerializer, SubCountySerializer,
-                          TitleSerializer, TribeSerializer, VillageSerializer)
+                          RelationshipSerializer, ReligionSerializer,
+                          SubCountySerializer, TitleSerializer,
+                          TribeSerializer, VillageSerializer)
 
 # Import other models
 try:
@@ -118,6 +119,17 @@ class CountyViewSet(viewsets.ModelViewSet):
     serializer_class = CountySerializer
     permission_classes = [permissions.AllowAny]  
     pagination_class = None
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned counties to a given district,
+        by filtering against a `district_id` query parameter in the URL.
+        """
+        queryset = self.queryset
+        district_id = self.request.query_params.get('district_id', None)
+        if district_id is not None:
+            queryset = queryset.filter(district__id=district_id)
+        return queryset
     
 class SubCountyViewSet(viewsets.ModelViewSet):
     """
@@ -127,6 +139,17 @@ class SubCountyViewSet(viewsets.ModelViewSet):
     serializer_class = SubCountySerializer
     permission_classes = [permissions.AllowAny]  
     pagination_class = None
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned sub-counties to a given county,
+        by filtering against a `county_id` query parameter in the URL.
+        """
+        queryset = self.queryset
+        county_id = self.request.query_params.get('county_id', None)
+        if county_id is not None:
+            queryset = queryset.filter(county__id=county_id)
+        return queryset
     
 
 class ParishViewSet(viewsets.ModelViewSet):
@@ -137,6 +160,17 @@ class ParishViewSet(viewsets.ModelViewSet):
     serializer_class = ParishSerializer
     permission_classes = [permissions.AllowAny]  
     pagination_class = None
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned parishes to a given sub-county,
+        by filtering against a `sub_county_id` query parameter in the URL.
+        """
+        queryset = self.queryset
+        sub_county_id = self.request.query_params.get('sub_county_id', None)
+        if sub_county_id is not None:
+            queryset = queryset.filter(sub_county__id=sub_county_id)
+        return queryset
     
 class VillageViewSet(viewsets.ModelViewSet):
     """
@@ -146,6 +180,17 @@ class VillageViewSet(viewsets.ModelViewSet):
     serializer_class = VillageSerializer
     permission_classes = [permissions.AllowAny]  
     pagination_class = None
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned villages to a given parish,
+        by filtering against a `parish_id` query parameter in the URL.
+        """
+        queryset = self.queryset
+        parish_id = self.request.query_params.get('parish_id', None)
+        if parish_id is not None:
+            queryset = queryset.filter(parish__id=parish_id)
+        return queryset
 
 class EducationLevelViewSet(viewsets.ModelViewSet):
     """
@@ -190,6 +235,15 @@ class HolidayViewSet(viewsets.ModelViewSet):
     queryset = Holiday.objects.order_by('name')
     serializer_class = HolidaySerializer
     permission_classes = [permissions.AllowAny]  
+    pagination_class = None
+
+class RelationshipViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing Relationship instances.
+    """
+    queryset = Relationship.objects.order_by('name')
+    serializer_class = RelationshipSerializer
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
 
 
