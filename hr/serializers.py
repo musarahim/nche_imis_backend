@@ -151,22 +151,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
         response['mother_status_name'] = instance.get_mother_status_display() if instance.mother_status else None
         return response
     
-class EmployeeUpdateSerializer(serializers.ModelSerializer):
-    '''Serializer for Employee model.'''
-    class Meta:
-        '''Meta class for Employee Serializer'''
-        model = Employee
-        #fields = "__all__"
-        exclude = ['created', 'modified','deleted_at']
-        read_only_fields = ['id']
 
-    def to_representation(self, instance):
-        response = super().to_representation(instance)
-        response['dependents'] = DependentSerializer(instance.dependent_set.all(), many=True).data
-        response['education_histories'] = EducationHistorySerializer(instance.educationhistory_set.all(), many=True).data
-        response['work_histories'] = WorkHistorySerializer(instance.workhistory_set.all(), many=True).data
-        response['referees'] = RefereeSerializer(instance.referee_set.all(), many=True).data
-        return response
 
 class EmpDrodpdownSerializer(serializers.ModelSerializer):
     '''Serializer for Employee model for dropdowns.'''
