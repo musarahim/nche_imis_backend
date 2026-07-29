@@ -32,7 +32,9 @@ class Designation(TimeStampedModel):
     '''Designation model'''
     code = models.CharField(max_length=10, null=False, blank=False, unique=True)
     name = models.CharField(max_length=100, null=False, blank=False, unique=True)
-    
+    annual_leave = models.PositiveIntegerField(null=True, blank=True, default=0, help_text="Number of days of annual leave for this designation")
+    basic_pay = models.FloatField(null=True, blank=True, default=0.0, help_text="Basic pay for this designation")
+    resignation_notice_period = models.PositiveIntegerField(null=True, blank=True, default=0, help_text="Number of days of resignation notice period for this designation")
 
     def __str__(self):
         return self.name
