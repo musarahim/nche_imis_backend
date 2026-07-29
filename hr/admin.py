@@ -44,7 +44,7 @@ class DepartmentAdmin(SimpleHistoryAdmin,ModelAdmin):
 class DesignationAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     '''Admin interface for Designation model.'''
     list_display = ('code', 'name', 'created', 'modified')
-    fields = ('code', 'name')
+    fields = ('code', 'name','annual_leave','basic_pay','resignation_notice_period')
     search_fields = ('name',)
     ordering = ('name',)
     readonly_fields = ('created', 'modified','deleted_at')

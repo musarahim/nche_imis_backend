@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     # my apps 
     'accounts',
+    'appraisals',
     'common',
     'institutions',
     'license',
