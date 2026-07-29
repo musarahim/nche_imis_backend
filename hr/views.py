@@ -13,9 +13,8 @@ from .models import (Department, Dependent, Designation, Directorate,
 from .serializers import (DepartmentSerializer, DependentSerializer,
                           DesignationSerializer, DirectorateSerializer,
                           EducationHistorySerializer, EmpDrodpdownSerializer,
-                          EmployeeSerializer, EmployeeUpdateSerializer,
-                          GradeScaleSerializer, RefereeSerializer,
-                          WorkHistorySerializer)
+                          EmployeeSerializer, GradeScaleSerializer,
+                          RefereeSerializer, WorkHistorySerializer)
 
 
 # Create your views here.
@@ -168,7 +167,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         Retrieve detailed information for a specific employee.
         """
         employee = self.get_object()
-        serializer = EmployeeUpdateSerializer(employee)
+        serializer = self.get_serializer(employee)
         return Response(serializer.data)
 
     def update(self, request, *args, **kwargs):

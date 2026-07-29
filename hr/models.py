@@ -89,7 +89,7 @@ class Employee(TimeStampedModel):
     spouse_name = models.CharField(max_length=200, null=True, blank=True)
     # next of kin
     next_of_kin_name = models.CharField(max_length=200, null=True, blank=True)
-    next_of_kin_relationship = models.CharField(max_length=100, null=True, blank=True)
+    next_of_kin_relationship = models.ForeignKey(Relationship, on_delete=models.RESTRICT, null=True, blank=False)
     next_of_kin_date_of_birth = models.DateField(null=True, blank=True)
     occupation = models.CharField(max_length=200, null=True, blank=True)
     work_place = models.CharField(max_length=100, null=True, blank=False)
@@ -98,7 +98,7 @@ class Employee(TimeStampedModel):
     next_of_kin_email = models.EmailField(null=True, blank=True)
     # contact person
     contact_person_name = models.CharField(max_length=200, null=True, blank=True)
-    contact_person_relationship = models.CharField(max_length=100, null=True, blank=True)
+    contact_person_relationship = models.ForeignKey(Relationship, on_delete=models.RESTRICT, null=True, blank=False, related_name='contact_person_relationship')
     contact_person_telephone = PhoneNumberField(null=True, blank=True)
     contact_person_email = models.EmailField(null=True, blank=True)
     contact_person_address = models.TextField(null=True, blank=True)
