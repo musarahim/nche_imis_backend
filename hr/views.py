@@ -178,6 +178,14 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
 
+        passport_photo = request.data.get('passport_photo', None)
+        if passport_photo:
+            # get user account related to the employee and update the profile picture
+            user_account = instance.system_account
+            user_account.profile_pic = passport_photo
+            user_account.save()
+            
+
         dependents_json = request.data.get('dependents', None)
         if dependents_json is not None:
             try:

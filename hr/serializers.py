@@ -114,6 +114,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         '''Custom representation to include related fields'''
         response = super().to_representation(instance)
+        request = self.context.get('request')
         response['gender_name'] = instance.get_gender_display() if instance.gender else None
         response['marital_status_name'] = instance.get_marital_status_display() if instance.marital_status else None
         response["father_status_name"] = instance.get_father_status_display() if instance.father_status else None
@@ -144,8 +145,8 @@ class EmployeeSerializer(serializers.ModelSerializer):
         response['email'] = instance.system_account.email if instance.system_account else None
         response['phone'] = instance.system_account.phone.raw_input if instance.system_account and instance.system_account.phone else None
         response['alternative_phone_number'] = instance.system_account.alternative_phone_number.raw_input if instance.system_account and instance.system_account.alternative_phone_number else None
-        response['profile_pic'] = instance.system_account.profile_pic.url if instance.system_account and instance.system_account.profile_pic else None
-        response['passport_photo'] = instance.passport_photo.url if instance.system_account and instance.passport_photo else None
+        # get full server path for passport photo if it exists
+        response['passport_photo'] = request.build_absolute_uri(instance.passport_photo.url) if instance.system_account and instance.passport_photo else None
         response['passport_type_name'] = instance.get_passport_type_display() if instance.passport_type else None
         response['father_status_name'] = instance.get_father_status_display() if instance.father_status else None
         response['mother_status_name'] = instance.get_mother_status_display() if instance.mother_status else None
