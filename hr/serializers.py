@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import (Department, Dependent, Designation, Directorate,
+from .models import (Department, Dependent, Designation, Directorate, Document,
                      EducationHistory, Employee, GradeScale, Referee,
                      WorkHistory)
 
@@ -58,6 +58,21 @@ class DependentSerializer(serializers.ModelSerializer):
         response['employee'] = instance.employee.full_name if instance.employee else None
         response['gender'] = instance.get_gender_display() if instance.gender else None
         response['relationship_name'] = instance.relationship.name if instance.relationship else None
+        return response
+
+
+class DocumentSerializer(serializers.ModelSerializer):
+    '''Serializer for Document model.'''
+    class Meta:
+        '''Meta class for Document Serializer'''
+        model = Document
+        fields = ("id", "employee", "name", "document")
+        read_only_fields = ['id']
+
+    def to_representation(self, instance):
+        '''Custom representation to include employee name'''
+        response = super().to_representation(instance)
+        response['employee'] = instance.employee.full_name if instance.employee else None
         return response
 
 class EducationHistorySerializer(serializers.ModelSerializer):
@@ -141,6 +156,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
         response['work_histories'] = WorkHistorySerializer(instance.workhistory_set.all(), many=True).data
         response['referees'] = RefereeSerializer(instance.referee_set.all(), many=True).data
         response['dependents'] = DependentSerializer(instance.dependent_set.all(), many=True).data
+        response['documents'] = DocumentSerializer(instance.document_set.all(), many=True).data
         response['names'] = f'{instance.title.name + ". " if instance.title else ""}{instance.system_account.first_name} {instance.system_account.other_names if instance.system_account.other_names else ""} {instance.system_account.last_name}'
         response['email'] = instance.system_account.email if instance.system_account else None
         response['phone'] = instance.system_account.phone.raw_input if instance.system_account and instance.system_account.phone else None

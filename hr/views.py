@@ -7,14 +7,15 @@ from rest_framework import filters, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import (Department, Dependent, Designation, Directorate,
+from .models import (Department, Dependent, Designation, Directorate, Document,
                      EducationHistory, Employee, GradeScale, Referee,
                      WorkHistory)
 from .serializers import (DepartmentSerializer, DependentSerializer,
                           DesignationSerializer, DirectorateSerializer,
-                          EducationHistorySerializer, EmpDrodpdownSerializer,
-                          EmployeeSerializer, GradeScaleSerializer,
-                          RefereeSerializer, WorkHistorySerializer)
+                          DocumentSerializer, EducationHistorySerializer,
+                          EmpDrodpdownSerializer, EmployeeSerializer,
+                          GradeScaleSerializer, RefereeSerializer,
+                          WorkHistorySerializer)
 
 
 # Create your views here.
@@ -90,6 +91,20 @@ class EducationHistoryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         '''Return education histories for a specific employee if employee_id is provided'''
+        queryset = self.queryset
+        employee_id = self.request.query_params.get('employee_id', None)
+        if employee_id is not None:
+            queryset =queryset.filter(employee__id=employee_id)
+        return queryset
+
+class DocumentViewSet(viewsets.ModelViewSet):
+    '''Document viewset'''
+    queryset = Document.objects.all()
+    serializer_class = DocumentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        '''Return documents for a specific employee if employee_id is provided'''
         queryset = self.queryset
         employee_id = self.request.query_params.get('employee_id', None)
         if employee_id is not None:
@@ -255,6 +270,39 @@ class EmployeeViewSet(viewsets.ModelViewSet):
                             WorkHistory.objects.create(employee=instance, **work)
                     else:
                         WorkHistory.objects.create(employee=instance, **work)
+            except (json.JSONDecodeError, Exception):
+                pass
+
+
+        documents_json = request.data.get('documents', None)
+        print("Documents JSON:", documents_json)  # Debugging line  
+        if documents_json is not None:
+            try:
+                documents_data_list = json.loads(documents_json)
+                submitted_ids = {int(d['id']) for d in documents_data_list if d.get('id')}
+                instance.document_set.exclude(id__in=submitted_ids).delete()
+                for idx, doc in enumerate(documents_data_list):
+                    doc_id = doc.pop('id', None)
+                    doc.pop('employee', None)
+                    doc_file = request.FILES.get(f'doc_file_{idx}', None)
+                    if doc_id:
+                        try:
+                            doc_obj = Document.objects.get(id=doc_id, employee=instance)
+                            for k, v in doc.items():
+                                setattr(doc_obj, k, v)
+                            if doc_file:
+                                doc_obj.document = doc_file
+                            doc_obj.save()
+                        except Document.DoesNotExist:
+                            doc_obj = Document.objects.create(employee=instance, **doc)
+                            if doc_file:
+                                doc_obj.document = doc_file
+                                doc_obj.save()
+                    else:
+                        doc_obj = Document.objects.create(employee=instance, **doc)
+                        if doc_file:
+                            doc_obj.document = doc_file
+                            doc_obj.save()
             except (json.JSONDecodeError, Exception):
                 pass
 

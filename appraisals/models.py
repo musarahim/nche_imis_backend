@@ -19,8 +19,8 @@ class PerformanceAppraisal(TimeStampedModel):
     )
     start_date = models.DateField()
     end_date = models.DateField()
-    appraisee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='appraisals_as_appraisee')
-    appraiser = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='appraisals_as_appraiser')
+    appraisee = models.ForeignKey(Employee, on_delete=models.CASCADE,null=True, blank=True, related_name='appraisals_as_appraisee')
+    appraiser = models.ForeignKey(Employee, on_delete=models.CASCADE, null=True, blank=True, related_name='appraisals_as_appraiser')
     reviewer = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviews_as_reviewer')
     director = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviews_as_director')
     executive_director = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviews_as_executive')
@@ -53,9 +53,13 @@ class PerformanceAppraisal(TimeStampedModel):
     class Meta:
         unique_together = ('start_date', 'end_date', 'appraisee')
         ordering = ['-created']
+        permissions = (
+            ("can_approve_staff_appraisal", "Can approve staff appraisal"),
+            ("can_appraise_staff", "Can appraise staff"),
+        )
 
     def __str__(self):
-        return f"{self.appraisee} - {self.period}"
+        return f"{self.appraisee} - {self.start_date} to {self.end_date}"
 
 
 class AppraisalOutput(models.Model):

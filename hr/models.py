@@ -189,7 +189,7 @@ class EducationHistory(TimeStampedModel):
     to_year = models.IntegerField(null=False, blank=False)
     qualification = models.CharField(max_length=200, null=False, blank=False)
     award_date = models.DateField(null=True, blank=True)
-    certificate_document = models.FileField(upload_to='employees_documents/', null=True, blank=False)
+    certificate_document = models.FileField(upload_to='employees_documents/', null=True, blank=True)
 
     def __str__(self):
         return f"{self.institution} - {self.qualification}"
@@ -214,6 +214,15 @@ class Referee(TimeStampedModel):
     position = models.CharField(max_length=200, null=False, blank=False)
     telephone = PhoneNumberField(null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+class Document(TimeStampedModel):
+    '''Employee Documents'''
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, null=False, blank=False)
+    name = models.CharField(max_length=200, null=False, blank=False)
+    document = models.FileField(upload_to='employees_documents/', null=True, blank=True)
 
     def __str__(self):
         return self.name
