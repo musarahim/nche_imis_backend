@@ -421,6 +421,13 @@ UNFOLD = {
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "event_note",
                 },
+                {
+                    "title": _("Performance Appraisals"),
+                    "link": reverse_lazy("admin:appraisals_performanceappraisal_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "assessment",
+                },
+             
                 
                 # ... add your other uncommented configuration items here
             ],
