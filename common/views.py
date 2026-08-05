@@ -219,9 +219,9 @@ class ReligionViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]  
     pagination_class = None
 
-class FinanceYearViewSet(viewsets.ModelViewSet):
+class FinancialYearViewSet(viewsets.ModelViewSet):
     """
-    A viewset for viewing and editing Finance Year instances.
+    A viewset for viewing and editing Financial Year instances.
     """
     queryset = FinanceYear.objects.order_by('name')
     serializer_class = FinanceYearSerializer

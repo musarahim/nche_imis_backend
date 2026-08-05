@@ -10,7 +10,7 @@ class TimeStampedModel(models.Model):
     'created' and 'modified' fields.
     """
     created = models.DateTimeField(auto_now_add=True)
-    modified = models.DateTimeField(auto_now=True)
+    modified = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(blank=True, null=True, editable=False)
     history = HistoricalRecords()
     class Meta:
@@ -22,13 +22,19 @@ class TimeStampedModel(models.Model):
     #     Soft delete the model instance by setting is_active to False.
     #     """
     #     self.deleted_at = timezone.now()
-    #     self.save()
-    
+    #     self.save() 
     def hard_delete(self):
         """
         Hard delete the model instance.
         """
         super().delete()
+
+    #on update set modified to current time
+    def save(self, *args, **kwargs):
+        '''Override the save method to update the modified timestamp on updates.'''
+        if self.pk:
+            self.modified = timezone.now()
+        super().save(*args, **kwargs)
 
 class Region(TimeStampedModel):
     '''Region model to represent a region in the system.'''
@@ -135,6 +141,7 @@ class Tribe(TimeStampedModel):
 class FinanceYear(TimeStampedModel):
     '''Finance Year'''
     name = models.CharField(max_length=50, null=False, blank=False)
+    current = models.BooleanField(default=False, help_text="Indicates if this is the current financial year.")
 
     def __str__(self):
         return self.name
