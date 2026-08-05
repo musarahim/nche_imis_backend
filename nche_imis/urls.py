@@ -51,5 +51,6 @@ urlpatterns = [
     path('api/hr/', include('hr.urls', namespace='hr')),
     path('api/payments/', include('payments.urls', namespace='payments')),
     path('api/appraisals/', include('appraisals.urls', namespace='appraisals')),
+    path('api/procurement/', include('procurement.urls', namespace='procurement')),
     path('tinymce/', include('tinymce.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

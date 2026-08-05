@@ -3,9 +3,9 @@ from import_export.admin import ExportActionModelAdmin, ImportExportModelAdmin
 from simple_history.admin import SimpleHistoryAdmin
 from unfold.admin import ModelAdmin
 
-from .models import (County, District, EducationLevel, Holiday, Nationality,
-                     Parish, Region, Relationship, Religion, SubCounty, Title,
-                     Tribe, Village)
+from .models import (County, District, EducationLevel, FinanceYear, Holiday,
+                     Nationality, Parish, Region, Relationship, Religion,
+                     SubCounty, Title, Tribe, Village)
 
 # Register your models here.
 
@@ -35,7 +35,7 @@ class DistrictAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, Impor
     
 @admin.register(County)
 class CountyAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
-    '''Admin interface for District model.'''
+    '''Admin interface for County model.'''
     list_display = ('name', 'district', 'modified')
     fields = ('name', 'district' )
     search_fields = ('name',)
@@ -173,3 +173,20 @@ class RelationshipAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, I
     ordering = ('name',)
     readonly_fields = ('created', 'modified','deleted_at')
     list_per_page = 10
+
+
+@admin.register(FinanceYear)
+class FinanceYearAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
+    '''Admin interface for FinanceYear model.'''
+    list_display = ('name', 'current', 'created', 'modified')
+    fields = ('name', 'current')
+    search_fields = ('name',)
+    ordering = ('name',)
+    readonly_fields = ('created', 'modified','deleted_at')
+    list_per_page = 10
+
+    # change current finance year to false for all other finance years when a new one is set to true
+    def save_model(self, request, obj, form, change):
+        if obj.current:
+            FinanceYear.objects.exclude(id=obj.id).update(current=False)
+        super().save_model(request, obj, form, change)

@@ -17,7 +17,7 @@ router.register(r'tribes', views.TribeViewSet, basename='tribe')
 router.register(r'education-levels', views.EducationLevelViewSet, basename='education-level')
 router.register(r'titles', views.TitleViewSet, basename='title')
 router.register(r'religions', views.ReligionViewSet, basename='religion')
-router.register(r'finance-years', views.FinanceYearViewSet, basename='finance-year')
+router.register(r'financial-years', views.FinancialYearViewSet, basename='financial-year')
 router.register(r'holidays', views.HolidayViewSet, basename='holiday')
 router.register(r'relationships', views.RelationshipViewSet, basename='relationship')
 

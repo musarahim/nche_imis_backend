@@ -251,6 +251,12 @@ UNFOLD = {
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "payments",
                 },
+                {
+                    "title": _("Financial Years"),
+                    "link": reverse_lazy("admin:common_financeyear_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "calendar_view_month",
+                },
                 
                 # ... add your other uncommented configuration items here
             ],
@@ -452,6 +458,32 @@ UNFOLD = {
                 },
                 
                 # ... add your other uncommented configuration items here
+            ],
+        },
+        {
+            "title": _("Procurement"),
+            "icon": "shopping_cart",
+            "collapsible": True,
+            "permission": lambda request: request.user.is_superuser,
+            "items": [
+                {
+                    "title": _("Procurement Items"),
+                    "link": reverse_lazy("admin:procurement_procurementitem_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "shopping_cart",
+                },
+                {
+                    "title": _("Procurement Budgets"),
+                    "link": reverse_lazy("admin:procurement_procurementbudget_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "shopping_cart",
+                },
+                {
+                    "title": _("Procurement Expenditures"),
+                    "link": reverse_lazy("admin:procurement_procurementexpenditure_changelist"),
+                    "permission": lambda request: request.user.is_superuser,
+                    "icon": "shopping_cart",
+                },
             ],
         },
 

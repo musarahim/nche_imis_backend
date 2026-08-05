@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
 from django.utils import timezone
 from hr.models import Employee
-from rest_framework import status, views, viewsets
+from rest_framework import permissions, status, views, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -17,6 +17,7 @@ class LeaveTypeViewset(viewsets.ModelViewSet):
     '''Leave Type viewset'''
     queryset = LeaveType.objects.all()
     serializer_class = LeaveTypeSerializer
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
 
 
@@ -24,6 +25,7 @@ class LeaveTypeViewset(viewsets.ModelViewSet):
 class LeaveApplicationViewSet(viewsets.ModelViewSet):
     queryset = LeaveApplication.objects.all()
     serializer_class = LeaveApplicationSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
         """
