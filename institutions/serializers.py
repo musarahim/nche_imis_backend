@@ -9,17 +9,14 @@ from .models import Institution, LicenseType, OtherDocuments
 
 class InstitutionSerializer(serializers.ModelSerializer):
     '''Serializer for Institution model.'''
-    logo = Base64ImageField(
-        max_length=None, use_url=True, required=True, allow_null=True
-    )
+   
     class Meta:
         '''Meta class for Institution Serializer'''
         model = Institution
         fields = [
             'id', 'user', 'name','acroynm','region', 'district', 'institution_type',"alternative_email",
             'landline','website','postal_address', 'contact_person', 'contact_person_phone',
-            'alternative_contact_person', 'alternative_contact_person_phone','location',
-            'logo','tin','is_closed',
+            'alternative_contact_person', 'alternative_contact_person_phone','location','tin','is_closed',
         ]
         read_only_fields = ['id', 'user']
 

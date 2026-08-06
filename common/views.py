@@ -32,10 +32,6 @@ try:
 except ImportError:
     LeaveApplication = None
 
-try:
-    from institutions.models import Institution
-except ImportError:
-    Institution = None
 
 try:
     from license.models import UniversityProvisionalLicense
@@ -261,7 +257,7 @@ class InstitutionalDashboard(APIView):
         under_review_programmes = programs.filter(status='under_review').count()
         
         data = {
-            'current_license': "CHARTERED",
+            'current_license': institution.license.name if institution and institution.license else None,
             'active_programmes': active_programmes,
             'expired_programmes': expired_programmes,
             'under_review_programmes': under_review_programmes,

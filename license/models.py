@@ -354,7 +354,7 @@ class CertificationAndClassification(TimeStampedModel):
         """
         Returns the institution name as a string representation of the model.
         """
-        return self.institution_name
+        return self.application_code
 
     def save(self, *args, **kwargs):
         if not self.application_code:
