@@ -3,8 +3,9 @@ from payments.models import ApplicationPRNS
 from rest_framework import serializers
 
 from .models import (CertificationAndClassification, CharterApplication,
-                     InterimDiscussion, IntrimAuthority, OTIProvisional,
-                     OTIProvisionalAward, UniversityProvisionalLicense)
+                     InterimDiscussion, InterimPromoters, IntrimAuthority,
+                     OTIProvisional, OTIProvisionalAward,
+                     UniversityProvisionalLicense)
 
 
 class CertificationAndClassificationSerializer(serializers.ModelSerializer):
@@ -24,8 +25,17 @@ class CertificationAndClassificationSerializer(serializers.ModelSerializer):
         return response
 
 
+class InterimPromotersSerializer(serializers.ModelSerializer):
+    " serializer for Interim Authority Promoters" 
+    class Meta:
+        model = InterimPromoters
+        fields = "__all__"
+        read_only_fields = []
+
 class IntrimAuthoritySerializer(serializers.ModelSerializer):
     '''Serializer for IntrimAuthority model.'''
+    promoters_details = InterimPromotersSerializer(source='interimpromoters_set', many=True, read_only=True)
+
     class Meta:
         '''Meta class for IntrimAuthority Serializer'''
         model = IntrimAuthority

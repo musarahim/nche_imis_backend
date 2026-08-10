@@ -16,11 +16,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import (CertificationAndClassification, CharterApplication,
-                     InterimDiscussion, IntrimAuthority, OTIProvisional,
-                     OTIProvisionalAward, UniversityProvisionalLicense)
+                     InterimDiscussion, InterimPromoters, IntrimAuthority,
+                     OTIProvisional, OTIProvisionalAward,
+                     UniversityProvisionalLicense)
 from .serializers import (CertificationAndClassificationSerializer,
                           CharterApplicationSerializer,
                           InterimDiscussionSerializer,
+                          InterimPromotersSerializer,
                           IntrimAuthoritySerializer,
                           OTIProvisionalAwardSerializer,
                           OTIProvisionalSerializer,
@@ -188,6 +190,10 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
+
+        # Fallback if pagination is not configured
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
         
         # Fallback if pagination is not configured
         serializer = self.get_serializer(queryset, many=True)
@@ -320,6 +326,38 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
         response_serializer = PRNGenerationResponseSerializer(prn)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['get', 'post'], url_path='promoters')
+    def promoters(self, request, pk=None):
+        """Retrieve or replace promoters for an Interim Authority application."""
+        application = self.get_object()
+
+        if request.method == 'GET':
+            queryset = InterimPromoters.objects.filter(application=application).order_by('id')
+            serializer = InterimPromotersSerializer(queryset, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        promoters_payload = request.data.get('promoters')
+        if not isinstance(promoters_payload, list) or len(promoters_payload) == 0:
+            return Response(
+                {"error": "Provide at least one promoter in the promoters list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = InterimPromotersSerializer(data=promoters_payload, many=True)
+        serializer.is_valid(raise_exception=True)
+
+        InterimPromoters.objects.filter(application=application).delete()
+        InterimPromoters.objects.bulk_create(
+            [
+                InterimPromoters(application=application, **promoter)
+                for promoter in serializer.validated_data
+            ]
+        )
+
+        updated_promoters = InterimPromoters.objects.filter(application=application).order_by('id')
+        response_serializer = InterimPromotersSerializer(updated_promoters, many=True)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+
 
 
 
@@ -357,10 +395,42 @@ class IntrimAuthorityODIViewset(viewsets.ModelViewSet):
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-        
+
         # Fallback if pagination is not configured
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['get', 'post'], url_path='promoters')
+    def promoters(self, request, pk=None):
+        """Retrieve or replace promoters for an ODAI Interim Authority application."""
+        application = self.get_object()
+
+        if request.method == 'GET':
+            queryset = InterimPromoters.objects.filter(application=application).order_by('id')
+            serializer = InterimPromotersSerializer(queryset, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        promoters_payload = request.data.get('promoters')
+        if not isinstance(promoters_payload, list) or len(promoters_payload) == 0:
+            return Response(
+                {"error": "Provide at least one promoter in the promoters list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = InterimPromotersSerializer(data=promoters_payload, many=True)
+        serializer.is_valid(raise_exception=True)
+
+        InterimPromoters.objects.filter(application=application).delete()
+        InterimPromoters.objects.bulk_create(
+            [
+                InterimPromoters(application=application, **promoter)
+                for promoter in serializer.validated_data
+            ]
+        )
+
+        updated_promoters = InterimPromoters.objects.filter(application=application).order_by('id')
+        response_serializer = InterimPromotersSerializer(updated_promoters, many=True)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
     
     def create(self, request):
         '''Set institution to the logged in user's institution'''
