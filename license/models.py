@@ -388,12 +388,19 @@ class CertificationAndClassification(TimeStampedModel):
 # university license
 class IntrimAuthority(TimeStampedModel):
     """Intrim Authority University License"""
+
+    GEOGRAPHICAL_CHOICES = (
+        ('urban', 'Urban'),
+        ('rural', 'Rural'),
+    )
     
     application_code = models.CharField(max_length=30, null=True, blank=True, unique=True)
     institution = models.ForeignKey(Institution, on_delete=models.DO_NOTHING, null=False, blank=True)
+    geographical_location = models.CharField(max_length=10, choices=GEOGRAPHICAL_CHOICES, null=True, blank=False)
+    land_size = models.PositiveIntegerField(null=True, blank=False)
     has_title_deed = models.BooleanField(null=False, blank=False)
     title_deed = models.FileField(null=False, blank=True)
-    names_of_promoters = HTMLField(null=True, blank=False)
+   # names_of_promoters = HTMLField(null=True, blank=False)
     # VISION, MISSION, OBJECTIVES AND PHILOSOPHY
     vision = models.TextField(null=False, blank=True)
     mission = models.TextField(null=False, blank=True)
@@ -474,6 +481,16 @@ class IntrimAuthority(TimeStampedModel):
         Returns the institution name as a string representation of the model.
         """
         return self.application_code
+
+class InterimPromoters(TimeStampedModel):
+    '''Details of the promoters of the university'''
+    application = models.ForeignKey(IntrimAuthority, on_delete=models.RESTRICT, null=False, blank=True)
+    name = models.CharField(max_length=100, null=False, blank=True)
+    phone = PhoneNumberField(null=False, blank=False)
+    email = models.EmailField(null=True, blank=True)
+
+    def __str__(self):
+        return self.name
 
 class InterimDiscussion(TimeStampedModel):
     '''Interim Authority Discussion Notes'''

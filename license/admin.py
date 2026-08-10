@@ -219,8 +219,7 @@ class IntrimAuthorityAdmin(SimpleHistoryAdmin, ModelAdmin):
             'fields': (
                 'institution',
                 'has_title_deed',
-                'title_deed',
-                'names_of_promoters',  
+                'title_deed', 
             ),
         }),
            (_("Vision & Mission"), {
