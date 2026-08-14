@@ -38,7 +38,7 @@ class CountyAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, ImportE
     '''Admin interface for County model.'''
     list_display = ('name', 'district', 'modified')
     fields = ('name', 'district' )
-    search_fields = ('name',)
+    search_fields = ('name','district__name')
     ordering = ('name',)
     filter_fields = ('district',)
     list_per_page = 10
@@ -49,7 +49,7 @@ class SubCountyAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, Impo
     '''Admin interface for District model.'''
     list_display = ('name', 'county', 'created', 'modified')
     fields = ('name', 'county')
-    search_fields = ('name',)
+    search_fields = ('name','county__name','county__district__name')
     ordering = ('name',)
     filter_fields = ('county',)
     list_per_page = 10
@@ -60,7 +60,7 @@ class ParishAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, ImportE
     '''Admin interface for District model.'''
     list_display = ('name', 'sub_county', 'created', 'modified')
     fields = ('name', 'sub_county')
-    search_fields = ('name',)
+    search_fields = ('name','sub_county__name','sub_county__county__name','sub_county__county__district__name')
     ordering = ('name',)
     filter_fields = ('sub_county',)
     list_per_page = 10
@@ -71,7 +71,7 @@ class VillageAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, Import
     '''Admin interface for District model.'''
     list_display = ('name', 'parish', 'created', 'modified')
     fields = ('name', 'parish')
-    search_fields = ('name',)
+    search_fields = ('name','parish__sub_county__name','parish__sub_county__county__name','parish__sub_county__county__district__name')
     ordering = ('name',)
     filter_fields = ('parish',)
     list_per_page = 10
