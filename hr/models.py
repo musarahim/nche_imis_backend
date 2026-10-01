@@ -55,17 +55,22 @@ class GradeScale(TimeStampedModel):
 class Employee(TimeStampedModel):
     '''Employee model'''
     system_account = models.OneToOneField(User, on_delete=models.DO_NOTHING, null=True, blank=True, related_name='employee')
+    personal_email = models.EmailField(null=True, blank=True)
     directorate = models.ForeignKey(Directorate, on_delete=models.DO_NOTHING, null=True, blank=True)
     department = models.ForeignKey(Department, on_delete=models.DO_NOTHING, null=True, blank=True)
     employee_number = models.CharField(null=True, blank=True, max_length=50)
     designation = models.ForeignKey(Designation, on_delete=models.DO_NOTHING, null=True, blank=True)
-    title = models.ForeignKey(Title, on_delete=models.DO_NOTHING, null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=False)
     gender = models.CharField(max_length=10, choices=GENDER, null=True, blank=False)
     nationality = models.ForeignKey(Nationality, on_delete=models.DO_NOTHING, null=True, blank=False)
     religion = models.ForeignKey(Religion, on_delete=models.DO_NOTHING, null=True, blank=False)
     tribe = models.ForeignKey(Tribe, on_delete=models.DO_NOTHING, null=True, blank=False)
     joining_date = models.DateField(null=True, blank=True)
+    present_appointment_date = models.DateField(null=True, blank=True)
+    employment_terms = models.CharField(max_length=20, blank=True, choices=(
+        ('probation', 'Probation'), ('contract', 'Contract'), ('temporary', 'Temporary'),
+    ))
+    grade_scale = models.ForeignKey(GradeScale, on_delete=models.SET_NULL, null=True, blank=True)
     supervisor = models.ForeignKey('self', on_delete=models.DO_NOTHING, null=True, blank=True, related_name='subordinates')
     office_phone = models.CharField(max_length=12, null=True, blank=True)
     office_extension = models.CharField(max_length=10, null=True, blank=True)
@@ -188,7 +193,7 @@ class EducationHistory(TimeStampedModel):
     from_year = models.IntegerField(null=False, blank=False)
     to_year = models.IntegerField(null=False, blank=False)
     qualification = models.CharField(max_length=200, null=False, blank=False)
-    award_date = models.DateField(null=True, blank=True)
+    award_year = models.IntegerField(null=True, blank=True)
     certificate_document = models.FileField(upload_to='employees_documents/', null=True, blank=True)
 
     def __str__(self):

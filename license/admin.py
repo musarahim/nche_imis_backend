@@ -227,7 +227,6 @@ class IntrimAuthorityAdmin(SimpleHistoryAdmin, ModelAdmin):
             'fields': (
                 'vision',
                 'mission',
-                'objectives',
                 'philosophy',  
             ),
         }),

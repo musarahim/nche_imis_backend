@@ -404,11 +404,10 @@ class IntrimAuthority(TimeStampedModel):
     # VISION, MISSION, OBJECTIVES AND PHILOSOPHY
     vision = models.TextField(null=False, blank=True)
     mission = models.TextField(null=False, blank=True)
-    objectives = models.TextField(null=False, blank=True)
     philosophy = models.TextField(null=False, blank=True)
     # GOVERNANCE, MANAGEMENT AND ADMINISTRATION
-    governance_structure = HTMLField(null=True, blank=False)
-    human_resources = HTMLField(null=True, blank=False)
+    governance_structure = models.FileField(null=True, blank=False)
+    human_resources = models.FileField(null=True, blank=False)
     source_of_finance = models.TextField(null=False, blank=True)
     action_plan = HTMLField(null=True, blank=False)
     infrastructure = HTMLField(null=True, blank=False)
@@ -481,6 +480,24 @@ class IntrimAuthority(TimeStampedModel):
         Returns the institution name as a string representation of the model.
         """
         return self.application_code
+
+
+class IntrimAuthorityObjective(TimeStampedModel):
+    """Stores a single objective for an interim authority application."""
+
+    application = models.ForeignKey(
+        IntrimAuthority,
+        on_delete=models.CASCADE,
+        related_name='objective_items',
+    )
+    objective = models.TextField(null=False, blank=False)
+    order = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f"{self.application.application_code} - Objective {self.order}"
 
 class InterimPromoters(TimeStampedModel):
     '''Details of the promoters of the university'''

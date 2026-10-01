@@ -162,6 +162,13 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             # If the user is a superuser, return all employees
             queryset = self.queryset.filter(system_account=self.request.user)
         return queryset
+
+    @action(detail=False, methods=['get'], url_path='my-biodata')
+    def my_biodata(self, request):
+        employee = getattr(request.user, 'employee', None)
+        if not employee:
+            return Response({'detail': 'Employee biodata was not found.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(self.get_serializer(employee).data)
     
     @action(detail=False, methods=['get'], url_path='employee-dropdown')
     def employee_dropdown(self, request, pk=None):

@@ -20,6 +20,11 @@ class Institution(TimeStampedModel):
         ('public', 'Public'),
         ('private', 'Private'),
     )
+    CATEGORY_CHOICES = (
+        ('university', 'University'),
+        ('ODAI', 'Other Degree Awarding Institution'),
+        ('tertiary', 'Tertiary Institution'),
+    )
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='institution')
     name = models.CharField(max_length=255, unique=True, null=False, blank=False)
     acroynm = models.CharField(max_length=50, unique=True, null=True, blank=True)
@@ -28,13 +33,14 @@ class Institution(TimeStampedModel):
     region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name='institutions', blank=False, null=True)
     district = models.ForeignKey(District, on_delete=models.CASCADE, related_name='institutions', blank=False)
     institution_type = models.CharField(max_length=20, choices=INSTITUTION_TYPE_CHOICES, default='public', blank=False)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, blank=False, null=True)
     landline = PhoneNumberField(region='UG', blank=True, null=True)
     contact_person = models.CharField(max_length=100, blank=False, null=True)
     contact_person_phone = PhoneNumberField(region='UG', blank=True, null=True)
     alternative_contact_person = models.CharField(max_length=100, blank=True, null=True)
     alternative_contact_person_phone = PhoneNumberField(region='UG', blank=True, null=True)
     logo = models.ImageField(upload_to='institutions/logos/', blank=True, null=True)
-    postal_address = models.CharField(null=True, blank=True)
+    postal_address = models.CharField(max_length=255, null=True, blank=True)
     website = models.URLField(null=True, blank=True)
     location = models.TextField(null=True, blank=True)
     license = models.ForeignKey(LicenseType, on_delete=models.CASCADE, related_name='institutions', blank=False, null=True)
