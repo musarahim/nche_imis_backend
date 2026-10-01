@@ -62,7 +62,7 @@ class DependentInline(TabularInline):
 class EducationHistoryInline(TabularInline):
     '''Inline admin for Employee Education History'''
     model = EducationHistory
-    fields = ('institution', 'qualification', 'from_year', 'to_year', 'award_date','certificate_document')
+    fields = ('institution', 'qualification', 'from_year', 'to_year', 'award_year','certificate_document')
     extra = 1
     tab = True
 

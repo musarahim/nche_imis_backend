@@ -72,7 +72,9 @@ class DocumentSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         '''Custom representation to include employee name'''
         response = super().to_representation(instance)
+        request = self.context.get('request')
         response['employee'] = instance.employee.full_name if instance.employee else None
+        response['document'] = request.build_absolute_uri(instance.document.url) if instance.document and request else None
         return response
 
 class EducationHistorySerializer(serializers.ModelSerializer):
@@ -80,13 +82,15 @@ class EducationHistorySerializer(serializers.ModelSerializer):
     class Meta:
         '''Meta class for EducationHistory Serializer'''
         model = EducationHistory
-        fields = ("id","institution", "qualification", "from_year", "to_year", "award_date",'certificate_document', "employee")
+        fields = ("id","institution", "qualification", "from_year", "to_year", "award_year",'certificate_document', "employee")
         read_only_fields = ['id']
 
     def to_representation(self, instance):
         '''Custom representation to include employee name'''
         response = super().to_representation(instance)
+        request = self.context.get('request')
         response['employee'] = instance.employee.full_name if instance.employee else None
+        response['certificate_document'] = request.build_absolute_uri(instance.certificate_document.url) if instance.certificate_document and request else None
         return response
 
 class WorkHistorySerializer(serializers.ModelSerializer):
@@ -126,6 +130,13 @@ class EmployeeSerializer(serializers.ModelSerializer):
         exclude = ['created', 'modified','deleted_at']
         read_only_fields = ['id']
 
+    def validate(self, attrs):
+        grade_scale = attrs.get('grade_scale', getattr(self.instance, 'grade_scale', None))
+        designation = attrs.get('designation', getattr(self.instance, 'designation', None))
+        if grade_scale and designation and grade_scale.designation_id != designation.pk:
+            raise serializers.ValidationError({'grade_scale': 'Select a salary scale for this designation.'})
+        return attrs
+
     def to_representation(self, instance):
         '''Custom representation to include related fields'''
         response = super().to_representation(instance)
@@ -137,7 +148,8 @@ class EmployeeSerializer(serializers.ModelSerializer):
         response['department_name'] = instance.department.name if instance.department else None
         response['directorate_name'] = instance.department.directorate.name if instance.department and instance.department.directorate else None
         response['designation_name'] = instance.designation.name if instance.designation else None
-        response['title_name'] = instance.title.name if instance.title else None
+        response['grade_scale_code'] = instance.grade_scale.code if instance.grade_scale else None
+        response['employment_terms_name'] = instance.get_employment_terms_display() if instance.employment_terms else None
         response['nationality_name'] = instance.nationality.name if instance.nationality else None
         response['religion_name'] = instance.religion.name if instance.religion else None
         response['tribe_name'] = instance.tribe.name if instance.tribe else None
@@ -152,12 +164,14 @@ class EmployeeSerializer(serializers.ModelSerializer):
         response['parish_of_origin_name'] = instance.parish_of_origin.name if instance.parish_of_origin else None
         response['village_of_origin_name'] = instance.village_of_origin.name if instance.village_of_origin else None
         response['supervisor_name'] = instance.supervisor.full_name if instance.supervisor else None
-        response['education_histories'] = EducationHistorySerializer(instance.educationhistory_set.all(), many=True).data
-        response['work_histories'] = WorkHistorySerializer(instance.workhistory_set.all(), many=True).data
-        response['referees'] = RefereeSerializer(instance.referee_set.all(), many=True).data
-        response['dependents'] = DependentSerializer(instance.dependent_set.all(), many=True).data
-        response['documents'] = DocumentSerializer(instance.document_set.all(), many=True).data
-        response['names'] = f'{instance.title.name + ". " if instance.title else ""}{instance.system_account.first_name} {instance.system_account.other_names if instance.system_account.other_names else ""} {instance.system_account.last_name}'
+        response['supervisor_designation_name'] = instance.supervisor.designation.name if instance.supervisor and instance.supervisor.designation else None
+        response['supervisor_grade_scale_code'] = instance.supervisor.grade_scale.code if instance.supervisor and instance.supervisor.grade_scale else None
+        response['education_histories'] = EducationHistorySerializer(instance.educationhistory_set.all(), many=True, context=self.context).data
+        response['work_histories'] = WorkHistorySerializer(instance.workhistory_set.all(), many=True, context=self.context).data
+        response['referees'] = RefereeSerializer(instance.referee_set.all(), many=True, context=self.context).data
+        response['dependents'] = DependentSerializer(instance.dependent_set.all(), many=True, context=self.context).data
+        response['documents'] = DocumentSerializer(instance.document_set.all(), many=True, context=self.context).data
+        response['names'] = f'{instance.system_account.last_name} {instance.system_account.other_names if instance.system_account.other_names else ""} {instance.system_account.first_name}'
         response['email'] = instance.system_account.email if instance.system_account else None
         response['phone'] = instance.system_account.phone.raw_input if instance.system_account and instance.system_account.phone else None
         response['alternative_phone_number'] = instance.system_account.alternative_phone_number.raw_input if instance.system_account and instance.system_account.alternative_phone_number else None

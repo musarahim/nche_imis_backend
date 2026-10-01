@@ -38,7 +38,12 @@ class ProgramAccreditation(models.Model):
         ('semester','Semesters'),
         ('tri_semester','Tri-Semesters')
     )
-   
+
+    CATEGORY = (
+        ('stem', 'STEM'),
+        ('humanities', 'Humanities'),
+       
+    )
     institution = models.ForeignKey(Institution, on_delete=models.RESTRICT, related_name='programme_accreditations', blank=True)
     #  PGAC/2024-2025/00715
     application_number = models.CharField(max_length=100, unique=True, blank=True)
@@ -51,12 +56,18 @@ class ProgramAccreditation(models.Model):
     campus = models.CharField(max_length=255, blank=True, null=True)
     date_submitted = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=50, choices=STATUS, default='submitted', blank=True)
+    programme_category = models.CharField(max_length=100, choices=CATEGORY, blank=True, null=True)
     #Attach detailed Programme(Course) Structure 
     program_structure = models.FileField(upload_to='programmes/', blank=True, null=True)
     letter_of_submission = models.FileField(upload_to='programmes/', blank=True, null=True)
-    
+    # public Universities a Certificate of Financial Implications must be attached
+    financial_implications_certificate = models.FileField(upload_to='programmes/', blank=True, null=True)
     # program to renew 
     program_to_renew = models.ForeignKey('programmes.Program', on_delete=models.SET_NULL, null=True, blank=True, related_name='renewals')
+    previous_accreditation_date = models.DateField(null=True, blank=True)
+    previous_expiry_date = models.DateField(null=True, blank=True)
+    decision_date = models.DateField(null=True, blank=True)
+    approved_expiry_date = models.DateField(null=True, blank=True)
     preliminary_reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='preliminary_reviews')
    # assessor assigned to review the application after the invoice is verified as paid  
     assessor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assessments')
@@ -70,6 +81,7 @@ class ProgramAccreditation(models.Model):
     is_paid = models.BooleanField(default=False, blank=True, null=True, choices=YES_NO_CHOICES)
     # management decision
     rejection_reason = models.TextField(blank=True, null=True)
+
 
     class Meta:
         '''Model to represent a programme accreditation application.'''
@@ -164,17 +176,47 @@ class PreliminaryReview(models.Model):
         ('yes', 'Yes'),
         ('no', 'No'),
     )
+    ENTRY_CHOICES = (
+        ('direct', 'Direct'),
+        ('diploma', 'Diploma'),
+        ('mature', 'Mature'),
+        ('heac', 'HEAC'),
+        ('other', 'Others'),
+    )
+    DISPLINE_CHOICE =(
+        ('agriculture','Agriculture'),
+        ('applied_sciences','Applied Sciences'),
+        ('pure_sciences','Pure Sciences'),
+        ('business','Business'),
+        ('computing','Computing'),
+        ('education_arts','Education- Arts'),
+        ('education_sciences','Education – Sciences'),
+        ('library_studies','Library studies'),
+        ('laws','Laws'),
+        ('engineering','Engineering'),
+        ('journalism_languages','Journalism and Languages'),
+        ('social_sciences','Social Sciences'),
+        ('afd','Art, Fashion and Design'),
+        ('human_health','Human Health'),
+        ('animal_health','Animal Health'),
+        ('theology','Theology')
+    )
     reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='preliminary_reviewers')
     application = models.ForeignKey(ProgramAccreditation, on_delete=models.CASCADE, related_name='preliminary_reviewers')
-    type_of_entry_summary = HTMLField(blank=False, null=True)
+    tier_displine = models.CharField(max_length=100, choices=DISPLINE_CHOICE, blank=True, null=True)
+    type_of_entry = models.CharField(max_length=10, choices=ENTRY_CHOICES, blank=False, null=True)
     type_of_entry_comments = models.TextField(blank=True, null=True)
     entry_requirements_summary = HTMLField(blank=False, null=True)
     entry_requirements_comments = models.TextField(blank=True, null=True)
     human_resource_summary = HTMLField(blank=False, null=True)
     human_resource_comments = models.TextField(blank=True, null=True)
     facilities_summary = HTMLField(blank=False, null=True)
+    align_with_cbet = models.CharField(max_length=10, choices=PROGRESSION_CHOICES, blank=True, null=True)
+    align_with_cbet_comments = models.TextField(blank=True, null=True)
+    assessment_structure = models.CharField(max_length=200, blank=False, null=True)
+    assessment_structure_comments = models.TextField(blank=True, null=True)
     facilities_comments = models.TextField(blank=True, null=True)
-    programme_duration_summary = HTMLField(blank=False, null=True)
+    programme_duration = models.CharField(max_length=200, blank=False, null=True)
     programme_duration_comments = models.TextField(blank=True, null=True)
     minimum_graduation_load_summary = HTMLField(blank=False, null=True)
     minimum_graduation_load_comments = models.TextField(blank=True, null=True)
@@ -183,6 +225,7 @@ class PreliminaryReview(models.Model):
     weekend_students = models.PositiveIntegerField(blank=True, null=True)
     student_comment = models.TextField(blank=True, null=True)
     expert_progression = models.CharField(max_length=10, choices=PROGRESSION_CHOICES)
+    progression_comment = models.TextField(blank=True, null=True)
     reviewed_at = models.DateTimeField(auto_now_add=True)
 
     @property
@@ -197,7 +240,7 @@ class PreliminaryReview(models.Model):
 class ProgrammeAssessment(models.Model):
     '''Model to represent assessment details for programme accreditation applications.'''
     RECOMMENDATION_CHOICES = [
-        ("accredit", "Accredit as is"),
+        ("accredit", "Accredit as Presented"),
         ("minor", "Accredit with Minor Corrections"),
         ("major", "Accredit After Major Corrections"),
         ("reject", "Don't Accredit"),
@@ -208,7 +251,6 @@ class ProgrammeAssessment(models.Model):
     # asssessor's  comments on the programme
     programme_development_process = HTMLField(blank=False, null=True)
     rationale = HTMLField(blank=False, null=True)
-    programme_objectives = HTMLField(blank=False, null=True)
     competences = HTMLField(blank=False, null=True)
     learning_outcomes = HTMLField(blank=False, null=True)
     entry_requirements = HTMLField(blank=False, null=True)
@@ -217,16 +259,16 @@ class ProgrammeAssessment(models.Model):
     curriculum_structure = HTMLField(blank=False, null=True)
     staffing_levels = HTMLField(blank=False, null=True)
     infrastructure = HTMLField(blank=False, null=True)
-    cbe_allignment = HTMLField(blank=False, null=True)
+    programme_structure = HTMLField(blank=True, null=True)
     other_comments = HTMLField(blank=True, null=True)
     # course
     course_name = models.TextField(blank=False, null=True)
     course_code = models.TextField(blank=False, null=True)
     course_level = models.TextField(blank=False, null=True)
-    contact_hours = models.TextField(blank=False, null=True)
+    notional_hours = models.TextField(blank=True, null=True)
     credit_units = models.TextField(blank=False, null=True)
     course_description = models.TextField(blank=False, null=True)
-    course_objectives = models.TextField(blank=False, null=True)
+    course_competences = models.TextField(blank=True, null=True)
     course_learning_outcomes = models.TextField(blank=False, null=True)
     detailed_course_content = models.TextField(blank=False, null=True)
     instructional_materials = models.TextField(blank=False, null=True)
@@ -416,12 +458,12 @@ class ProgrammeAssessmentInvoice(models.Model):
         return f"{next_sequence:03d}/PROG/{year}"
     
     def save(self, *args, **kwargs):
-        if not self.administrative_fee and self.desk_review_fee:
-            self.administrative_fee = self.desk_review_fee * Decimal("0.10")
+        self.administrative_fee = (self.desk_review_fee * Decimal("0.10")).quantize(Decimal('0.01'))
+        self.grand_total = self.desk_review_fee + self.administrative_fee
         if not self.invoice_number:
             self.invoice_number = self._generate_invoice_number()
-        if self.grand_total is None:
-            self.grand_total = self.desk_review_fee + self.administrative_fee
+        if kwargs.get('update_fields') is not None:
+            kwargs['update_fields'] = set(kwargs['update_fields']) | {'administrative_fee', 'grand_total'}
         super().save(*args, **kwargs)
 
     def __str__(self):

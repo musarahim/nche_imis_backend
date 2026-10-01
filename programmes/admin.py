@@ -57,8 +57,8 @@ class ProgramAdmin(ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
 class PreliminaryReviewAdmin(ModelAdmin):
     '''Admin interface for Preliminary Reviews'''
     list_display = ("application","reviewer",  "expert_progression", "reviewed_at")
-    fields = ("application","reviewer","type_of_entry_summary","type_of_entry_comments","entry_requirements_summary","entry_requirements_comments","human_resource_summary","human_resource_comments","facilities_summary","facilities_comments","programme_duration_summary","programme_duration_comments","minimum_graduation_load_summary","minimum_graduation_load_comments","day_students","evening_students","weekend_students","student_comment","expert_progression")
-    search_fields = ("program_accreditation__application_number", "reviewer__username")
+    fields = ("application","reviewer","type_of_entry","type_of_entry_comments","entry_requirements_summary","entry_requirements_comments","human_resource_summary","human_resource_comments","facilities_summary","facilities_comments","programme_duration","programme_duration_comments","minimum_graduation_load_summary","minimum_graduation_load_comments","day_students","evening_students","weekend_students","student_comment","expert_progression","progression_comment")
+    search_fields = ("application__application_number", "reviewer__username")
     list_filter = ('application', 'reviewer')
     compressed_fields = False   
     # Warn before leaving unsaved changes in changeform
