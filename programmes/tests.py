@@ -18,6 +18,10 @@ from .models import Program, ProgramAccreditation, ProgrammeAssessmentInvoice, P
 from .views import ProgrammeAccreditationViewset
 
 
+@override_settings(
+    ROOT_URLCONF='programmes.test_urls',
+    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+)
 class ProgrammeRenewalWorkflowTests(APITestCase):
     def setUp(self):
         district = District.objects.create(name='Renewal District')
@@ -135,6 +139,10 @@ class ProgrammeRenewalWorkflowTests(APITestCase):
         self.assertEqual(application.rejection_reason, 'Insufficient evidence')
 
 
+@override_settings(
+    ROOT_URLCONF='programmes.test_urls',
+    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+)
 class ReviewInvoiceWorkflowTests(APITestCase):
     def setUp(self):
         directory = TemporaryDirectory()
