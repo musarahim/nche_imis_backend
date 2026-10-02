@@ -5,6 +5,7 @@ from django.utils import timezone
 from hr.models import Employee
 from rest_framework import permissions, status, views, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from .models import LeaveApplication, LeaveEvent, LeaveType
@@ -26,6 +27,17 @@ class LeaveApplicationViewSet(viewsets.ModelViewSet):
     queryset = LeaveApplication.objects.all()
     serializer_class = LeaveApplicationSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=['get'], url_path='staff-on-leave')
+    def staff_on_leave(self, request):
+        if not (request.user.is_superuser or request.user.groups.filter(name='Human Resource').exists()):
+            raise PermissionDenied('Only Human Resource staff can view this summary.')
+        today = timezone.localdate()
+        count = LeaveApplication.objects.filter(
+            status='hr_approved', hr_approved=True,
+            start_date__lte=today, end_date__gte=today,
+        ).order_by().values('employee_id').distinct().count()
+        return Response({'count': count, 'as_of': today.isoformat()})
 
     def perform_create(self, serializer):
         """
