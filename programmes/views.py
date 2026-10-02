@@ -130,7 +130,11 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
             raise ValidationError({'reason': 'A rejection reason is required.'})
 
         with transaction.atomic():
-            application = ProgramAccreditation.objects.select_for_update().select_related('institution', 'program_to_renew').get(pk=self.get_object().pk)
+            application = (
+                ProgramAccreditation.objects.select_for_update(of=('self',))
+                .select_related('institution')
+                .get(pk=self.get_object().pk)
+            )
             if application.status != 'progressed_to_management':
                 raise ValidationError('Only applications progressed to management can be decided.')
             if decision == 'approved':
