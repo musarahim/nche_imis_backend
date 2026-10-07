@@ -14,7 +14,7 @@ class InstitutionSerializer(serializers.ModelSerializer):
         '''Meta class for Institution Serializer'''
         model = Institution
         fields = [
-            'id', 'user', 'name','acroynm','region', 'district', 'institution_type',"alternative_email",
+            'id', 'user', 'name','acroynm','region', 'district','county','sub_county','parish','village', 'institution_type',"alternative_email",
             'landline','website','postal_address', 'contact_person', 'contact_person_phone',
             'alternative_contact_person', 'alternative_contact_person_phone','location','tin','is_closed',
         ]
@@ -72,6 +72,10 @@ class InstitutionCreateSerializer(serializers.Serializer):
 
     region = serializers.IntegerField(required=False, allow_null=True)
     district = serializers.IntegerField()
+    county = serializers.IntegerField(required=False, allow_null=True)
+    sub_county = serializers.IntegerField(required=False, allow_null=True)
+    parish = serializers.IntegerField(required=False, allow_null=True)
+    village = serializers.IntegerField(required=False, allow_null=True)
 
     institution_type = serializers.ChoiceField(
         choices=Institution.INSTITUTION_TYPE_CHOICES,
@@ -87,7 +91,7 @@ class InstitutionCreateSerializer(serializers.Serializer):
     website = serializers.URLField(required=False, allow_null=True, allow_blank=True)
     location = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
-    address = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    postal_address = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     license = serializers.IntegerField(required=False, allow_null=True)
     is_closed = serializers.BooleanField(required=False, allow_null=True)

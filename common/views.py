@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 from institutions.models import Institution
 from programmes.models import Program, ProgramAccreditation
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, serializers, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -88,6 +88,14 @@ class DistrictViewSet(viewsets.ModelViewSet):
     serializer_class = DistrictSerializer
     permission_classes = [permissions.AllowAny]  
     pagination_class = None  
+
+    def get_queryset(self):
+        queryset = self.queryset
+        region_id = self.request.query_params.get('region_id')
+        if region_id is not None:
+            region_id = serializers.IntegerField(min_value=1).run_validation(region_id)
+            queryset = queryset.filter(region_id=region_id)
+        return queryset
 
 class NationalityViewSet(viewsets.ModelViewSet):
     """
