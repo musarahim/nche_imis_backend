@@ -1,8 +1,21 @@
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from rest_framework.test import APIRequestFactory
+
+from nche_imis.settings import _parse_allowed_hosts
 
 from .models import District, Region
 from .views import DistrictViewSet
+
+
+class AllowedHostsParsingTests(SimpleTestCase):
+    def test_none_value_falls_back_to_local_defaults(self):
+        self.assertEqual(_parse_allowed_hosts(None), ['localhost', '127.0.0.1'])
+
+    def test_values_are_trimmed_and_empty_values_removed(self):
+        self.assertEqual(
+            _parse_allowed_hosts(' example.com, api.example.com , '),
+            ['example.com', 'api.example.com'],
+        )
 
 
 class DistrictRegionFilterTests(TestCase):
