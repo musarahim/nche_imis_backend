@@ -59,7 +59,7 @@ jobs:
           ALLOWED_HOSTS: localhost,127.0.0.1
           DEVELOPMENT_MODE: 1
           DEBUG: True
-          
+
         run: |
           python manage.py migrate
           python manage.py test
@@ -79,10 +79,9 @@ jobs:
           script: |
             cd /home/imis/projects/nche_imis_backend
             git pull origin main
-            source .local.env
+            source .local.evn
             source myvenv/bin/activate
             pip install -r requirements.txt
             python manage.py migrate --noinput
             python manage.py collectstatic --noinput
             sudo systemctl restart gunicorn
-            sudo systemctl reload nginx
