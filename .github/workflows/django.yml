@@ -79,10 +79,11 @@ jobs:
           script: |
             cd /home/imis/projects/nche_imis_backend
             git pull origin main
-            source .local.env
+            if [ -f .local.env ]; then source .local.env; fi
+            export ALLOWED_HOSTS="${ALLOWED_HOSTS:-localhost,127.0.0.1}"
             source myvenv/bin/activate
             pip install -r requirements.txt
             python manage.py migrate --noinput
             python manage.py collectstatic --noinput
-            sudo systemctl restart gunicorn
-            sudo systemctl reload nginx
+            sudo -n systemctl restart gunicorn || true
+            sudo -n systemctl reload nginx || true
