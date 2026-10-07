@@ -410,7 +410,7 @@ class IntrimAuthority(TimeStampedModel):
     human_resources = models.FileField(null=True, blank=False)
     source_of_finance = models.TextField(null=False, blank=True)
     action_plan = HTMLField(null=True, blank=False)
-    infrastructure = HTMLField(null=True, blank=False)
+    infrastructure = HTMLField(null=True, blank=True)
     programmes = HTMLField(null=True, blank=False)
     promoters = models.FileField(null=True, blank=False)
     project_proposal = models.FileField(null=True, blank=False)

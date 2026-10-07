@@ -1,5 +1,6 @@
 from accounts.models import User
-from common.models import District, Region, TimeStampedModel
+from common.models import (County, District, Parish, Region, SubCounty,
+                           TimeStampedModel, Village)
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 from tinymce.models import HTMLField
@@ -42,6 +43,10 @@ class Institution(TimeStampedModel):
     logo = models.ImageField(upload_to='institutions/logos/', blank=True, null=True)
     postal_address = models.CharField(max_length=255, null=True, blank=True)
     website = models.URLField(null=True, blank=True)
+    county = models.ForeignKey(County, on_delete=models.CASCADE, null=True, blank=True) 
+    sub_county = models.ForeignKey(SubCounty, on_delete=models.CASCADE, null=True, blank=True)
+    parish = models.ForeignKey(Parish, on_delete=models.CASCADE, null=True, blank=True)
+    village = models.ForeignKey(Village, on_delete=models.CASCADE, null=True, blank=True)
     location = models.TextField(null=True, blank=True)
     license = models.ForeignKey(LicenseType, on_delete=models.CASCADE, related_name='institutions', blank=False, null=True)
     is_closed = models.BooleanField(null=True, blank=True)
