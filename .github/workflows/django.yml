@@ -55,7 +55,7 @@ jobs:
           EMAIL_HOST: mail.unche.or.ug
           EMAIL_PORT: 587
           EMAIL_HOST_USER: no-reply@unche.or.ug
-          EMAIL_HOST_PASSWORD: VtV[bNs{bmSVl,32
+          EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
           ALLOWED_HOSTS: localhost,127.0.0.1
           DEVELOPMENT_MODE: 1
           DEBUG: True
@@ -84,4 +84,10 @@ jobs:
             pip install -r requirements.txt
             python manage.py migrate --noinput
             python manage.py collectstatic --noinput
-            sudo systemctl restart gunicorn
+            if sudo -n true 2>/dev/null; then
+              sudo systemctl restart gunicorn
+            elif systemctl --user list-unit-files | grep -q '^gunicorn.service'; then
+              systemctl --user restart gunicorn
+            else
+              echo "Skipping gunicorn restart: sudo password is required and no user service was found."
+            fi
