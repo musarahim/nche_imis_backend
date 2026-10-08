@@ -84,10 +84,5 @@ jobs:
             pip install -r requirements.txt
             python manage.py migrate --noinput
             python manage.py collectstatic --noinput
-            if sudo -n true 2>/dev/null; then
-              sudo systemctl restart gunicorn
-            elif systemctl --user list-unit-files | grep -q '^gunicorn.service'; then
-              systemctl --user restart gunicorn
-            else
-              echo "Skipping gunicorn restart: sudo password is required and no user service was found."
-            fi
+            sudo -n /usr/bin/systemctl restart gunicorn || exit 1
+            /usr/bin/systemctl is-active --quiet gunicorn || exit 1
