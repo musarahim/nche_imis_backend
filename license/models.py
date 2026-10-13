@@ -1,5 +1,5 @@
 from accounts.models import User
-from common.choices import LEASE_RENTED, STATUS_CHOICES
+from common.choices import GEOGRAPHICAL_CHOICES, LEASE_RENTED, STATUS_CHOICES
 from common.models import FinanceYear, TimeStampedModel
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -389,10 +389,7 @@ class CertificationAndClassification(TimeStampedModel):
 class IntrimAuthority(TimeStampedModel):
     """Intrim Authority University License"""
 
-    GEOGRAPHICAL_CHOICES = (
-        ('urban', 'Urban'),
-        ('rural', 'Rural'),
-    )
+   
     
     application_code = models.CharField(max_length=30, null=True, blank=True, unique=True)
     institution = models.ForeignKey(Institution, on_delete=models.DO_NOTHING, null=False, blank=True)
@@ -505,6 +502,8 @@ class InterimPromoters(TimeStampedModel):
     name = models.CharField(max_length=100, null=False, blank=True)
     phone = PhoneNumberField(null=False, blank=False)
     email = models.EmailField(null=True, blank=True)
+    nationality = models.ForeignKey('common.Nationality', on_delete=models.PROTECT, null=True, blank=True)
+    id_passport_document = models.FileField(upload_to='interim_promoters/identity/', null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -543,6 +542,7 @@ class UniversityProvisionalLicense(TimeStampedModel):
     application_code = models.CharField(max_length=20, null=True, blank=True)
     institution = models.ForeignKey(Institution, on_delete=models.DO_NOTHING, null=False, blank=True)
     # LOCATION AND LAND
+    geographical_location = models.CharField(max_length=10, choices=GEOGRAPHICAL_CHOICES, null=True, blank=False)
     amount_of_land = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
     land_title = models.FileField(upload_to='land_titles/', null=False, blank=True)
     land_in_use = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
@@ -594,6 +594,7 @@ class UniversityProvisionalLicense(TimeStampedModel):
     #State whether students will access computers to locate reading materials in the library
     students_have_access = models.BooleanField(null=True, blank=True)
     has_internet_access = models.BooleanField(null=True, blank=True)
+    ISP_provider = models.CharField(null=True, blank=True)
     library_seats = models.IntegerField(null=True, blank=True)
     classroom_seats = models.IntegerField(null=True, blank=True)
     laboratories_seats = models.IntegerField(null=True, blank=True)
@@ -634,7 +635,6 @@ class UniversityProvisionalLicense(TimeStampedModel):
     # vision and mission
     vision = models.TextField(null=True, blank=True)
     mission = models.TextField(null=True, blank=True)
-    specific_objectives = models.TextField(null=True, blank=True)
     stractegic_plan = models.FileField(null=True, blank=True)
     programmes = models.FileField(null=True, blank=True)
     area_of_competence = HTMLField(null=True, blank=True)
@@ -706,6 +706,24 @@ class UniversityProvisionalLicense(TimeStampedModel):
             return f"ODAP/{academic_year}/{new_number}"
 
         return f"UNIP/{academic_year}/{new_number}"
+
+
+class UniversityProvisionalObjective(TimeStampedModel):
+    """Stores a single objective for an interim authority application."""
+
+    application = models.ForeignKey(
+        UniversityProvisionalLicense,
+        on_delete=models.CASCADE,
+        related_name='university_provisional_objective_items',
+    )
+    objective = models.TextField(null=False, blank=False)
+    order = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f"{self.application.application_code} - Objective {self.order}"
     
 class UniversityProvisionalLicenseDocument(TimeStampedModel):
     '''Documents for University Provisional License'''
@@ -714,7 +732,20 @@ class UniversityProvisionalLicenseDocument(TimeStampedModel):
     document = models.FileField(upload_to='university_provisional_license_documents/', null=False, blank=False)
 
     def __str__(self):
-        return f"{self.name} - {self.university_provisional_license.institution.name}"
+        return f"{self.title} - {self.university_provisional_license.institution.name}"
+
+
+class UniversityProvisionalLicenseVehicle(TimeStampedModel):
+    '''Vehicles for University Provisional License'''
+    university_provisional_license = models.ForeignKey(UniversityProvisionalLicense, on_delete=models.CASCADE, related_name='vehicles', blank=False)
+    make = models.CharField(max_length=255, null=False, blank=False)
+    registration_number = models.CharField(max_length=50, null=False, blank=False)
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return f"{self.make} - {self.registration_number}"
     
 
 class CharterApplication(TimeStampedModel):
