@@ -1,9 +1,11 @@
 import logging
+import json
 
 import httpx
 from accounts.models import User
 from accounts.serializers import UserReviewerSerializer
 from django.core.mail import EmailMessage
+from django.db import transaction
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -13,6 +15,7 @@ from payments.serializers import PRNGenerationResponseSerializer
 from payments.ura_payment import UraMdaPaymentService
 from rest_framework import filters, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from .models import (CertificationAndClassification, CharterApplication,
@@ -69,7 +72,7 @@ class CertificationAndClassificationViewset(viewsets.ModelViewSet):
     
     def create(self, request):
         '''Set institution to the logged in user's institution'''
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         
         if serializer.is_valid():
             user = self.request.user
@@ -173,7 +176,7 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
         '''Retrieve an Interim Authority Application by ID'''
         queryset = IntrimAuthority.objects.filter(is_odai=False)
         application = get_object_or_404(queryset, pk=pk)
-        serializer = self.serializer_class(application)
+        serializer = self.get_serializer(application)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['get'], url_path='submitted-applications')
@@ -261,7 +264,7 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
     def partial_update(self, request, pk=None):
         '''Partial update of the Interim Authority Application'''
         instance = self.get_object()
-        serializer = self.serializer_class(instance, data=request.data, partial=True)
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
         
         if serializer.is_valid():
             if serializer.validated_data.get('status') == 'submitted':
@@ -327,35 +330,65 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get', 'post'], url_path='promoters')
+    @transaction.atomic
     def promoters(self, request, pk=None):
         """Retrieve or replace promoters for an Interim Authority application."""
         application = self.get_object()
 
         if request.method == 'GET':
             queryset = InterimPromoters.objects.filter(application=application).order_by('id')
-            serializer = InterimPromotersSerializer(queryset, many=True)
+            serializer = InterimPromotersSerializer(queryset, many=True, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         promoters_payload = request.data.get('promoters')
+        if isinstance(promoters_payload, str):
+            try:
+                promoters_payload = json.loads(promoters_payload)
+            except (ValueError, TypeError):
+                raise ValidationError({'promoters': 'Provide a valid promoters list.'})
         if not isinstance(promoters_payload, list) or len(promoters_payload) == 0:
             return Response(
                 {"error": "Provide at least one promoter in the promoters list."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = InterimPromotersSerializer(data=promoters_payload, many=True)
+        existing = {str(promoter.pk): promoter for promoter in InterimPromoters.objects.filter(application=application)}
+        normalized = []
+        seen_ids = set()
+        for index, payload in enumerate(promoters_payload):
+            if not isinstance(payload, dict):
+                raise ValidationError({'promoters': 'Each promoter must be an object.'})
+            payload = dict(payload)
+            promoter_id = payload.pop('id', None)
+            previous = existing.get(str(promoter_id)) if promoter_id is not None else None
+            if promoter_id is not None and previous is None:
+                raise ValidationError({'promoters': 'A promoter does not belong to this application.'})
+            if previous and previous.pk in seen_ids:
+                raise ValidationError({'promoters': 'A promoter cannot be listed twice.'})
+            if previous:
+                seen_ids.add(previous.pk)
+            upload = request.FILES.get(f'promoter_document_{index}')
+            if upload:
+                payload['id_passport_document'] = upload
+            # Retain existing documents by a promoter ID scoped to this application.
+            normalized.append((payload, previous))
+
+        serializer = InterimPromotersSerializer(data=[payload for payload, _ in normalized], many=True)
         serializer.is_valid(raise_exception=True)
 
-        InterimPromoters.objects.filter(application=application).delete()
-        InterimPromoters.objects.bulk_create(
-            [
-                InterimPromoters(application=application, **promoter)
-                for promoter in serializer.validated_data
-            ]
-        )
+        retained_ids = []
+        for promoter, (_, previous) in zip(serializer.validated_data, normalized):
+            if previous:
+                for field, value in promoter.items():
+                    setattr(previous, field, value)
+                previous.save()
+                retained_ids.append(previous.pk)
+            else:
+                retained_ids.append(InterimPromoters.objects.create(application=application, **promoter).pk)
+        InterimPromoters.objects.filter(application=application).exclude(pk__in=retained_ids).delete()
 
         updated_promoters = InterimPromoters.objects.filter(application=application).order_by('id')
-        response_serializer = InterimPromotersSerializer(updated_promoters, many=True)
+        response_serializer = InterimPromotersSerializer(updated_promoters, many=True, context={'request': request})
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
 
@@ -563,7 +596,7 @@ class UniversityProvisionalLicenseViewset(viewsets.ModelViewSet):
     
     def create(self, request):
         '''Set institution to the logged in user's institution'''
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         
         if serializer.is_valid():
             user = self.request.user
@@ -579,7 +612,7 @@ class UniversityProvisionalLicenseViewset(viewsets.ModelViewSet):
     def partial_update(self, request, pk=None):
         '''Partial update of the University Provisional License Application'''
         instance = self.get_object()
-        serializer = self.serializer_class(instance, data=request.data, partial=True)
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
         
         if serializer.is_valid():
             if serializer.validated_data.get('status') == 'submitted':

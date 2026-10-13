@@ -13,7 +13,7 @@ from .models import (County, District, EducationLevel, FinanceYear, Holiday,
 class DistrictAdmin(SimpleHistoryAdmin,ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     '''Admin interface for District model.'''
     list_display = ('name', 'created', 'modified')
-    fields = ('name',)
+    fields = ('name','region')
     search_fields = ('name',)
     ordering = ('name',)
     list_per_page = 10

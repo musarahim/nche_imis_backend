@@ -103,3 +103,8 @@ YES_NO_CHOICES = (
     (True, 'Yes'),
     (False, 'No'),
 )
+
+GEOGRAPHICAL_CHOICES = (
+        ('urban', 'Urban'),
+        ('rural', 'Rural'),
+    )
