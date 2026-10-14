@@ -12,10 +12,153 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.utils import timezone
 from institutions.models import Institution
-from rest_framework.test import APITestCase
+from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 
-from .models import Program, ProgramAccreditation, ProgrammeAssessmentInvoice, ProgrammeInvoice
-from .views import ProgrammeAccreditationViewset
+from .models import PreliminaryReview, Program, ProgramAccreditation, ProgrammeAssessmentInvoice, ProgrammeInvoice
+from .views import ProgrammeAccreditationViewset, ProgrammeReviewersViewset
+
+
+class SubmittedApplicationSearchTests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user('search-owner', 'search-owner@example.test', is_active=True)
+        district = District.objects.create(name='Search District')
+        self.institution = Institution.objects.create(user=self.owner, name='Search University', district=district)
+        self.computing = ProgramAccreditation.objects.create(
+            institution=self.institution, programme_name='Computer Science', program_level='bachelor', duration=6, programme_category='stem',
+        )
+        self.arts = ProgramAccreditation.objects.create(
+            institution=self.institution, programme_name='Fine Art', program_level='diploma', duration=4, programme_category='humanities',
+        )
+        ProgramAccreditation.objects.create(
+            institution=self.institution, programme_name='Computer Science Reviewed', program_level='bachelor',
+            duration=6, status='under_review',
+        )
+
+    def search(self, term='', **filters):
+        request = APIRequestFactory().get('/submitted-applications/', {'search': term, **filters})
+        force_authenticate(request, self.owner)
+        return ProgrammeAccreditationViewset.as_view({'get': 'submitted_applications'})(request)
+
+    def test_searches_programme_institution_application_number_and_level(self):
+        for term, expected in [
+            ('computer', {self.computing.pk}), ('Search University', {self.computing.pk, self.arts.pk}),
+            (self.computing.application_number, {self.computing.pk}), ('diploma', {self.arts.pk}),
+        ]:
+            with self.subTest(term=term):
+                response = self.search(term)
+                self.assertEqual(response.status_code, 200, response.data)
+                self.assertEqual({row['id'] for row in response.data['results']}, expected)
+
+    def test_no_matches_returns_empty_paginated_results(self):
+        response = self.search('unmatched programme')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(response.data['results'], [])
+
+    def test_combines_institution_category_and_search_filters(self):
+        response = self.search('computer', institution=self.institution.pk, programme_category='stem')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual([row['id'] for row in response.data['results']], [self.computing.pk])
+        self.assertEqual(self.search('computer', institution=self.institution.pk, programme_category='humanities').data['results'], [])
+        self.assertEqual([row['id'] for row in self.search(programme_category='humanities').data['results']], [self.arts.pk])
+
+    def test_filter_options_include_distinct_scoped_institutions_and_model_categories(self):
+        other_owner = User.objects.create_user('filter-owner', 'filter-owner@example.test', is_active=True)
+        other = Institution.objects.create(user=other_owner, name='Hidden Institution', district=self.institution.district)
+        ProgramAccreditation.objects.create(institution=other, programme_name='Hidden Programme', program_level='bachelor', duration=6)
+        request = APIRequestFactory().get('/submitted-application-filter-options/')
+        force_authenticate(request, self.owner)
+        response = ProgrammeAccreditationViewset.as_view({'get': 'submitted_application_filter_options'})(request)
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['institutions'], [{'id': self.institution.pk, 'name': self.institution.name}])
+        self.assertEqual(response.data['programme_categories'], [{'value': value, 'label': label} for value, label in ProgramAccreditation.CATEGORY])
+        self.assertEqual(self.search(institution=other.pk).data['results'], [])
+
+    def test_invalid_filters_return_validation_errors(self):
+        for filters in [{'institution': 'invalid'}, {'programme_category': 'invalid'}]:
+            response = self.search(**filters)
+            self.assertEqual(response.status_code, 400, response.data)
+
+    def test_search_preserves_institution_scope(self):
+        other_owner = User.objects.create_user('other-search-owner', 'other-search@example.test', is_active=True)
+        other = Institution.objects.create(user=other_owner, name='Other University', district=self.institution.district)
+        ProgramAccreditation.objects.create(institution=other, programme_name='Hidden Programme', program_level='bachelor', duration=6)
+        self.assertEqual(self.search('Hidden Programme').data['results'], [])
+
+
+class ProgrammeReviewerWorkloadTests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user('workload-owner', 'workload-owner@example.test', is_active=True)
+        district = District.objects.create(name='Workload District')
+        self.institution = Institution.objects.create(user=self.owner, name='Workload University', district=district)
+        reviewers = Group.objects.create(name='Programme Reviewers')
+        self.busy = User.objects.create_user('busy-reviewer', 'busy@example.test', is_active=True)
+        self.idle = User.objects.create_user('idle-reviewer', 'idle@example.test', is_active=True)
+        self.busy.groups.add(reviewers)
+        self.idle.groups.add(reviewers)
+        other = User.objects.create_user('non-reviewer', 'non-reviewer@example.test', is_active=True)
+        for index, (reviewer, status) in enumerate([
+            (self.busy, 'under_review'), (self.busy, 'approved'), (other, 'under_review'), (None, 'submitted'),
+        ]):
+            application = ProgramAccreditation.objects.create(
+                institution=self.institution, programme_name=f'Programme {index}', program_level='bachelor',
+                duration=6, status=status, preliminary_reviewer=reviewer,
+            )
+            if index == 0:
+                self.pending_application = application
+                # Another reviewer's record must not remove this assignment from the count.
+                PreliminaryReview.objects.create(application=application, reviewer=other, expert_progression='yes')
+            elif index == 1:
+                PreliminaryReview.objects.create(application=application, reviewer=self.busy, expert_progression='yes')
+
+    def test_counts_only_assignments_without_a_review_by_the_assigned_reviewer(self):
+        request = APIRequestFactory().get('/programme-reviewers/')
+        force_authenticate(request, self.owner)
+        response = ProgrammeReviewersViewset.as_view({'get': 'list'})(request)
+        self.assertEqual(response.status_code, 200, response.data)
+        rows = {row['id']: row for row in response.data}
+        self.assertEqual(set(rows), {self.busy.pk, self.idle.pk})
+        self.assertEqual(rows[self.busy.pk]['assigned_application_count'], 1)
+        self.assertEqual(rows[self.idle.pk]['assigned_application_count'], 0)
+        self.assertEqual(rows[self.busy.pk]['name'], 'busy-reviewer')
+
+    def test_count_drops_when_assigned_reviewer_records_a_review(self):
+        PreliminaryReview.objects.create(application=self.pending_application, reviewer=self.busy, expert_progression='yes')
+        request = APIRequestFactory().get('/programme-reviewers/')
+        force_authenticate(request, self.owner)
+        response = ProgrammeReviewersViewset.as_view({'get': 'list'})(request)
+        self.assertEqual(response.status_code, 200, response.data)
+        rows = {row['id']: row for row in response.data}
+        self.assertEqual(rows[self.busy.pk]['assigned_application_count'], 0)
+
+    def test_requires_authentication(self):
+        request = APIRequestFactory().get('/programme-reviewers/')
+        response = ProgrammeReviewersViewset.as_view({'get': 'list'})(request)
+        self.assertIn(response.status_code, [401, 403])
+
+    def retrieve_application(self, user):
+        request = APIRequestFactory().get(f'/programme-accreditation/{self.pending_application.pk}/')
+        force_authenticate(request, user)
+        return ProgrammeAccreditationViewset.as_view({'get': 'retrieve'})(request, pk=self.pending_application.pk)
+
+    def test_assigned_preliminary_reviewer_can_retrieve_application(self):
+        self.assertEqual(self.retrieve_application(self.busy).status_code, 200)
+        self.assertEqual(self.retrieve_application(self.idle).status_code, 404)
+
+    def test_assigned_assessor_can_retrieve_application(self):
+        self.idle.groups.add(Group.objects.create(name='Programme Assessors'))
+        self.pending_application.assessor = self.idle
+        self.pending_application.save(update_fields=['assessor'])
+        self.assertEqual(self.retrieve_application(self.idle).status_code, 200)
+        self.pending_application.assessor = None
+        self.pending_application.save(update_fields=['assessor'])
+        self.assertEqual(self.retrieve_application(self.idle).status_code, 404)
+
+    def test_detail_access_does_not_allow_reviewer_to_edit_application(self):
+        request = APIRequestFactory().patch(f'/programme-accreditation/{self.pending_application.pk}/', {'programme_name': 'Changed'})
+        force_authenticate(request, self.busy)
+        response = ProgrammeAccreditationViewset.as_view({'patch': 'partial_update'})(request, pk=self.pending_application.pk)
+        self.assertEqual(response.status_code, 404)
 
 
 @override_settings(
@@ -33,16 +176,16 @@ class ProgrammeRenewalWorkflowTests(APITestCase):
         self.other_institution = Institution.objects.create(user=self.other, name='Other Renewal Institution', district=district)
         today = timezone.localdate()
         self.programme = Program.objects.create(
-            institution=self.institution, program_name='Computing', program_level='bachelor',
+            institution=self.institution, programme_name='Computing', program_level='bachelor',
             accreditation_date=today - timedelta(days=365), expiry_date=today + timedelta(days=365), status='active',
         )
         self.url = '/programme-accreditation/'
 
     def payload(self, **overrides):
         return {
-            'application_type': 'renewal', 'program_to_renew': self.programme.pk,
-            'program_name': 'Computing', 'program_level': 'bachelor',
-            'duration': 6, 'duration_type': 'semester', 'number_of_years': 3,
+            'application_type': 're-accredit', 'program_to_renew': self.programme.pk,
+            'programme_name': 'Computing', 'program_level': 'bachelor',
+            'duration': 6, 'duration_type': 'semester',
             'campus': 'Main', 'programme_category': 'stem', **overrides,
         }
 
@@ -54,6 +197,8 @@ class ProgrammeRenewalWorkflowTests(APITestCase):
     def test_renewal_submission_and_early_approval_preserve_history(self):
         response = self.submit()
         self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data['programme_name'], 'Computing')
+        self.assertNotIn('program_name', response.data)
         application = ProgramAccreditation.objects.get(pk=response.data['id'])
         old_expiry = self.programme.expiry_date
         self.assertEqual(application.previous_expiry_date, old_expiry)
@@ -77,8 +222,8 @@ class ProgrammeRenewalWorkflowTests(APITestCase):
         self.client.force_authenticate(self.other)
         self.assertEqual(self.client.post(self.url, self.payload()).status_code, 400)
         self.client.force_authenticate(self.owner)
-        self.assertEqual(self.client.post(self.url, self.payload(program_name='Different')).status_code, 400)
-        self.assertEqual(self.client.post(self.url, self.payload(application_type='new')).status_code, 400)
+        self.assertEqual(self.client.post(self.url, self.payload(programme_name='Different')).status_code, 400)
+        self.assertEqual(self.client.post(self.url, self.payload(application_type='accredit')).status_code, 400)
         self.programme.expiry_date = None
         self.programme.save(update_fields=['expiry_date'])
         self.assertEqual(self.client.post(self.url, self.payload()).status_code, 400)
@@ -90,17 +235,23 @@ class ProgrammeRenewalWorkflowTests(APITestCase):
     def test_cannot_patch_status_or_approve_without_permission(self):
         response = self.submit()
         application_id = response.data['id']
+        self.assertEqual(self.client.get(f'{self.url}{application_id}/').status_code, 200)
         self.assertEqual(self.client.patch(f'{self.url}{application_id}/', {'status': 'approved'}).status_code, 400)
         self.assertEqual(self.client.post(f'{self.url}{application_id}/management-decision/', {'decision': 'approved'}).status_code, 403)
         self.assertEqual(self.client.post(f'/institution-programmes/{self.programme.pk}/', {'status': 'active'}).status_code, 405)
         self.client.force_authenticate(self.other)
         self.assertEqual(self.client.get(f'{self.url}{application_id}/').status_code, 404)
+        self.client.force_authenticate(self.manager)
+        self.assertEqual(self.client.get(f'{self.url}{application_id}/').status_code, 200)
+        self.assertEqual(self.client.get(f'{self.url}999999999/').status_code, 404)
 
     def test_renewal_options_are_scoped_to_institution(self):
         self.client.force_authenticate(self.owner)
         response = self.client.get('/institution-programmes/renewal-options/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual([item['id'] for item in response.data], [self.programme.pk])
+        self.assertEqual(response.data[0]['programme_name'], 'Computing')
+        self.assertNotIn('program_name', response.data[0])
         self.submit()
         self.assertEqual(self.client.get('/institution-programmes/renewal-options/').data, [])
         self.client.force_authenticate(self.other)
@@ -108,7 +259,7 @@ class ProgrammeRenewalWorkflowTests(APITestCase):
 
     def test_new_application_approval_creates_programme(self):
         self.client.force_authenticate(self.owner)
-        payload = self.payload(application_type='new', program_name='Engineering')
+        payload = self.payload(application_type='accredit', programme_name='Engineering')
         payload.pop('program_to_renew')
         with patch('programmes.views.render_to_string', return_value='Submitted'):
             response = self.client.post(self.url, payload)
@@ -119,7 +270,7 @@ class ProgrammeRenewalWorkflowTests(APITestCase):
         self.client.force_authenticate(self.manager)
         response = self.client.post(f'{self.url}{application.pk}/management-decision/', {'decision': 'approved'})
         self.assertEqual(response.status_code, 200, response.data)
-        programme = Program.objects.get(institution=self.institution, program_name='Engineering')
+        programme = Program.objects.get(institution=self.institution, programme_name='Engineering')
         self.assertEqual(programme.applications.filter(pk=application.pk).count(), 1)
         self.assertEqual(application.pk, response.data['id'])
 
@@ -160,7 +311,7 @@ class ReviewInvoiceWorkflowTests(APITestCase):
         self.institution = Institution.objects.create(user=self.owner, name='Institution A', district=district)
         Institution.objects.create(user=self.other, name='Institution B', district=district)
         self.application = ProgramAccreditation.objects.create(
-            institution=self.institution, program_name='Computing', program_level='degree', duration=6, status='reviewed',
+            institution=self.institution, programme_name='Computing', program_level='degree', duration=6, status='reviewed',
         )
         self.invoice = ProgrammeAssessmentInvoice.objects.create(application=self.application, desk_review_fee=Decimal('100.00'))
         self.url = f'/invoices/{self.invoice.pk}/'

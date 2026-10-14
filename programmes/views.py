@@ -4,7 +4,7 @@ from accounts.models import User
 from accounts.serializers import UserReviewerSerializer
 from django.core.mail import EmailMessage
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, F, Q
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -15,10 +15,10 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
+from .invoice_permissions import can_manage_review_invoices
 from .models import (InvoiceItemType, PreliminaryReview, Program,
                      ProgramAccreditation, ProgrammeAssessment,
                      ProgrammeAssessmentInvoice, ProgrammeInvoice)
-from .invoice_permissions import can_manage_review_invoices
 from .review_invoice_views import ProgrammeAssessmentInvoiceViewset
 from .serializers import (InvoiceItemSerializer, InvoiceItemTypeSerializer,
                           PreliminaryReviewSerializer,
@@ -26,7 +26,7 @@ from .serializers import (InvoiceItemSerializer, InvoiceItemTypeSerializer,
                           ProgrammeAssessmentInvoiceSerializer,
                           ProgrammeAssessmentSerializer,
                           ProgrammeInvoiceSerializer, ProgramSerializer,
-                          ProgressedToDirectorateSerializer)
+                          ProgressedToDirectorateSerializer, ProgrammeReviewerWorkloadSerializer)
 
 
 # Create your views here.
@@ -36,7 +36,7 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
     serializer_class = ProgrammeAccreditationSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
-    search_fields = ['application_number','programme_name','programme_level','status','institution__name']
+    search_fields = ['application_number','programme_name','program_level','status','institution__name']
     parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
 
     @staticmethod
@@ -48,7 +48,7 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         ).distinct()
 
     def get_queryset(self):
-        '''return documents for the logged in institution'''
+        '''Scope applications to the institution or assigned review staff.'''
         queryset = self.queryset
         if (
             self.request.user.is_superuser
@@ -58,16 +58,15 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         ):
             return queryset.select_related('institution').order_by('institution__name', '-date_submitted')
 
+        scope = Q(pk__in=[])
         if hasattr(self.request.user, 'institution'):
-            return queryset.filter(institution=self.request.user.institution)
-
-        return queryset.none()
-
-    def retrieve(self, request,pk=None):
-        '''retrieve a programme accreditation application'''
-        application = self.get_object()
-        serializer = self.get_serializer(application)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            scope |= Q(institution=self.request.user.institution)
+        if self.action == 'retrieve':
+            if self.request.user.groups.filter(name='Programme Reviewers').exists():
+                scope |= Q(preliminary_reviewer=self.request.user)
+            if self.request.user.groups.filter(name='Programme Assessors').exists():
+                scope |= Q(assessor=self.request.user)
+        return queryset.filter(scope).select_related('institution')
 
     def _send_rejection_email(self, application, reason):
         '''Send rejection notification email to the applicant institution.'''
@@ -139,23 +138,23 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
                 raise ValidationError('Only applications progressed to management can be decided.')
             if decision == 'approved':
                 today = timezone.localdate()
-                if application.application_type == 'renewal':
+                if application.application_type in ('re-accredit', 'renewal'):
                     if not application.program_to_renew_id:
-                        raise ValidationError('This renewal has no linked programme.')
+                        raise ValidationError('This re-accreditation application has no linked programme.')
                     programme = Program.objects.select_for_update().get(pk=application.program_to_renew_id)
                     if programme.institution_id != application.institution_id:
                         raise ValidationError('The linked programme belongs to another institution.')
-                    if programme.program_name != application.program_name or programme.program_level != application.program_level:
+                    if programme.programme_name != application.programme_name or programme.program_level != application.program_level:
                         raise ValidationError('The linked programme name or level has changed since submission.')
                     start = max(today, programme.expiry_date) if programme.expiry_date else today
-                elif application.application_type == 'new':
-                    if Program.objects.filter(institution=application.institution, program_name=application.program_name).exists():
-                        raise ValidationError('This programme already exists. Submit a renewal instead.')
-                    programme = Program(institution=application.institution, program_name=application.program_name,
+                elif application.application_type in ('accredit', 'new'):
+                    if Program.objects.filter(institution=application.institution, programme_name=application.programme_name).exists():
+                        raise ValidationError('This programme already exists. Submit a re-accreditation application instead.')
+                    programme = Program(institution=application.institution, programme_name=application.programme_name,
                                         program_level=application.program_level)
                     start = today
                 else:
-                    raise ValidationError('This decision action supports new and renewal applications only.')
+                    raise ValidationError('This decision action supports accreditation and re-accreditation applications only.')
                 try:
                     expiry = start.replace(year=start.year + 5)
                 except ValueError:
@@ -182,8 +181,19 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         GET applications submitted by the logged in user's institution.
         """
         queryset = self.get_queryset().filter(status='submitted')
-        if queryset is None or not queryset.exists():
-            return Response([], status=status.HTTP_200_OK)
+        institution = request.query_params.get('institution')
+        category = request.query_params.get('programme_category')
+        if institution:
+            try:
+                institution_id = int(institution)
+            except (TypeError, ValueError):
+                raise ValidationError({'institution': 'Select a valid institution.'})
+            queryset = queryset.filter(institution_id=institution_id)
+        if category:
+            if category not in dict(ProgramAccreditation.CATEGORY):
+                raise ValidationError({'programme_category': 'Select a valid programme category.'})
+            queryset = queryset.filter(programme_category=category)
+        queryset = self.filter_queryset(queryset)
         
         # Apply pagination manually for custom actions
         page = self.paginate_queryset(queryset)
@@ -194,6 +204,16 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         # Fallback if pagination is not configured
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='submitted-application-filter-options')
+    def submitted_application_filter_options(self, request):
+        institutions = self.get_queryset().filter(status='submitted').order_by(
+            'institution__name', 'institution_id',
+        ).values('institution_id', 'institution__name').distinct()
+        return Response({
+            'institutions': [{'id': row['institution_id'], 'name': row['institution__name']} for row in institutions],
+            'programme_categories': [{'value': value, 'label': label} for value, label in ProgramAccreditation.CATEGORY],
+        })
 
     @action(detail=False, methods=['get'], url_path='under-review')
     def under_review(self, request, pk=None):
@@ -604,7 +624,7 @@ class ProgramViewset(viewsets.ReadOnlyModelViewSet):
     serializer_class = ProgramSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
-    search_fields = ['program_name','program_level','accreditation_date','expiry_date']
+    search_fields = ['programme_name','program_level','accreditation_date','expiry_date']
     parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
 
     def get_queryset(self):
@@ -627,10 +647,10 @@ class ProgramViewset(viewsets.ReadOnlyModelViewSet):
         programmes = self.get_queryset().filter(institution=institution,
             accreditation_date__isnull=False, expiry_date__isnull=False).exclude(
             renewals__status__in=[value for value, _ in ProgramAccreditation.STATUS if value not in ('approved', 'rejected')]
-        ).distinct().order_by('program_name')
+        ).distinct().order_by('programme_name')
         return Response([{
             'id': programme.pk,
-            'program_name': programme.program_name,
+            'programme_name': programme.programme_name,
             'program_level': programme.program_level,
             'accreditation_date': programme.accreditation_date.isoformat(),
             'expiry_date': programme.expiry_date.isoformat(),
@@ -661,10 +681,18 @@ class ProgramAccessorViewset(viewsets.ModelViewSet):
 
 class ProgrammeReviewersViewset(viewsets.ReadOnlyModelViewSet):
     '''Programme Accreditation Reviewers'''
-    queryset = User.objects.filter(groups__name='Programme Reviewers').order_by('username')
-    serializer_class = UserReviewerSerializer
+    queryset = User.objects.filter(groups__name='Programme Reviewers').annotate(
+        assigned_application_count=Count(
+            'preliminary_reviews',
+            filter=~Q(preliminary_reviews__in=PreliminaryReview.objects.filter(
+                reviewer_id=F('application__preliminary_reviewer_id'),
+            ).values('application_id')),
+            distinct=True,
+        ),
+    ).order_by('username')
+    serializer_class = ProgrammeReviewerWorkloadSerializer
     pagination_class = None
-    permissions_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['username','email','first_name','last_name','other_names']
 
@@ -867,7 +895,7 @@ class ProgrammeInvoiceViewset(viewsets.ModelViewSet):
             invoice_number=invoice.invoice_number or '-',
             application_number=application.application_number if application else '-',
             institution_name=institution.name if institution else '-',
-            programme_name=application.program_name if application else '-',
+            programme_name=application.programme_name if application else '-',
             status=invoice.status,
             payment_reference=invoice.payment_reference or '-',
             grand_total=f"{invoice.grand_total:,.2f}",

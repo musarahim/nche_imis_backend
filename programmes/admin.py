@@ -18,8 +18,8 @@ from .models import (InvoiceItem, InvoiceItemType, PreliminaryReview, Program,
 @admin.register(ProgramAccreditation)
 class ProgramAccreditationAdmin(ModelAdmin):
     '''Admin interface for Programme Accreditation'''
-    list_display = ("application_number", "program_name", "institution","status","date_submitted")
-    fields = ("institution","application_type","program_level","program_name","duration","campus","program_structure","letter_of_submission","program_to_renew","preliminary_reviewer","status","dep_meeting_minutes","rejection_reason")
+    list_display = ("application_number", "programme_name", "institution","status","date_submitted")
+    fields = ("institution","application_type","program_level","programme_name","duration","campus","program_structure","letter_of_submission","program_to_renew","preliminary_reviewer","status","dep_meeting_minutes","rejection_reason")
 
 
 
@@ -28,9 +28,9 @@ class ProgramAdmin(ModelAdmin, ExportActionModelAdmin, ImportExportModelAdmin):
     '''Admin interface for Programs under an Accreditation'''
     export_form_class = SelectableFieldsExportForm
     import_form_class = ImportForm
-    list_display = ("id","program_name","institution", "program_level", "accreditation_date", "expiry_date", "status_display")
-    fields = ("applications","institution","program_name","program_level","accreditation_date","expiry_date","status")
-    search_fields = ("program_name", "institution__name")
+    list_display = ("id","programme_name","institution", "program_level", "accreditation_date", "expiry_date", "status_display")
+    fields = ("applications","institution","programme_name","program_level","accreditation_date","expiry_date","status")
+    search_fields = ("programme_name", "institution__name")
     list_filter = ('status', 'institution')
 
     def status_display(self, obj):
