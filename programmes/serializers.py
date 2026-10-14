@@ -1,14 +1,22 @@
 import json
 from decimal import Decimal
 from pathlib import Path
+from accounts.serializers import UserReviewerSerializer
 
 from django.utils import timezone
-
 from rest_framework import serializers
 
 from .models import (InvoiceItem, InvoiceItemType, PreliminaryReview, Program,
                      ProgramAccreditation, ProgrammeAssessment,
                      ProgrammeAssessmentInvoice, ProgrammeInvoice)
+
+
+class ProgrammeReviewerWorkloadSerializer(UserReviewerSerializer):
+    assigned_application_count = serializers.IntegerField(read_only=True)
+
+    class Meta(UserReviewerSerializer.Meta):
+        fields = ['id', 'name', 'assigned_application_count']
+        ref_name = 'programme reviewer workload'
 
 
 class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
@@ -32,35 +40,35 @@ class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context.get('request')
         institution = getattr(request.user, 'institution', None) if request else None
-        application_type = attrs.get('application_type', self.instance.application_type if self.instance else 'new')
+        application_type = attrs.get('application_type', self.instance.application_type if self.instance else 'accredit')
         programme = attrs.get('program_to_renew', self.instance.program_to_renew if self.instance else None)
 
         if self.instance and ('application_type' in attrs or 'program_to_renew' in attrs):
             raise serializers.ValidationError('The application type and linked programme cannot be changed after submission.')
         if self.instance:
-            if application_type == 'renewal' and programme and (
-                attrs.get('program_name', self.instance.program_name) != programme.program_name
+            if application_type in ('re-accredit', 'renewal') and programme and (
+                attrs.get('programme_name', self.instance.programme_name) != programme.programme_name
                 or attrs.get('program_level', self.instance.program_level) != programme.program_level
             ):
                 raise serializers.ValidationError({'program_to_renew': 'The programme name and level must match the selected programme.'})
             return attrs
-        if application_type == 'renewal':
+        if application_type == 're-accredit':
             if not programme:
-                raise serializers.ValidationError({'program_to_renew': 'Select an accredited programme to renew.'})
+                raise serializers.ValidationError({'program_to_renew': 'Select an accredited programme for re-accreditation.'})
             if not institution or programme.institution_id != institution.pk:
                 raise serializers.ValidationError({'program_to_renew': 'Select a programme belonging to your institution.'})
             if not programme.accreditation_date or not programme.expiry_date:
                 raise serializers.ValidationError({'program_to_renew': 'This programme has not been accredited.'})
             if ProgramAccreditation.objects.filter(program_to_renew=programme).exclude(status__in=['approved', 'rejected']).exists():
-                raise serializers.ValidationError({'program_to_renew': 'This programme already has an open renewal application.'})
-            if attrs.get('program_name', programme.program_name) != programme.program_name or attrs.get('program_level', programme.program_level) != programme.program_level:
+                raise serializers.ValidationError({'program_to_renew': 'This programme already has an open re-accreditation application.'})
+            if attrs.get('programme_name', programme.programme_name) != programme.programme_name or attrs.get('program_level', programme.program_level) != programme.program_level:
                 raise serializers.ValidationError({'program_to_renew': 'The programme name and level must match the selected programme.'})
         elif programme:
-            raise serializers.ValidationError({'program_to_renew': 'Only renewal applications can select an existing programme.'})
-        elif application_type == 'new' and institution and Program.objects.filter(
-            institution=institution, program_name=attrs.get('program_name')
+            raise serializers.ValidationError({'program_to_renew': 'Only re-accreditation applications can select an existing programme.'})
+        elif application_type == 'accredit' and institution and Program.objects.filter(
+            institution=institution, programme_name=attrs.get('programme_name')
         ).exists():
-            raise serializers.ValidationError({'program_name': 'This programme already exists. Apply for renewal instead.'})
+            raise serializers.ValidationError({'programme_name': 'This programme already exists. Apply for re-accreditation instead.'})
         return attrs
 
     def to_representation(self, instance):
@@ -84,7 +92,7 @@ class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
             programme = instance.program_to_renew
             response['renewed_programme'] = {
                 'id': programme.pk,
-                'program_name': programme.program_name,
+                'programme_name': programme.programme_name,
                 'accreditation_date': instance.previous_accreditation_date.isoformat() if instance.previous_accreditation_date else None,
                 'expiry_date': instance.previous_expiry_date.isoformat() if instance.previous_expiry_date else None,
             }
@@ -97,7 +105,7 @@ class ProgramSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Program
-        fields = ('id','applications','institution','program_name','program_level', 'accreditation_date','expiry_date','status','can_renew')
+        fields = ('id','applications','institution','programme_name','program_level', 'accreditation_date','expiry_date','status','can_renew')
 
     def get_can_renew(self, instance):
         request = self.context.get('request')
@@ -136,7 +144,7 @@ class PreliminaryReviewSerializer(serializers.ModelSerializer):
         response = super().to_representation(instance)
         response['expert_progression'] = instance.get_expert_progression_display() if instance.expert_progression else None
         response['institution'] = instance.application.institution.name if instance.application and instance.application.institution else None
-        response['programme'] = instance.application.program_name if instance.application and instance.application.program_name else None
+        response['programme'] = instance.application.programme_name if instance.application and instance.application.programme_name else None
         response["student_total"] = instance.student_total if instance.student_total is not None else None
         response['application_status'] = instance.application.get_status_display() if instance.application and instance.application.status else None
         response['type_of_entry']  = instance.get_type_of_entry_display() if instance.type_of_entry else None
@@ -161,7 +169,7 @@ class ProgrammeAssessmentSerializer(serializers.ModelSerializer):
         response = super().to_representation(instance)
         response['recommendation'] = instance.get_recommendation_display() if instance.recommendation else None
         response['institution'] = instance.application.institution.name if instance.application and instance.application.institution else None
-        response['programme'] = instance.application.program_name if instance.application and instance.application.program_name else None
+        response['programme'] = instance.application.programme_name if instance.application and instance.application.programme_name else None
         response['status'] = instance.application.get_status_display() if instance.application and instance.application.status else None
         response['pod_comment'] = instance.application.pod_comment if instance.application and instance.application.pod_comment else None
         return response
@@ -312,6 +320,7 @@ class ProgrammeAssessmentInvoiceSerializer(serializers.ModelSerializer):
         response['invoice_date'] = instance.invoice_date.strftime('%d-%m-%Y') if instance.invoice_date else None
         response['application'] = instance.application.application_number if instance.application else None
         response['institution'] = instance.application.institution.name if instance.application and instance.application.institution else None
+        response['programme_name'] = instance.application.programme_name if instance.application  else None
         return response
 
 

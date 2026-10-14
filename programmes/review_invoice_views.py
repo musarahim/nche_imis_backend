@@ -71,7 +71,7 @@ class ProgrammeAssessmentInvoiceViewset(viewsets.ModelViewSet):
             f'{message}\n\nInvoice: {invoice.invoice_number}\n'
             f'Application: {invoice.application.application_number}\n'
             f'Institution: {invoice.application.institution.name}\n'
-            f'Programme: {invoice.application.program_name}\n'
+            f'Programme: {invoice.application.programme_name}\n'
             f'Total (UGX): {invoice.grand_total:,.2f}\n'
             f'Payment reference: {invoice.payment_reference or "-"}\n'
         )

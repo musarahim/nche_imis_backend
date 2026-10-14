@@ -29,8 +29,8 @@ class ProgramAccreditation(models.Model):
         ('rejected', 'Rejected'),
     ]
     APPLICATION_TYPE=[
-        ('new', 'New Programme'),
-        ('renewal', 'Renewal'),
+        ('accredit', 'Accreditation'),
+        ('re-accredit', 'Re-Accreditation'),
         ('revision', 'Revision'),
 
     ]
@@ -47,10 +47,9 @@ class ProgramAccreditation(models.Model):
     institution = models.ForeignKey(Institution, on_delete=models.RESTRICT, related_name='programme_accreditations', blank=True)
     #  PGAC/2024-2025/00715
     application_number = models.CharField(max_length=100, unique=True, blank=True)
-    application_type = models.CharField(max_length=100, choices=APPLICATION_TYPE, default='new')
+    application_type = models.CharField(max_length=100, choices=APPLICATION_TYPE, default='accredit')
     program_level = models.CharField(max_length=100, choices=PROGRAMME_LEVELS)
-    program_name = models.CharField(max_length=255)
-    number_of_years = models.PositiveIntegerField(null=True, blank=False)
+    programme_name = models.CharField(max_length=255)
     duration = models.PositiveIntegerField()
     duration_type = models.CharField(max_length=20, null=True, blank=False, choices=DURATION_TYPE)
     campus = models.CharField(max_length=255, blank=True, null=True)
@@ -132,7 +131,7 @@ class Program(models.Model):
     )
     applications = models.ManyToManyField(ProgramAccreditation, related_name='programs', blank=True)
     institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='programs', blank=False, null=True)
-    program_name = models.CharField(max_length=250)
+    programme_name = models.CharField(max_length=250)
     program_level = models.CharField(max_length=255, blank=True, null=True, choices=PROGRAMME_LEVELS)
     accreditation_date = models.DateField(blank=True, null=True)
     expiry_date = models.DateField(blank=True, null=True)
@@ -143,10 +142,10 @@ class Program(models.Model):
         ordering = ['-accreditation_date']
         verbose_name = 'Program'
         verbose_name_plural = 'Programs'
-        unique_together = ('program_name', 'institution')
+        unique_together = ('programme_name', 'institution')
 
     def __str__(self):
-        return f"{self.program_name} - {self.program_level}"
+        return f"{self.programme_name} - {self.program_level}"
     
     # def save(self, *args, **kwargs):
     #     today = timezone.now().date()
