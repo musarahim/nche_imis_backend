@@ -2,13 +2,14 @@ import json
 from decimal import Decimal
 from pathlib import Path
 from accounts.serializers import UserReviewerSerializer
+from institutions.models import Institution
 
 from django.utils import timezone
 from rest_framework import serializers
 
 from .models import (InvoiceItem, InvoiceItemType, PreliminaryReview, Program,
                      ProgramAccreditation, ProgrammeAssessment,
-                     ProgrammeAssessmentInvoice, ProgrammeInvoice)
+                     ProgrammeAssessmentInvoice, ProgrammeInvoice, DeskReviewInvoiceLine)
 
 
 class ProgrammeReviewerWorkloadSerializer(UserReviewerSerializer):
@@ -17,6 +18,11 @@ class ProgrammeReviewerWorkloadSerializer(UserReviewerSerializer):
     class Meta(UserReviewerSerializer.Meta):
         fields = ['id', 'name', 'assigned_application_count']
         ref_name = 'programme reviewer workload'
+
+
+class ProgrammeAssessorWorkloadSerializer(ProgrammeReviewerWorkloadSerializer):
+    class Meta(ProgrammeReviewerWorkloadSerializer.Meta):
+        ref_name = 'programme assessor workload'
 
 
 class ProgrammeAccreditationSerializer(serializers.ModelSerializer):
@@ -125,6 +131,17 @@ class ProgramSerializer(serializers.ModelSerializer):
         return response
 
 
+
+
+class AssessorAssignmentApplicationSerializer(ProgrammeAccreditationSerializer):
+    tier_displine = serializers.CharField(read_only=True, allow_null=True)
+    tier_displine_display = serializers.SerializerMethodField()
+
+    class Meta(ProgrammeAccreditationSerializer.Meta):
+        ref_name = 'assessor assignment application'
+
+    def get_tier_displine_display(self, instance):
+        return dict(PreliminaryReview.DISPLINE_CHOICE).get(instance.tier_displine)
 
 
 class PreliminaryReviewSerializer(serializers.ModelSerializer):
@@ -288,9 +305,39 @@ class ProgrammeInvoiceSerializer(serializers.ModelSerializer):
         return response
 
 
+class DeskReviewInvoiceLineSerializer(serializers.ModelSerializer):
+    application = serializers.PrimaryKeyRelatedField(queryset=ProgramAccreditation.objects.all())
+    desk_review_fee = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'), max_value=Decimal('90909090.90'))
+
+    class Meta:
+        model = DeskReviewInvoiceLine
+        fields = ('application', 'application_number', 'programme_name', 'desk_review_fee')
+        read_only_fields = ('application_number', 'programme_name')
+
+
 class ProgrammeAssessmentInvoiceSerializer(serializers.ModelSerializer):
     '''Serializer for invoicing Programme Assessments'''
     can_manage = serializers.SerializerMethodField()
+    can_send = serializers.SerializerMethodField()
+    institution_id = serializers.PrimaryKeyRelatedField(source='institution', queryset=Institution.objects.all())
+    institution = serializers.CharField(source='institution.name', read_only=True)
+    lines = DeskReviewInvoiceLineSerializer(many=True, allow_empty=False)
+    outstanding_balance = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    verifications = serializers.SerializerMethodField()
+
+    def get_verifications(self, instance):
+        return [{
+            'verified_total': str(item.verified_total),
+            'verified_by': ' '.join(filter(None, [item.verified_by.first_name, item.verified_by.last_name])) or item.verified_by.username,
+            'verified_at': item.verified_at.isoformat(),
+            'payment_reference': item.payment_reference,
+            'payment_receipt': self.context['request'].build_absolute_uri(item.payment_receipt.url) if item.payment_receipt and self.context.get('request') else None,
+        } for item in instance.verifications.select_related('verified_by').all()]
+
+    def get_can_send(self, instance):
+        from .invoice_permissions import can_create_review_invoices
+        request = self.context.get('request')
+        return can_create_review_invoices(request.user if request else None)
 
     def get_can_manage(self, instance):
         from .invoice_permissions import can_manage_review_invoices
@@ -299,29 +346,67 @@ class ProgrammeAssessmentInvoiceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProgrammeAssessmentInvoice
-        fields = ('id','application','status','invoice_number','desk_review_fee','administrative_fee','invoice_date','grand_total','payment_date','cleared','payment_reference','payment_receipt','can_manage')
-        read_only_fields = ('status', 'invoice_number', 'administrative_fee', 'invoice_date', 'grand_total', 'payment_date', 'cleared', 'payment_reference', 'payment_receipt')
-        extra_kwargs = {
-            'desk_review_fee': {'required': True, 'min_value': Decimal('0.01'), 'max_value': Decimal('90909090.90')},
-        }
+        fields = ('id','institution_id','institution','lines','status','invoice_number','desk_review_fee','administrative_fee','invoice_date','grand_total','payment_date','cleared','payment_reference','payment_receipt','can_manage','can_send','verified_amount','outstanding_balance','verifications')
+        read_only_fields = ('status', 'invoice_number', 'desk_review_fee', 'administrative_fee', 'invoice_date', 'grand_total', 'payment_date', 'cleared', 'payment_reference', 'payment_receipt', 'verified_amount')
 
     def validate(self, attrs):
-        forbidden = set(self.initial_data) - {'application', 'desk_review_fee'}
+        forbidden = set(self.initial_data) - {'institution_id', 'lines'}
         if forbidden:
-            raise serializers.ValidationError('Only the desk review fee can be edited. Use the invoice actions to change its status or payment details.')
-        if self.instance and 'application' in attrs:
-            raise serializers.ValidationError({'application': 'An invoice cannot be moved to another application.'})
+            raise serializers.ValidationError('Only the institution and programme lines can be edited. Use invoice actions for payment details.')
+        institution = attrs.get('institution', getattr(self.instance, 'institution', None))
+        if self.instance and institution != self.instance.institution:
+            raise serializers.ValidationError({'institution_id': 'An invoice cannot be moved to another institution.'})
+        if 'lines' in attrs:
+            ids = [line['application'].pk for line in attrs['lines']]
+            if len(ids) != len(set(ids)):
+                raise serializers.ValidationError({'lines': 'Select each programme only once.'})
+            if any(line['application'].institution_id != institution.pk for line in attrs['lines']):
+                raise serializers.ValidationError({'lines': 'All programmes must belong to the selected institution.'})
+            total = sum(line['desk_review_fee'] for line in attrs['lines'])
+            if total > Decimal('90909090.90'):
+                raise serializers.ValidationError({'lines': 'The combined desk review fee exceeds the invoice amount limit.'})
         return attrs
+
+    def _save_lines(self, invoice, lines):
+        invoice.lines.all().delete()
+        DeskReviewInvoiceLine.objects.bulk_create([
+            DeskReviewInvoiceLine(invoice=invoice, application=line['application'],
+                application_number=line['application'].application_number,
+                programme_name=line['application'].programme_name, desk_review_fee=line['desk_review_fee'])
+            for line in lines
+        ])
+
+    def create(self, validated_data):
+        lines = validated_data.pop('lines')
+        invoice = ProgrammeAssessmentInvoice.objects.create(**validated_data,
+            desk_review_fee=sum(line['desk_review_fee'] for line in lines))
+        self._save_lines(invoice, lines)
+        return invoice
+
+    def update(self, instance, validated_data):
+        lines = validated_data.pop('lines', None)
+        if lines is not None:
+            self._save_lines(instance, lines)
+            instance.desk_review_fee = sum(line['desk_review_fee'] for line in lines)
+        instance.save()
+        return instance
 
     def to_representation(self, instance):
         '''Custom representation to include institution name and display choices'''
         response = super().to_representation(instance)
         response['status'] = instance.get_status_display() if instance.status else None
         response['invoice_date'] = instance.invoice_date.strftime('%d-%m-%Y') if instance.invoice_date else None
-        response['application'] = instance.application.application_number if instance.application else None
-        response['institution'] = instance.application.institution.name if instance.application and instance.application.institution else None
-        response['programme_name'] = instance.application.programme_name if instance.application  else None
+        response['application'] = ', '.join(line.application_number for line in instance.lines.all())
+        response['programme_count'] = instance.lines.count()
+        from .review_invoice_pdf import payment_details, amount_in_words
+        response['payment_instructions'] = payment_details()
+        response['amount_in_words'] = amount_in_words(instance.grand_total)
+        response['institution_address'] = instance.institution.postal_address or ''
         return response
+
+
+class ReviewInvoiceVerificationSerializer(serializers.Serializer):
+    verified_amount = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
 
 
 class ReviewInvoicePaymentSerializer(serializers.Serializer):

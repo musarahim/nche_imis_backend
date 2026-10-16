@@ -12,7 +12,8 @@ from unfold.paginator import InfinitePaginator
 
 from .models import (InvoiceItem, InvoiceItemType, PreliminaryReview, Program,
                      ProgramAccreditation, ProgrammeAssessment,
-                     ProgrammeAssessmentInvoice, ProgrammeInvoice)
+                     ProgrammeAssessmentInvoice, ProgrammeInvoice,
+                     DeskReviewInvoiceLine, DeskReviewPaymentVerification)
 
 
 @admin.register(ProgramAccreditation)
@@ -157,13 +158,43 @@ class ProgrammeAssessmentAdmin(ModelAdmin):
     list_per_page = 20
     list_max_show_all = 1000
 
+class DeskReviewInvoiceLineInline(TabularInline):
+    model = DeskReviewInvoiceLine
+    fields = ('application_number', 'programme_name', 'desk_review_fee')
+    readonly_fields = fields
+    extra = 0
+    can_delete = False
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+class DeskReviewPaymentVerificationInline(TabularInline):
+    model = DeskReviewPaymentVerification
+    fields = ('verified_total', 'verified_by', 'verified_at', 'payment_reference', 'payment_receipt', 'payment_date')
+    readonly_fields = fields
+    extra = 0
+    can_delete = False
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(ProgrammeAssessmentInvoice)
 class ProgrammeAssessmentInvoiceAdmin(ModelAdmin):
     '''Admin interface for Programme Assessment Invoices'''
-    list_display = ("application","invoice_number", "grand_total", "status", "invoice_date")
-    fields = ("application","desk_review_fee", "status", "payment_date", "cleared", "payment_reference", "payment_receipt")
-    search_fields = ("application__application_number", "invoice_number")
-    list_filter = ('status', 'application')
+    list_display = ("institution","invoice_number", "grand_total", "verified_amount", "status", "invoice_date")
+    fields = ("institution","desk_review_fee", "administrative_fee", "grand_total", "verified_amount", "status", "payment_date", "cleared", "payment_reference", "payment_receipt")
+    readonly_fields = fields
+    inlines = [DeskReviewInvoiceLineInline, DeskReviewPaymentVerificationInline]
+    search_fields = ("institution__name", "lines__application_number", "invoice_number")
+    list_filter = ('status', 'institution')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
     compressed_fields = False
     # Warn before leaving unsaved changes in changeform
     warn_unsaved_form = True  # Default: False

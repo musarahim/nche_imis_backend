@@ -14,8 +14,8 @@ from django.utils import timezone
 from institutions.models import Institution
 from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 
-from .models import PreliminaryReview, Program, ProgramAccreditation, ProgrammeAssessmentInvoice, ProgrammeInvoice
-from .views import ProgrammeAccreditationViewset, ProgrammeReviewersViewset
+from .models import PreliminaryReview, Program, ProgramAccreditation, ProgrammeAssessment, ProgrammeAssessmentInvoice, ProgrammeInvoice, DeskReviewInvoiceLine, DeskReviewPaymentVerification
+from .views import ProgrammeAccreditationViewset, ProgrammeReviewersViewset, ProgramAccessorViewset
 
 
 class SubmittedApplicationSearchTests(APITestCase):
@@ -313,11 +313,23 @@ class ReviewInvoiceWorkflowTests(APITestCase):
         self.application = ProgramAccreditation.objects.create(
             institution=self.institution, programme_name='Computing', program_level='degree', duration=6, status='reviewed',
         )
-        self.invoice = ProgrammeAssessmentInvoice.objects.create(application=self.application, desk_review_fee=Decimal('100.00'))
+        self.invoice = ProgrammeAssessmentInvoice.objects.create(institution=self.institution, desk_review_fee=Decimal('100.00'))
+        DeskReviewInvoiceLine.objects.create(invoice=self.invoice, application=self.application,
+            application_number=self.application.application_number, programme_name=self.application.programme_name,
+            desk_review_fee=Decimal('100.00'))
+        self.application.status = 'invoiced'
+        self.application.save(update_fields=['status'])
         self.url = f'/invoices/{self.invoice.pk}/'
 
     def authenticate(self, user):
         self.client.force_authenticate(user=user)
+
+    def invoice_data(self, fee='100.00'):
+        return {'institution_id': self.institution.pk, 'lines': [{'application': self.application.pk, 'desk_review_fee': fee}]}
+
+    def acknowledge(self):
+        amount = ProgrammeAssessmentInvoice.objects.get(pk=self.invoice.pk).grand_total
+        return self.client.post(self.url + 'reconcile-invoice/', {'verified_amount': str(amount)}, format='json')
 
     def payment(self, **overrides):
         return {
@@ -328,13 +340,13 @@ class ReviewInvoiceWorkflowTests(APITestCase):
         }
 
     def issue(self):
-        self.authenticate(self.accounts)
+        self.authenticate(self.head)
         response = self.client.post(self.url + 'send-invoice/')
         self.assertEqual(response.status_code, 200, response.data)
 
     def test_full_workflow_recalculates_notifies_and_acknowledges(self):
-        self.authenticate(self.accounts)
-        response = self.client.patch(self.url, {'desk_review_fee': '250.00'})
+        self.authenticate(self.head)
+        response = self.client.patch(self.url, {'lines': self.invoice_data('250.00')['lines']}, format='json')
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.data['administrative_fee'], '25.00')
         self.assertEqual(response.data['grand_total'], '275.00')
@@ -351,7 +363,7 @@ class ReviewInvoiceWorkflowTests(APITestCase):
         self.assertIn('accounts@example.test', mail.outbox[-1].to)
         self.assertNotIn('head@example.test', mail.outbox[-1].to)
         self.authenticate(self.accounts)
-        response = self.client.post(self.url + 'reconcile-invoice/')
+        response = self.acknowledge()
         self.assertEqual(response.status_code, 200, response.data)
         self.assertTrue(response.data['cleared'])
         self.assertEqual(response.data['status'], 'Reconciled')
@@ -370,13 +382,15 @@ class ReviewInvoiceWorkflowTests(APITestCase):
         self.authenticate(self.head)
         self.assertEqual(self.client.get(ready_url).data['count'], 0)
         self.head.user_permissions.add(Permission.objects.get(codename='can_assign_assessors'))
+        self.head = User.objects.get(pk=self.head.pk)
+        self.authenticate(self.head)
         assessor = User.objects.create_user('assessor', 'assessor@example.test', is_active=True)
         assessor.groups.add(Group.objects.create(name='Programme Assessors'))
         self.assertEqual(self.client.post('/programme-accreditation/assign-assessor/', {
             'userId': assessor.pk, 'applications': [self.application.pk],
         }, format='json').status_code, 400)
         self.authenticate(self.accounts)
-        self.assertEqual(self.client.post(self.url + 'reconcile-invoice/').status_code, 200)
+        self.assertEqual(self.acknowledge().status_code, 200)
         self.authenticate(self.head)
         response = self.client.get(ready_url)
         self.assertEqual(response.data['count'], 1)
@@ -392,7 +406,7 @@ class ReviewInvoiceWorkflowTests(APITestCase):
         self.assertEqual(self.application.status, 'under_assessment')
         self.assertEqual(self.client.get(ready_url).data['count'], 0)
 
-    def test_cleared_programme_invoice_becomes_ready_for_assessment(self):
+    def test_cleared_visit_invoice_does_not_unlock_desk_review_assessment(self):
         invoice = ProgrammeInvoice.objects.create(
             application=self.application, status='paid', cleared=False,
             grand_total=Decimal('100.00'), payment_reference='BANK-456',
@@ -409,8 +423,7 @@ class ReviewInvoiceWorkflowTests(APITestCase):
         self.assertEqual(self.client.post(f'/programme-invoices/{invoice.pk}/reconcile-invoice/').status_code, 200)
         self.authenticate(self.head)
         response = self.client.get(ready_url)
-        self.assertEqual(response.data['count'], 1)
-        self.assertEqual(response.data['results'][0]['id'], self.application.pk)
+        self.assertEqual(response.data['count'], 0)
         self.application.refresh_from_db()
         self.assertTrue(self.application.is_paid)
 
@@ -429,7 +442,7 @@ class ReviewInvoiceWorkflowTests(APITestCase):
         self.authenticate(self.owner)
         self.assertEqual(self.client.patch(self.url, {'desk_review_fee': '1.00'}).status_code, 403)
         self.assertEqual(self.client.post(self.url + 'send-invoice/').status_code, 403)
-        self.assertEqual(self.client.post(self.url + 'reconcile-invoice/').status_code, 403)
+        self.assertEqual(self.acknowledge().status_code, 403)
         self.assertEqual(self.client.delete(self.url).status_code, 405)
         self.assertEqual(self.client.post('/invoices/', {'application': self.application.pk, 'desk_review_fee': '1.00'}).status_code, 403)
 
@@ -437,49 +450,66 @@ class ReviewInvoiceWorkflowTests(APITestCase):
         self.assertEqual(self.client.get('/invoices/').status_code, 401)
         self.assertEqual(self.client.post(self.url + 'send-invoice/').status_code, 401)
 
-    def test_head_can_create_but_cannot_issue_or_edit(self):
+    def test_head_can_create_edit_and_send_but_cannot_approve_payment(self):
         self.invoice.delete()
+        self.application.status = 'reviewed'
+        self.application.save(update_fields=['status'])
         self.authenticate(self.head)
-        response = self.client.post('/invoices/', {'application': self.application.pk, 'desk_review_fee': '100.00'})
+        response = self.client.post('/invoices/', self.invoice_data(), format='json')
         self.assertEqual(response.status_code, 201, response.data)
         self.assertEqual(response.data['status'], 'Draft')
         self.assertFalse(response.data['can_manage'])
+        self.assertTrue(response.data['can_send'])
         url = f'/invoices/{response.data["id"]}/'
-        self.assertEqual(self.client.post(url + 'send-invoice/').status_code, 403)
-        self.assertEqual(self.client.patch(url, {'desk_review_fee': '200.00'}).status_code, 403)
-        self.assertEqual(self.client.post('/invoices/', {'application': self.application.pk, 'desk_review_fee': '100.00'}).status_code, 400)
-
-    def test_accounts_permission_also_allows_management(self):
-        self.head.user_permissions.add(Permission.objects.get(codename='can_manage_invoices'))
+        self.assertEqual(self.client.patch(url, {'lines': self.invoice_data('200.00')['lines']}, format='json').status_code, 200)
+        self.assertEqual(self.client.post(url + 'send-invoice/').status_code, 200)
+        self.authenticate(self.owner)
+        self.assertEqual(self.client.post(url + 'add-payment-details/', self.payment(), format='multipart').status_code, 200)
         self.authenticate(self.head)
-        response = self.client.patch(self.url, {'desk_review_fee': '200.00'})
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.client.post(url + 'reconcile-invoice/').status_code, 403)
+        self.assertEqual(self.client.post('/invoices/', self.invoice_data(), format='json').status_code, 400)
+
+    def test_accounts_can_only_approve_payments_even_with_invoice_permissions(self):
+        self.accounts.user_permissions.add(*Permission.objects.filter(codename__in=[
+            'can_manage_invoices', 'add_programmeassessmentinvoice', 'change_programmeassessmentinvoice',
+        ]))
+        self.authenticate(self.accounts)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200, response.data)
         self.assertTrue(response.data['can_manage'])
+        self.assertFalse(response.data['can_send'])
+        self.assertEqual(self.client.patch(self.url, {'desk_review_fee': '200.00'}).status_code, 403)
+        self.assertEqual(self.client.post(self.url + 'send-invoice/').status_code, 403)
+        self.assertEqual(self.client.post('/invoices/', {'application': self.application.pk, 'desk_review_fee': '100.00'}).status_code, 403)
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, 'draft')
+        self.assertEqual(len(mail.outbox), 0)
 
     def test_cannot_bypass_actions_or_change_application(self):
-        self.authenticate(self.accounts)
+        self.authenticate(self.head)
         for data in [{'status': 'reconciled'}, {'cleared': True}, {'grand_total': '1.00'}, {'application': self.application.pk}, {'payment_reference': 'fake'}]:
             with self.subTest(data=data):
                 self.assertEqual(self.client.patch(self.url, data).status_code, 400)
 
     def test_invalid_fees_rejected(self):
-        self.authenticate(self.accounts)
+        self.authenticate(self.head)
         for fee in ['0', '-1', 'NaN', '90909090.91', '12.345']:
             with self.subTest(fee=fee):
-                self.assertEqual(self.client.patch(self.url, {'desk_review_fee': fee}).status_code, 400)
+                self.assertEqual(self.client.patch(self.url, {'lines': self.invoice_data(fee)['lines']}, format='json').status_code, 400)
 
     def test_issued_invoice_locked_and_transitions_cannot_repeat(self):
         self.issue()
         self.assertEqual(self.client.patch(self.url, {'desk_review_fee': '200.00'}).status_code, 400)
         self.assertEqual(self.client.post(self.url + 'send-invoice/').status_code, 400)
-        self.assertEqual(self.client.post(self.url + 'reconcile-invoice/').status_code, 400)
+        self.authenticate(self.accounts)
+        self.assertEqual(self.acknowledge().status_code, 400)
         self.assertEqual(self.client.post(self.url + 'add-payment-details/', self.payment(), format='multipart').status_code, 403)
         self.authenticate(self.owner)
         self.assertEqual(self.client.post(self.url + 'add-payment-details/', self.payment(), format='multipart').status_code, 200)
         self.assertEqual(self.client.post(self.url + 'add-payment-details/', self.payment(), format='multipart').status_code, 400)
         self.authenticate(self.accounts)
-        self.assertEqual(self.client.post(self.url + 'reconcile-invoice/').status_code, 200)
-        self.assertEqual(self.client.post(self.url + 'reconcile-invoice/').status_code, 400)
+        self.assertEqual(self.acknowledge().status_code, 200)
+        self.assertEqual(self.acknowledge().status_code, 400)
 
     def test_payment_validation(self):
         self.issue()
@@ -499,7 +529,7 @@ class ReviewInvoiceWorkflowTests(APITestCase):
         self.assertEqual(self.invoice.status, 'issued')
 
     def test_email_failure_does_not_advance_invoice(self):
-        self.authenticate(self.accounts)
+        self.authenticate(self.head)
         with patch('programmes.review_invoice_views.EmailMessage.send', side_effect=SMTPException('offline')):
             self.assertEqual(self.client.post(self.url + 'send-invoice/').status_code, 503)
         self.invoice.refresh_from_db()
@@ -511,3 +541,284 @@ class ReviewInvoiceWorkflowTests(APITestCase):
         self.invoice.refresh_from_db()
         self.assertEqual(self.invoice.status, 'issued')
         self.assertFalse(self.invoice.payment_receipt)
+
+    def create_grouped_invoice(self):
+        self.invoice.delete()
+        self.application.status = 'reviewed'
+        self.application.save(update_fields=['status'])
+        second = ProgramAccreditation.objects.create(institution=self.institution, programme_name='Business',
+            program_level='degree', duration=6, status='reviewed')
+        self.authenticate(self.head)
+        response = self.client.post('/invoices/', {'institution_id': self.institution.pk, 'lines': [
+            {'application': self.application.pk, 'desk_review_fee': '100.00'},
+            {'application': second.pk, 'desk_review_fee': '200.00'},
+        ]}, format='json')
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data['grand_total'], '330.00')
+        self.assertEqual(response.data['programme_count'], 2)
+        self.invoice = ProgrammeAssessmentInvoice.objects.get(pk=response.data['id'])
+        self.url = f'/invoices/{self.invoice.pk}/'
+        return second
+
+    def test_grouped_invoice_partial_payment_blocks_every_programme_until_fully_verified(self):
+        second = self.create_grouped_invoice()
+        self.issue()
+        self.authenticate(self.owner)
+        self.assertEqual(self.client.post(self.url + 'add-payment-details/', self.payment(), format='multipart').status_code, 200)
+        self.authenticate(self.accounts)
+        response = self.client.post(self.url + 'reconcile-invoice/', {'verified_amount': '100.00'}, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertFalse(response.data['cleared'])
+        self.assertEqual(response.data['outstanding_balance'], '230.00')
+        self.assertEqual(response.data['verifications'][0]['verified_by'], 'accounts')
+        self.assertFalse(ProgramAccreditation.objects.filter(pk__in=[self.application.pk, second.pk], is_paid=True).exists())
+        self.authenticate(self.head)
+        self.head.user_permissions.add(Permission.objects.get(codename='can_assign_assessors'))
+        self.head = User.objects.get(pk=self.head.pk)
+        self.authenticate(self.head)
+        assessor = User.objects.create_user('batch-assessor', 'batch@example.test', is_active=True)
+        assessor.groups.add(Group.objects.create(name='Programme Assessors'))
+        payload = {'userId': assessor.pk, 'applications': [self.application.pk, second.pk]}
+        self.assertEqual(self.client.get('/programme-accreditation/ready-for-assessment/').data['count'], 0)
+        response = self.client.post('/programme-accreditation/assign-assessor/', payload, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(len(response.data['blocked_programmes']), 2)
+        self.authenticate(self.accounts)
+        self.assertEqual(self.acknowledge().status_code, 200)
+        self.assertEqual(DeskReviewPaymentVerification.objects.filter(invoice=self.invoice).count(), 2)
+        self.authenticate(self.head)
+        self.assertEqual(self.client.get('/programme-accreditation/ready-for-assessment/').data['count'], 2)
+        self.assertEqual(self.client.post('/programme-accreditation/assign-assessor/', payload, format='json').status_code, 200)
+        self.assertEqual(ProgramAccreditation.objects.filter(pk__in=payload['applications'], assessor=assessor, status='under_assessment').count(), 2)
+
+    def test_grouped_invoice_rejects_foreign_duplicate_unready_and_already_invoiced_programmes(self):
+        second = self.create_grouped_invoice()
+        foreign = ProgramAccreditation.objects.create(institution=self.other.institution, programme_name='Foreign', program_level='degree', duration=6, status='reviewed')
+        for lines in [
+            [{'application': foreign.pk, 'desk_review_fee': '100.00'}],
+            self.invoice_data()['lines'] * 2,
+            [{'application': second.pk, 'desk_review_fee': '100.00'}],
+            [],
+        ]:
+            with self.subTest(lines=lines):
+                self.assertEqual(self.client.post('/invoices/', {'institution_id': self.institution.pk, 'lines': lines}, format='json').status_code, 400)
+        foreign.institution = self.institution
+        foreign.status = 'submitted'
+        foreign.save()
+        self.assertEqual(self.client.post('/invoices/', {'institution_id': self.institution.pk,
+            'lines': [{'application': foreign.pk, 'desk_review_fee': '100.00'}]}, format='json').status_code, 400)
+
+    def test_draft_lines_edit_totals_and_issued_lines_are_locked(self):
+        second = self.create_grouped_invoice()
+        response = self.client.patch(self.url, {'lines': [{'application': second.pk, 'desk_review_fee': '50.05'}]}, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['grand_total'], '55.05')
+        self.application.refresh_from_db()
+        self.assertEqual(self.application.status, 'reviewed')
+        self.issue()
+        self.assertEqual(self.client.patch(self.url, {'lines': self.invoice_data()['lines']}, format='json').status_code, 400)
+        self.assertEqual(self.invoice.lines.get().application_id, second.pk)
+
+    def test_verification_requires_valid_cumulative_amount_and_rolls_back_on_email_failure(self):
+        self.issue()
+        self.authenticate(self.owner)
+        self.client.post(self.url + 'add-payment-details/', self.payment(), format='multipart')
+        self.authenticate(self.accounts)
+        for payload in [{}, {'verified_amount': '111'}, {'verified_amount': 'NaN'}, {'verified_amount': '0'}, {'verified_amount': '-1'}, {'verified_amount': '2.345'}]:
+            self.assertEqual(self.client.post(self.url + 'reconcile-invoice/', payload, format='json').status_code, 400)
+        with patch('programmes.review_invoice_views.EmailMessage.send', side_effect=SMTPException('offline')):
+            self.assertEqual(self.acknowledge().status_code, 503)
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.verified_amount, 0)
+        self.assertFalse(self.invoice.verifications.exists())
+        self.assertEqual(self.client.post(self.url + 'reconcile-invoice/', {'verified_amount': '50.00'}, format='json').status_code, 200)
+        self.assertEqual(self.client.post(self.url + 'reconcile-invoice/', {'verified_amount': '50.00'}, format='json').status_code, 400)
+
+    def test_institution_options_and_pdf_access_follow_permissions(self):
+        self.authenticate(self.accounts)
+        self.assertFalse(self.client.get('/invoices/creation-options/').data['can_create'])
+        self.assertEqual(self.client.get('/invoices/available-programmes/', {'institution_id': self.institution.pk}).status_code, 403)
+        self.authenticate(self.head)
+        self.assertTrue(self.client.get('/invoices/creation-options/').data['can_create'])
+        self.assertEqual(self.client.get('/invoices/available-programmes/', {'institution_id': self.institution.pk}).data, [])
+        self.authenticate(self.owner)
+        self.assertEqual(self.client.get(self.url + 'pdf/').status_code, 404)
+        self.issue()
+        self.authenticate(self.owner)
+        response = self.client.get(self.url + 'pdf/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertTrue(b''.join(response.streaming_content).startswith(b'%PDF-'))
+        self.authenticate(self.other)
+        self.assertEqual(self.client.get(self.url + 'pdf/').status_code, 404)
+
+    def test_institution_dropdown_contains_only_institutions_with_available_reviewed_programmes(self):
+        reviewed = ProgramAccreditation.objects.create(institution=self.other.institution,
+            programme_name='Reviewed Business', program_level='degree', duration=6, status='reviewed')
+        another = ProgramAccreditation.objects.create(institution=self.other.institution,
+            programme_name='Reviewed Computing', program_level='degree', duration=6, status='reviewed')
+        ProgramAccreditation.objects.create(institution=self.other.institution,
+            programme_name='Unreviewed Programme', program_level='degree', duration=6, status='submitted')
+        accounting = ProgramAccreditation.objects.create(institution=self.institution,
+            programme_name='Accounting Stage', program_level='degree', duration=6, status='progressed_to_accounting')
+        empty_owner = User.objects.create_user('no-programmes', 'empty@example.test', is_active=True)
+        Institution.objects.create(user=empty_owner, name='No Programmes', district=self.institution.district)
+        self.authenticate(self.head)
+        response = self.client.get('/invoices/creation-options/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['institutions'], [{'id': self.other.institution.pk, 'name': self.other.institution.name}])
+        available = self.client.get('/invoices/available-programmes/', {'institution_id': self.other.institution.pk})
+        self.assertEqual({item['id'] for item in available.data}, {reviewed.pk, another.pk})
+        self.assertEqual(self.client.post('/invoices/', {'institution_id': self.institution.pk,
+            'lines': [{'application': accounting.pk, 'desk_review_fee': '100.00'}]}, format='json').status_code, 400)
+        response = self.client.post('/invoices/', {'institution_id': self.other.institution.pk,
+            'lines': [{'application': app.pk, 'desk_review_fee': '100.00'} for app in [reviewed, another]]}, format='json')
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(self.client.get('/invoices/creation-options/').data['institutions'], [])
+
+    def test_mixed_paid_and_unpaid_selection_does_not_assign_any_programme(self):
+        second = self.create_grouped_invoice()
+        self.issue()
+        self.authenticate(self.owner)
+        self.client.post(self.url + 'add-payment-details/', self.payment(), format='multipart')
+        self.authenticate(self.accounts)
+        self.assertEqual(self.acknowledge().status_code, 200)
+        unpaid = ProgramAccreditation.objects.create(institution=self.institution, programme_name='Unpaid Education',
+            program_level='degree', duration=6, status='invoice_reconciled', is_paid=True)
+        self.head.user_permissions.add(Permission.objects.get(codename='can_assign_assessors'))
+        self.head = User.objects.get(pk=self.head.pk)
+        self.authenticate(self.head)
+        assessor = User.objects.create_user('mixed-assessor', 'mixed@example.test', is_active=True)
+        assessor.groups.add(Group.objects.create(name='Programme Assessors'))
+        response = self.client.post('/programme-accreditation/assign-assessor/', {
+            'userId': assessor.pk, 'applications': [self.application.pk, second.pk, unpaid.pk],
+        }, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(len(response.data['blocked_programmes']), 1)
+        self.assertFalse(ProgramAccreditation.objects.filter(assessor=assessor).exists())
+
+    def test_partial_payment_follow_up_preserves_verified_receipt_history(self):
+        self.issue()
+        self.authenticate(self.owner)
+        self.client.post(self.url + 'add-payment-details/', self.payment(), format='multipart')
+        self.authenticate(self.accounts)
+        self.assertEqual(self.client.post(self.url + 'reconcile-invoice/', {'verified_amount': '50.00'}, format='json').status_code, 200)
+        previous_receipt = self.invoice.verifications.get().payment_receipt.name
+        self.authenticate(self.owner)
+        self.assertEqual(self.client.post(self.url + 'add-payment-details/', self.payment(payment_reference='TOPUP-456'), format='multipart').status_code, 200)
+        self.authenticate(self.accounts)
+        self.assertEqual(self.acknowledge().status_code, 200)
+        history = list(self.invoice.verifications.all())
+        self.assertEqual(history[0].payment_receipt.name, previous_receipt)
+        self.assertEqual(history[0].payment_reference, 'BANK-123')
+        self.assertEqual(history[1].payment_reference, 'TOPUP-456')
+        self.assertNotEqual(history[1].payment_receipt.name, previous_receipt)
+
+
+@override_settings(ROOT_URLCONF='programmes.test_urls')
+class AssessorAssignmentFilterTests(APITestCase):
+    def setUp(self):
+        self.head = User.objects.create_user('filter-head', 'filter-head@example.test', is_active=True)
+        self.head.groups.add(Group.objects.create(name='Head Programme Accreditation'))
+        self.reviewer = User.objects.create_user('filter-reviewer', 'filter-reviewer@example.test', is_active=True)
+        self.reviewer.groups.add(Group.objects.create(name='Programme Reviewers'))
+        district = District.objects.create(name='Assessor Filter District')
+        self.owner = User.objects.create_user('filter-institution-owner', 'filter-owner@example.test', is_active=True)
+        self.institution = Institution.objects.create(user=self.owner, name='Filter University', district=district)
+        other_owner = User.objects.create_user('other-filter-owner', 'other-filter@example.test', is_active=True)
+        self.other_institution = Institution.objects.create(user=other_owner, name='Other Filter University', district=district)
+        self.computing = self.programme('Computing', self.institution, 'stem', 'computing')
+        self.business = self.programme('Business', self.other_institution, 'humanities', 'business')
+        self.computing.preliminary_reviewer = self.reviewer
+        self.computing.save(update_fields=['preliminary_reviewer'])
+        self.client.force_authenticate(self.head)
+
+    def programme(self, name, institution, category, tier, cleared=True):
+        app = ProgramAccreditation.objects.create(institution=institution, programme_name=name,
+            program_level='bachelor', duration=6, programme_category=category, status='invoice_reconciled', is_paid=True)
+        invoice = ProgrammeAssessmentInvoice.objects.create(institution=institution, desk_review_fee=Decimal('100.00'),
+            status='reconciled' if cleared else 'paid', cleared=cleared, verified_amount=Decimal('110.00') if cleared else 0)
+        DeskReviewInvoiceLine.objects.create(invoice=invoice, application=app, programme_name=name,
+            application_number=app.application_number, desk_review_fee=Decimal('100.00'))
+        PreliminaryReview.objects.create(application=app, reviewer=self.reviewer, tier_displine=tier)
+        return app
+
+    def test_combines_search_institution_category_and_tier_before_pagination(self):
+        response = self.client.get('/programme-accreditation/ready-for-assessment/', {
+            'search': 'Computing', 'institution': self.institution.pk, 'programme_category': 'stem', 'tier_displine': 'computing',
+        })
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], self.computing.pk)
+        self.assertEqual(response.data['results'][0]['tier_displine'], 'computing')
+        self.assertEqual(response.data['results'][0]['tier_displine_display'], 'Computing')
+        self.assertEqual(self.client.get('/programme-accreditation/ready-for-assessment/', {
+            'institution': self.institution.pk, 'tier_displine': 'business',
+        }).data['count'], 0)
+        self.assertEqual(self.client.get('/programme-accreditation/ready-for-assessment/', {'search': 'unmatched'}).data['count'], 0)
+
+    def test_tier_uses_latest_preliminary_review_without_duplicate_results(self):
+        latest = PreliminaryReview.objects.create(application=self.computing, reviewer=self.reviewer, tier_displine='business')
+        # Equal timestamps still resolve deterministically to the most recent ID.
+        PreliminaryReview.objects.filter(application=self.computing).update(reviewed_at=latest.reviewed_at)
+        response = self.client.get('/programme-accreditation/ready-for-assessment/', {'tier_displine': 'business'})
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual({row['id'] for row in response.data['results']}, {self.computing.pk, self.business.pk})
+        self.assertEqual(self.client.get('/programme-accreditation/ready-for-assessment/', {'tier_displine': 'computing'}).data['count'], 0)
+
+    def test_filter_options_are_scoped_and_filters_do_not_unlock_unpaid_programmes(self):
+        self.programme('Unpaid Computing', self.institution, 'stem', 'computing', cleared=False)
+        response = self.client.get('/programme-accreditation/ready-for-assessment/', {'tier_displine': 'computing'})
+        self.assertEqual(response.data['count'], 1)
+        self.client.force_authenticate(self.reviewer)
+        response = self.client.get('/programme-accreditation/assessment-application-filter-options/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['institutions'], [{'id': self.institution.pk, 'name': self.institution.name}])
+        self.assertEqual(response.data['tier_disciplines'], [{'value': value, 'label': label} for value, label in PreliminaryReview.DISPLINE_CHOICE])
+        self.assertEqual(self.client.get('/programme-accreditation/ready-for-assessment/', {'institution': self.other_institution.pk}).data['count'], 0)
+        self.client.force_authenticate(self.owner)
+        self.assertEqual(self.client.get('/programme-accreditation/assessment-application-filter-options/').data['institutions'], [])
+
+    def test_invalid_filters_return_errors_and_unclassified_programmes_remain_visible(self):
+        for filters in [{'institution': 'invalid'}, {'programme_category': 'invalid'}, {'tier_displine': 'invalid'}]:
+            self.assertEqual(self.client.get('/programme-accreditation/ready-for-assessment/', filters).status_code, 400)
+        PreliminaryReview.objects.filter(application=self.computing).delete()
+        response = self.client.get('/programme-accreditation/ready-for-assessment/')
+        row = next(row for row in response.data['results'] if row['id'] == self.computing.pk)
+        self.assertIsNone(row['tier_displine'])
+        self.assertIsNone(row['tier_displine_display'])
+
+
+class ProgrammeAssessorWorkloadTests(APITestCase):
+    def setUp(self):
+        self.busy = User.objects.create_user('busy-assessor', 'busy-assessor@example.test', is_active=True)
+        self.idle = User.objects.create_user('idle-assessor', 'idle-assessor@example.test', is_active=True)
+        group = Group.objects.create(name='Programme Assessors')
+        self.busy.groups.add(group)
+        self.idle.groups.add(group)
+        owner = User.objects.create_user('workload-assessor-owner', 'assessor-owner@example.test', is_active=True)
+        district = District.objects.create(name='Assessor Workload District')
+        institution = Institution.objects.create(user=owner, name='Assessor Workload University', district=district)
+        self.pending = ProgramAccreditation.objects.create(institution=institution, programme_name='Pending', program_level='bachelor', duration=6, assessor=self.busy)
+        completed = ProgramAccreditation.objects.create(institution=institution, programme_name='Completed', program_level='bachelor', duration=6, assessor=self.busy)
+        # An assessment by a different assessor must not clear the current workload.
+        ProgrammeAssessment.objects.create(application=self.pending, assessor=self.idle)
+        ProgrammeAssessment.objects.create(application=completed, assessor=self.busy)
+
+    def workloads(self, user):
+        request = APIRequestFactory().get('/programme-assessors/')
+        if user:
+            force_authenticate(request, user)
+        return ProgramAccessorViewset.as_view({'get': 'list'})(request)
+
+    def test_workload_counts_only_applications_without_assigned_assessors_assessment(self):
+        response = self.workloads(self.busy)
+        self.assertEqual(response.status_code, 200, response.data)
+        counts = {item['id']: item['assigned_application_count'] for item in response.data}
+        self.assertEqual(counts, {self.busy.pk: 1, self.idle.pk: 0})
+        ProgrammeAssessment.objects.create(application=self.pending, assessor=self.busy)
+        counts = {item['id']: item['assigned_application_count'] for item in self.workloads(self.busy).data}
+        self.assertEqual(counts[self.busy.pk], 0)
+
+    def test_workloads_require_authentication(self):
+        self.assertEqual(self.workloads(None).status_code, 401)
