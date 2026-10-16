@@ -328,7 +328,7 @@ UNFOLD = {
             "permission": lambda request: request.user.is_superuser,
             "items": [
                 {
-                    "title": _("Program Applications"),
+                    "title": _("Programme Applications"),
                     "link": reverse_lazy("admin:programmes_programaccreditation_changelist"),
                     "permission": lambda request: request.user.is_superuser,
                     "icon": "rule_settings",

@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_EVEN
 
 from accounts.models import User
 from common.choices import PROGRAMME_LEVELS, YES_NO_CHOICES
@@ -412,7 +412,7 @@ class ProgrammeAssessmentInvoice(models.Model):
         ('reconciled', 'Reconciled'),
         ('cancelled', 'Cancelled'),
     )
-    application = models.ForeignKey(ProgramAccreditation, on_delete=models.CASCADE, related_name='assessment_invoices')
+    institution = models.ForeignKey(Institution, on_delete=models.PROTECT, related_name='desk_review_invoices')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     #Invoice Number for example 052/PROG/2026
     invoice_number = models.CharField(max_length=100, unique=True, blank=True)
@@ -425,6 +425,11 @@ class ProgrammeAssessmentInvoice(models.Model):
     cleared = models.BooleanField(default=False)
     payment_reference = models.CharField(max_length=255, blank=True, null=True)
     payment_receipt = models.FileField(upload_to='assessment_invoices/', blank=True, null=True)
+    verified_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    @property
+    def outstanding_balance(self):
+        return max(self.grand_total - self.verified_amount, Decimal('0.00'))
 
     class Meta:
         '''Model to represent invoice details for programme accreditation desk review.'''
@@ -457,7 +462,7 @@ class ProgrammeAssessmentInvoice(models.Model):
         return f"{next_sequence:03d}/PROG/{year}"
     
     def save(self, *args, **kwargs):
-        self.administrative_fee = (self.desk_review_fee * Decimal("0.10")).quantize(Decimal('0.01'))
+        self.administrative_fee = (self.desk_review_fee * Decimal("0.10")).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
         self.grand_total = self.desk_review_fee + self.administrative_fee
         if not self.invoice_number:
             self.invoice_number = self._generate_invoice_number()
@@ -466,4 +471,29 @@ class ProgrammeAssessmentInvoice(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Invoice {self.invoice_number} - {self.application.application_number} - {self.status}"
+        return f"Invoice {self.invoice_number} - {self.institution.name} - {self.status}"
+
+
+class DeskReviewInvoiceLine(models.Model):
+    invoice = models.ForeignKey(ProgrammeAssessmentInvoice, on_delete=models.CASCADE, related_name='lines')
+    application = models.ForeignKey(ProgramAccreditation, on_delete=models.PROTECT, related_name='desk_review_invoice_lines')
+    application_number = models.CharField(max_length=100)
+    programme_name = models.CharField(max_length=255)
+    desk_review_fee = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        ordering = ['pk']
+        constraints = [models.UniqueConstraint(fields=['invoice', 'application'], name='unique_desk_review_invoice_programme')]
+
+
+class DeskReviewPaymentVerification(models.Model):
+    invoice = models.ForeignKey(ProgrammeAssessmentInvoice, on_delete=models.CASCADE, related_name='verifications')
+    verified_total = models.DecimalField(max_digits=10, decimal_places=2)
+    verified_by = models.ForeignKey(User, on_delete=models.PROTECT)
+    verified_at = models.DateTimeField(auto_now_add=True)
+    payment_reference = models.CharField(max_length=255)
+    payment_receipt = models.FileField(upload_to='assessment_invoices/', blank=True)
+    payment_date = models.DateField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['verified_at', 'pk']

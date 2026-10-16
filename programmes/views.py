@@ -4,7 +4,7 @@ from accounts.models import User
 from accounts.serializers import UserReviewerSerializer
 from django.core.mail import EmailMessage
 from django.db import transaction
-from django.db.models import Count, F, Q
+from django.db.models import Count, Exists, F, OuterRef, Q, Subquery
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -16,17 +16,20 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from .invoice_permissions import can_manage_review_invoices
-from .models import (InvoiceItemType, PreliminaryReview, Program,
-                     ProgramAccreditation, ProgrammeAssessment,
+from .models import (DeskReviewInvoiceLine, InvoiceItemType, PreliminaryReview,
+                     Program, ProgramAccreditation, ProgrammeAssessment,
                      ProgrammeAssessmentInvoice, ProgrammeInvoice)
 from .review_invoice_views import ProgrammeAssessmentInvoiceViewset
-from .serializers import (InvoiceItemSerializer, InvoiceItemTypeSerializer,
+from .serializers import (AssessorAssignmentApplicationSerializer,
+                          InvoiceItemSerializer, InvoiceItemTypeSerializer,
                           PreliminaryReviewSerializer,
                           ProgrammeAccreditationSerializer,
                           ProgrammeAssessmentInvoiceSerializer,
                           ProgrammeAssessmentSerializer,
-                          ProgrammeInvoiceSerializer, ProgramSerializer,
-                          ProgressedToDirectorateSerializer, ProgrammeReviewerWorkloadSerializer)
+                          ProgrammeAssessorWorkloadSerializer,
+                          ProgrammeInvoiceSerializer,
+                          ProgrammeReviewerWorkloadSerializer,
+                          ProgramSerializer, ProgressedToDirectorateSerializer)
 
 
 # Create your views here.
@@ -39,13 +42,20 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
     search_fields = ['application_number','programme_name','program_level','status','institution__name']
     parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
 
+    def get_serializer_class(self):
+        if self.action == 'ready_for_assessment':
+            return AssessorAssignmentApplicationSerializer
+        return super().get_serializer_class()
+
     @staticmethod
     def _ready_for_assessment_queryset():
-        """Applications whose programme or desk-review payment was cleared by accounts."""
-        return ProgramAccreditation.objects.filter(status='invoice_reconciled').filter(
-            Q(programme_invoices__status='reconciled', programme_invoices__cleared=True)
-            | Q(assessment_invoices__status='reconciled', assessment_invoices__cleared=True)
-        ).distinct()
+        """Only fully verified desk-review invoices unlock assessor assignment."""
+        active = DeskReviewInvoiceLine.objects.filter(application_id=OuterRef('pk')).exclude(invoice__status='cancelled')
+        unpaid = active.exclude(invoice__status='reconciled', invoice__cleared=True,
+            invoice__verified_amount__gte=F('invoice__grand_total'))
+        return ProgramAccreditation.objects.filter(status='invoice_reconciled').annotate(
+            has_desk_invoice=Exists(active), has_unpaid_desk_invoice=Exists(unpaid),
+        ).filter(has_desk_invoice=True, has_unpaid_desk_invoice=False)
 
     def get_queryset(self):
         '''Scope applications to the institution or assigned review staff.'''
@@ -320,7 +330,16 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
             applications = list(ProgramAccreditation.objects.select_for_update().filter(pk__in=requested_ids))
             ready_ids = set(self._ready_for_assessment_queryset().filter(pk__in=requested_ids).values_list('pk', flat=True))
             if ready_ids != requested_ids:
-                raise ValidationError({'applications': 'Only paid and reconciled applications can be assigned.'})
+                blocked = [{
+                    'id': app.pk, 'programme_name': app.programme_name,
+                    'application_number': app.application_number,
+                    'invoices': [{'invoice_number': line.invoice.invoice_number,
+                        'status': line.invoice.get_status_display(),
+                        'outstanding_balance': str(line.invoice.outstanding_balance)}
+                        for line in app.desk_review_invoice_lines.select_related('invoice').exclude(invoice__status='cancelled')],
+                } for app in applications if app.pk not in ready_ids]
+                raise ValidationError({'detail': 'Every selected programme must have its desk review invoice fully verified by Accounts.',
+                    'blocked_programmes': blocked, 'missing_application_ids': sorted(requested_ids - {app.pk for app in applications})})
             for application in applications:
                 application.assessor = assessor
                 application.status = 'under_assessment'
@@ -330,11 +349,7 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
         return Response({'message': f'{len(applications)} applications assigned to assessor {assessor.username}.'}, status=status.HTTP_200_OK)
     
     
-    @action(detail=False, methods=['get'], url_path='ready-for-assessment')
-    def ready_for_assessment(self, request, pk=None):
-        """
-        applications ready for assessment.
-        """
+    def _assessment_assignment_queryset(self):
         queryset = self._ready_for_assessment_queryset()
 
         if (
@@ -351,6 +366,44 @@ class ProgrammeAccreditationViewset(viewsets.ModelViewSet):
             ).select_related('institution').order_by('institution__name', '-date_submitted')
         else:
             queryset = queryset.none()
+
+        latest_review = PreliminaryReview.objects.filter(application_id=OuterRef('pk')).order_by('-reviewed_at', '-pk')
+        return queryset.annotate(tier_displine=Subquery(latest_review.values('tier_displine')[:1]))
+
+    @action(detail=False, methods=['get'], url_path='assessment-application-filter-options')
+    def assessment_application_filter_options(self, request):
+        institutions = self._assessment_assignment_queryset().order_by(
+            'institution__name', 'institution_id',
+        ).values('institution_id', 'institution__name').distinct()
+        return Response({
+            'institutions': [{'id': row['institution_id'], 'name': row['institution__name']} for row in institutions],
+            'programme_categories': [{'value': value, 'label': label} for value, label in ProgramAccreditation.CATEGORY],
+            'tier_disciplines': [{'value': value, 'label': label} for value, label in PreliminaryReview.DISPLINE_CHOICE],
+        })
+
+    @action(detail=False, methods=['get'], url_path='ready-for-assessment')
+    def ready_for_assessment(self, request, pk=None):
+        """Paid programmes filtered before pagination for assessor assignment."""
+        queryset = self._assessment_assignment_queryset()
+        institution = request.query_params.get('institution')
+        category = request.query_params.get('programme_category')
+        tier = request.query_params.get('tier_displine')
+        if institution:
+            try:
+                institution_id = int(institution)
+            except (TypeError, ValueError):
+                raise ValidationError({'institution': 'Select a valid institution.'})
+            queryset = queryset.filter(institution_id=institution_id)
+        if category:
+            if category not in dict(ProgramAccreditation.CATEGORY):
+                raise ValidationError({'programme_category': 'Select a valid programme category.'})
+            queryset = queryset.filter(programme_category=category)
+        if tier:
+            print(f"Tier discipline received: {tier}")
+            if tier not in dict(PreliminaryReview.DISPLINE_CHOICE):
+                raise ValidationError({'tier_displine': 'Select a valid tier discipline.'})
+            queryset = queryset.filter(tier_displine=tier)
+        queryset = self.filter_queryset(queryset)
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -671,10 +724,16 @@ class ProgramViewset(viewsets.ReadOnlyModelViewSet):
 
 class ProgramAccessorViewset(viewsets.ModelViewSet):
     '''Program Accessor Viewset'''
-    queryset = User.objects.filter(groups__name='Programme Assessors').order_by('username')
-    serializer_class = UserReviewerSerializer
+    queryset = User.objects.filter(groups__name='Programme Assessors').annotate(
+        assigned_application_count=Count('assessments', filter=~Q(
+            assessments__in=ProgrammeAssessment.objects.filter(
+                assessor_id=F('application__assessor_id'),
+            ).values('application_id'),
+        ), distinct=True),
+    ).order_by('username')
+    serializer_class = ProgrammeAssessorWorkloadSerializer
     pagination_class = None
-    permissions_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['username','email','first_name','last_name','other_names']
 
