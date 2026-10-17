@@ -822,3 +822,101 @@ class ProgrammeAssessorWorkloadTests(APITestCase):
 
     def test_workloads_require_authentication(self):
         self.assertEqual(self.workloads(None).status_code, 401)
+
+
+@override_settings(ROOT_URLCONF='programmes.test_urls')
+class ProgrammeHeadDashboardTests(APITestCase):
+    def setUp(self):
+        self.head = User.objects.create_user('dashboard-head', 'dashboard-head@example.test', is_active=True)
+        self.head.groups.add(Group.objects.create(name='Head Programme Accreditation'))
+        self.owner = User.objects.create_user('dashboard-owner', 'dashboard-owner@example.test', is_active=True)
+        self.other_owner = User.objects.create_user('dashboard-other', 'dashboard-other@example.test', is_active=True)
+        district = District.objects.create(name='Dashboard District')
+        self.institution = Institution.objects.create(user=self.owner, name='Alpha University', district=district)
+        self.other_institution = Institution.objects.create(user=self.other_owner, name='Beta University', district=district)
+        self.computing = ProgramAccreditation.objects.create(institution=self.institution, programme_name='Computing',
+            program_level='bachelor', duration=6, programme_category='stem', status='reviewed')
+        self.business = ProgramAccreditation.objects.create(institution=self.other_institution, programme_name='Business',
+            program_level='bachelor', duration=6, programme_category='humanities', status='invoice_reconciled')
+        self.unknown = ProgramAccreditation.objects.create(institution=self.institution, programme_name='Unclassified',
+            program_level='diploma', duration=4, programme_category=None, status='submitted')
+        for application in [self.computing, self.computing, self.business]:
+            PreliminaryReview.objects.create(application=application, reviewer=self.head, tier_displine='computing')
+        self.invoice = ProgrammeAssessmentInvoice.objects.create(institution=self.other_institution, desk_review_fee=Decimal('100.00'),
+            status='reconciled', cleared=True, verified_amount=Decimal('110.00'))
+        DeskReviewInvoiceLine.objects.create(invoice=self.invoice, application=self.business,
+            programme_name=self.business.programme_name, application_number=self.business.application_number, desk_review_fee=Decimal('100.00'))
+        self.client.force_authenticate(self.head)
+
+    def test_summary_uses_live_counts_without_duplicate_review_records(self):
+        response = self.client.get('/head-dashboard/summary/')
+        self.assertEqual(response.status_code, 200, response.data)
+        totals = response.data['totals']
+        for key, value in {'applications': 3, 'institutions': 2, 'reviewed': 2,
+                'stem': 1, 'humanities': 1, 'unspecified': 1, 'ready_for_assessment': 1, 'payment_verification': 0}.items():
+            self.assertEqual(totals[key], value, key)
+        self.assertEqual(response.data['top_institutions'][0], {'id': self.institution.pk,
+            'name': 'Alpha University', 'applications': 2, 'reviewed': 1})
+        self.assertEqual(next(stage['count'] for stage in response.data['stages'] if stage['value']=='submitted'), 1)
+
+    def test_register_filters_search_sort_and_pagination(self):
+        response = self.client.get('/head-dashboard/', {'search': 'Computing', 'institution': self.institution.pk,
+            'programme_category': 'stem', 'status': 'reviewed'})
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], self.computing.pk)
+        response = self.client.get('/head-dashboard/', {'programme_category': 'unspecified'})
+        self.assertEqual([row['id'] for row in response.data['results']], [self.unknown.pk])
+        response = self.client.get('/head-dashboard/', {'ordering': 'programme_name', 'page_size': 1})
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(response.data['results'][0]['id'], self.business.pk)
+        self.assertIsNotNone(response.data['next'])
+        response = self.client.get('/head-dashboard/', {'ordering': 'programme_name', 'page_size': 1, 'page': 2})
+        self.assertEqual(response.data['results'][0]['id'], self.computing.pk)
+
+    def test_payment_labels_use_verified_invoice_amounts(self):
+        rows = {row['id']: row for row in self.client.get('/head-dashboard/').data['results']}
+        self.assertEqual(rows[self.business.pk]['payment_status'], 'Fully verified')
+        self.assertEqual(rows[self.computing.pk]['payment_status'], 'Not invoiced')
+        partial = ProgrammeAssessmentInvoice.objects.create(institution=self.institution, desk_review_fee=Decimal('100.00'),
+            status='paid', cleared=False, verified_amount=Decimal('50.00'))
+        DeskReviewInvoiceLine.objects.create(invoice=partial, application=self.computing,
+            programme_name=self.computing.programme_name, application_number=self.computing.application_number, desk_review_fee=Decimal('100.00'))
+        rows = {row['id']: row for row in self.client.get('/head-dashboard/').data['results']}
+        self.assertEqual(rows[self.computing.pk]['payment_status'], 'Partially verified')
+        totals = self.client.get('/head-dashboard/summary/').data['totals']
+        self.assertEqual(totals['payment_verification'], 1)
+        self.assertEqual(totals['ready_for_assessment'], 1)
+        partial.status = 'cancelled'
+        partial.save()
+        rows = {row['id']: row for row in self.client.get('/head-dashboard/').data['results']}
+        self.assertEqual(rows[self.computing.pk]['payment_status'], 'Not invoiced')
+
+    def test_dashboard_is_read_only_and_restricted_to_programme_heads(self):
+        self.assertEqual(self.client.post('/head-dashboard/', {}).status_code, 405)
+        finance = User.objects.create_user('dashboard-finance', 'dashboard-finance@example.test', is_active=True)
+        finance.groups.add(Group.objects.create(name='Finance Officer'))
+        for user in [self.owner, finance, None]:
+            client = self.client_class()
+            if user:
+                client.force_authenticate(user)
+            for path in ['/head-dashboard/', '/head-dashboard/summary/', '/head-dashboard/filter-options/']:
+                self.assertEqual(client.get(path).status_code, 403 if user else 401)
+
+    def test_filter_options_and_invalid_values(self):
+        response = self.client.get('/head-dashboard/filter-options/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item['name'] for item in response.data['institutions']], ['Alpha University', 'Beta University'])
+        self.assertEqual(len(response.data['statuses']), len(ProgramAccreditation.STATUS))
+        for query in [{'institution': 'invalid'}, {'institution': '-1'}, {'programme_category': 'invalid'}, {'status': 'invalid'}]:
+            self.assertEqual(self.client.get('/head-dashboard/', query).status_code, 400)
+
+    def test_empty_dashboard_returns_zero_counts(self):
+        ProgrammeAssessmentInvoice.objects.all().delete()
+        ProgramAccreditation.objects.all().delete()
+        response = self.client.get('/head-dashboard/summary/')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['totals']['applications'], 0)
+        self.assertEqual(response.data['totals']['institutions'], 0)
+        self.assertIsNone(response.data['totals']['latest_submission'])
+        self.assertEqual(response.data['top_institutions'], [])
