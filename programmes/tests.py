@@ -920,3 +920,135 @@ class ProgrammeHeadDashboardTests(APITestCase):
         self.assertEqual(response.data['totals']['institutions'], 0)
         self.assertIsNone(response.data['totals']['latest_submission'])
         self.assertEqual(response.data['top_institutions'], [])
+
+
+@override_settings(ROOT_URLCONF='programmes.test_urls')
+class PreliminaryReviewerDashboardTests(APITestCase):
+    def setUp(self):
+        self.reviewer = User.objects.create_user('personal-reviewer', 'reviewer@example.test')
+        self.other = User.objects.create_user('other-reviewer', 'other@example.test')
+        group = Group.objects.create(name='Programme Reviewers')
+        self.reviewer.groups.add(group)
+        self.other.groups.add(group)
+        district = District.objects.create(name='Reviewer district')
+        institution = Institution.objects.create(user=self.other, name='Reviewer University', district=district)
+        self.applications = []
+        for name, reviewer, status in [('Pending', self.reviewer, 'under_review'),
+                ('Completed', self.reviewer, 'reviewed'), ('Returned', self.reviewer, 'returned_for_review'),
+                ('Private', self.other, 'under_review')]:
+            self.applications.append(ProgramAccreditation.objects.create(institution=institution,
+                programme_name=name, program_level='bachelor', duration=6,
+                preliminary_reviewer=reviewer, status=status))
+        for application in self.applications[1:3]:
+            for _ in range(2):
+                PreliminaryReview.objects.create(application=application, reviewer=self.reviewer, expert_progression='yes')
+        # Another reviewer's record must not mark a pending assignment as complete.
+        PreliminaryReview.objects.create(application=self.applications[0], reviewer=self.other, expert_progression='yes')
+        self.client.force_authenticate(self.reviewer)
+
+    def test_summary_and_list_only_include_current_assignments_without_duplicates(self):
+        response = self.client.get('/reviewer-dashboard/summary/')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['totals'], {'assigned': 3, 'pending': 2, 'completed': 1, 'institutions': 1})
+        response = self.client.get('/reviewer-dashboard/')
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual({row['id'] for row in response.data['results']}, {a.pk for a in self.applications[:3]})
+        pending = next(row for row in response.data['results'] if row['id'] == self.applications[0].pk)
+        self.assertFalse(pending['has_review'])
+        self.assertIsNone(pending['reviewed_at'])
+
+    def test_queue_search_pagination_and_invalid_filter(self):
+        response = self.client.get('/reviewer-dashboard/', {'queue': 'pending', 'page_size': 1})
+        self.assertEqual(response.data['count'], 2)
+        self.assertIsNotNone(response.data['next'])
+        response = self.client.get('/reviewer-dashboard/', {'queue': 'completed'})
+        self.assertEqual([row['id'] for row in response.data['results']], [self.applications[1].pk])
+        response = self.client.get('/reviewer-dashboard/', {'queue': 'pending', 'search': 'Returned'})
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['status_label'], 'Returned for Review')
+        self.assertEqual(self.client.get('/reviewer-dashboard/', {'queue': 'invalid'}).status_code, 400)
+
+    def test_permissions_read_only_and_reassignment(self):
+        self.assertEqual(self.client.post('/reviewer-dashboard/', {}).status_code, 405)
+        ProgramAccreditation.objects.filter(pk=self.applications[1].pk).update(preliminary_reviewer=self.other)
+        self.assertEqual(self.client.get('/reviewer-dashboard/summary/').data['totals']['assigned'], 2)
+        self.reviewer.groups.clear()
+        for path in ['/reviewer-dashboard/', '/reviewer-dashboard/summary/']:
+            self.assertEqual(self.client.get(path).status_code, 403)
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get('/reviewer-dashboard/').status_code, 401)
+
+
+@override_settings(ROOT_URLCONF='programmes.test_urls')
+class ProgrammeAssessorDashboardTests(APITestCase):
+    def setUp(self):
+        self.assessor = User.objects.create_user('personal-assessor', 'assessor@example.test')
+        self.other = User.objects.create_user('other-assessor', 'other@example.test')
+        group = Group.objects.create(name='Programme Assessors')
+        self.assessor.groups.add(group)
+        self.other.groups.add(group)
+        district = District.objects.create(name='Reviewer district')
+        institution = Institution.objects.create(user=self.other, name='Reviewer University', district=district)
+        self.applications = []
+        for name, assessor, status in [('Pending', self.assessor, 'under_assessment'),
+                ('Completed', self.assessor, 'progressed_to_director'), ('Returned', self.assessor, 'return_to_assessor'),
+                ('Private', self.other, 'under_assessment')]:
+            self.applications.append(ProgramAccreditation.objects.create(institution=institution,
+                programme_name=name, program_level='bachelor', duration=6,
+                assessor=assessor, status=status))
+        for application in self.applications[1:3]:
+            for _ in range(2):
+                ProgrammeAssessment.objects.create(application=application, assessor=self.assessor, recommendation='accredit')
+        # Another assessor's record must not mark a pending assignment as complete.
+        ProgrammeAssessment.objects.create(application=self.applications[0], assessor=self.other, recommendation='accredit')
+        self.client.force_authenticate(self.assessor)
+
+    def test_summary_and_list_only_include_current_assignments_without_duplicates(self):
+        response = self.client.get('/assessor-dashboard/summary/')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['totals'], {'assigned': 3, 'pending': 2, 'completed': 1, 'institutions': 1})
+        response = self.client.get('/assessor-dashboard/')
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual({row['id'] for row in response.data['results']}, {a.pk for a in self.applications[:3]})
+        pending = next(row for row in response.data['results'] if row['id'] == self.applications[0].pk)
+        self.assertFalse(pending['has_assessment'])
+        self.assertIsNone(pending['assessment_date'])
+
+    def test_queue_search_pagination_and_invalid_filter(self):
+        response = self.client.get('/assessor-dashboard/', {'queue': 'pending', 'page_size': 1})
+        self.assertEqual(response.data['count'], 2)
+        self.assertIsNotNone(response.data['next'])
+        response = self.client.get('/assessor-dashboard/', {'queue': 'completed'})
+        self.assertEqual([row['id'] for row in response.data['results']], [self.applications[1].pk])
+        response = self.client.get('/assessor-dashboard/', {'queue': 'pending', 'search': 'Returned'})
+        self.assertEqual(response.data['count'], 1)
+        self.assertTrue(response.data['results'][0]['assessment_pending'])
+        self.assertNotIn('status_label', response.data['results'][0])
+        self.assertEqual(self.client.get('/assessor-dashboard/', {'queue': 'invalid'}).status_code, 400)
+
+    def test_permissions_read_only_and_reassignment(self):
+        self.assertEqual(self.client.post('/assessor-dashboard/', {}).status_code, 405)
+        ProgramAccreditation.objects.filter(pk=self.applications[1].pk).update(assessor=self.other)
+        self.assertEqual(self.client.get('/assessor-dashboard/summary/').data['totals']['assigned'], 2)
+        self.assessor.groups.clear()
+        for path in ['/assessor-dashboard/', '/assessor-dashboard/summary/']:
+            self.assertEqual(self.client.get(path).status_code, 403)
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get('/assessor-dashboard/').status_code, 401)
+
+    def test_empty_personal_workload_has_zero_counts(self):
+        ProgramAccreditation.objects.filter(assessor=self.assessor).update(assessor=self.other)
+        response = self.client.get('/assessor-dashboard/summary/')
+        self.assertEqual(response.data['totals'], {'assigned': 0, 'pending': 0, 'completed': 0, 'institutions': 0})
+        self.assertNotIn('stages', response.data)
+
+    def test_dashboard_omits_internal_application_progress(self):
+        summary = self.client.get('/assessor-dashboard/summary/').data
+        self.assertNotIn('stages', summary)
+        response = self.client.get('/assessor-dashboard/', {'queue': 'completed'})
+        self.assertEqual(response.data['count'], 1)
+        row = response.data['results'][0]
+        self.assertNotIn('status', row)
+        self.assertNotIn('status_label', row)
+        self.assertFalse(row['assessment_pending'])
+        self.assertIsNotNone(row['assessment_date'])

@@ -2,11 +2,13 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from . import views
-from .dashboard_views import ProgrammeHeadDashboardViewset
+from .dashboard_views import ProgrammeHeadDashboardViewset, PreliminaryReviewerDashboardViewset, ProgrammeAssessorDashboardViewset
 
 app_name = 'programmes'
 # Create a router and register our viewset with it.
 router = DefaultRouter()
+router.register('assessor-dashboard', ProgrammeAssessorDashboardViewset, basename='assessor-dashboard')
+router.register('reviewer-dashboard', PreliminaryReviewerDashboardViewset, basename='reviewer-dashboard')
 router.register(r'head-dashboard', ProgrammeHeadDashboardViewset, basename='head-dashboard')
 router.register(r'programme-accreditation', views.ProgrammeAccreditationViewset, basename='programme-accreditation')
 router.register(r'institution-programmes', views.ProgramViewset, basename='programs')
