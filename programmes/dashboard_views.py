@@ -7,7 +7,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from common.pagination import StandardResultsSetPagination
-from .models import DeskReviewInvoiceLine, PreliminaryReview, ProgramAccreditation, ProgrammeAssessmentInvoice
+from .models import DeskReviewInvoiceLine, PreliminaryReview, ProgramAccreditation, ProgrammeAssessment, ProgrammeAssessmentInvoice
 
 
 class CanViewProgrammeHeadDashboard(permissions.BasePermission):
@@ -144,3 +144,127 @@ class ProgrammeHeadDashboardViewset(mixins.ListModelMixin, viewsets.GenericViewS
                 + [{'value': 'unspecified', 'label': 'Not specified'}],
             'statuses': [{'value': value, 'label': label} for value, label in ProgramAccreditation.STATUS],
         })
+
+
+class CanViewReviewerDashboard(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.groups.filter(name='Programme Reviewers').exists()
+
+
+class ReviewerDashboardApplicationSerializer(serializers.ModelSerializer):
+    institution = serializers.CharField(source='institution.name', read_only=True)
+    status_label = serializers.CharField(source='get_status_display', read_only=True)
+    has_review = serializers.BooleanField(read_only=True)
+    review_pending = serializers.BooleanField(read_only=True)
+    reviewed_at = serializers.DateTimeField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = ProgramAccreditation
+        fields = ('id', 'application_number', 'programme_name', 'institution', 'date_submitted',
+                  'status', 'status_label', 'has_review', 'review_pending', 'reviewed_at')
+
+
+class PreliminaryReviewerDashboardViewset(mixins.ListModelMixin, viewsets.GenericViewSet):
+    permission_classes = [permissions.IsAuthenticated, CanViewReviewerDashboard]
+    serializer_class = ReviewerDashboardApplicationSerializer
+    pagination_class = DashboardPagination
+    filter_backends = [filters.SearchFilter, DashboardOrderingFilter]
+    search_fields = ['application_number', 'programme_name', 'institution__name']
+    ordering_fields = ['date_submitted', 'programme_name']
+    ordering = ['date_submitted', 'pk']
+
+    def assigned_applications(self):
+        from django.db.models import BooleanField, Case, Value, When
+        reviews = PreliminaryReview.objects.filter(application_id=OuterRef('pk'), reviewer=self.request.user)
+        return ProgramAccreditation.objects.filter(preliminary_reviewer=self.request.user).select_related(
+            'institution',
+        ).annotate(
+            has_review=Exists(reviews),
+            reviewed_at=Subquery(reviews.order_by('-reviewed_at', '-pk').values('reviewed_at')[:1]),
+        ).annotate(review_pending=Case(
+            When(Q(has_review=False) | Q(status__in=['under_review', 'returned_for_review']), then=Value(True)),
+            default=Value(False), output_field=BooleanField(),
+        ))
+
+    def get_queryset(self):
+        queryset = self.assigned_applications()
+        queue = self.request.query_params.get('queue', 'all')
+        if queue not in ['all', 'pending', 'completed']:
+            raise ValidationError({'queue': 'Select all, pending or completed.'})
+        if queue != 'all':
+            queryset = queryset.filter(review_pending=queue == 'pending')
+        return queryset
+
+    @action(detail=False, methods=['get'], url_path='summary')
+    def summary(self, request):
+        queryset = self.assigned_applications()
+        totals = queryset.aggregate(
+            assigned=Count('pk'), pending=Count('pk', filter=Q(review_pending=True)),
+            completed=Count('pk', filter=Q(review_pending=False)),
+            institutions=Count('institution_id', distinct=True),
+        )
+        stages = queryset.order_by().values('status').annotate(count=Count('pk'))
+        labels = dict(ProgramAccreditation.STATUS)
+        return Response({'totals': totals, 'stages': [
+            {'value': row['status'], 'label': labels.get(row['status'], row['status']), 'count': row['count']}
+            for row in stages
+        ]})
+
+
+class CanViewAssessorDashboard(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.groups.filter(name='Programme Assessors').exists()
+
+
+class AssessorDashboardApplicationSerializer(serializers.ModelSerializer):
+    institution = serializers.CharField(source='institution.name', read_only=True)
+    has_assessment = serializers.BooleanField(read_only=True)
+    assessment_pending = serializers.BooleanField(read_only=True)
+    assessment_date = serializers.DateField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = ProgramAccreditation
+        fields = ('id', 'application_number', 'programme_name', 'institution', 'date_submitted',
+                  'has_assessment', 'assessment_pending', 'assessment_date')
+
+
+class ProgrammeAssessorDashboardViewset(mixins.ListModelMixin, viewsets.GenericViewSet):
+    permission_classes = [permissions.IsAuthenticated, CanViewAssessorDashboard]
+    serializer_class = AssessorDashboardApplicationSerializer
+    pagination_class = DashboardPagination
+    filter_backends = [filters.SearchFilter, DashboardOrderingFilter]
+    search_fields = ['application_number', 'programme_name', 'institution__name']
+    ordering_fields = ['date_submitted', 'programme_name']
+    ordering = ['date_submitted', 'pk']
+
+    def assigned_applications(self):
+        from django.db.models import BooleanField, Case, Value, When
+        assessments = ProgrammeAssessment.objects.filter(application_id=OuterRef('pk'), assessor=self.request.user)
+        return ProgramAccreditation.objects.filter(assessor=self.request.user).select_related(
+            'institution',
+        ).annotate(
+            has_assessment=Exists(assessments),
+            assessment_date=Subquery(assessments.order_by('-assessment_date', '-pk').values('assessment_date')[:1]),
+        ).annotate(assessment_pending=Case(
+            When(Q(has_assessment=False) | Q(status__in=['under_assessment', 'return_to_assessor']), then=Value(True)),
+            default=Value(False), output_field=BooleanField(),
+        ))
+
+    def get_queryset(self):
+        queryset = self.assigned_applications()
+        queue = self.request.query_params.get('queue', 'all')
+        if queue not in ['all', 'pending', 'completed']:
+            raise ValidationError({'queue': 'Select all, pending or completed.'})
+        if queue != 'all':
+            queryset = queryset.filter(assessment_pending=queue == 'pending')
+        return queryset
+
+    @action(detail=False, methods=['get'], url_path='summary')
+    def summary(self, request):
+        queryset = self.assigned_applications()
+        totals = queryset.aggregate(
+            assigned=Count('pk'), pending=Count('pk', filter=Q(assessment_pending=True)),
+            completed=Count('pk', filter=Q(assessment_pending=False)),
+            institutions=Count('institution_id', distinct=True),
+        )
+        return Response({'totals': totals})
