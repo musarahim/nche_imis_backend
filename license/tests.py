@@ -8,39 +8,51 @@ from django.test import SimpleTestCase, override_settings
 from institutions.models import Institution
 from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 
-from .models import InterimPromoters, IntrimAuthority, IntrimAuthorityDocument, UniversityProvisionalLicense, UniversityProvisionalLicenseDocument, UniversityProvisionalLicenseVehicle
-from .views import IntrimAuthorityViewset, UniversityProvisionalLicenseViewset
-from .serializers import UniversityProvisionalLicenseSerializer
+from .models import (InterimPromoters, IntrimAuthority, IntrimAuthorityDocument,
+                     UniversityProvisionalLicense, UniversityProvisionalLicenseDocument,
+                     UniversityProvisionalLicenseVehicle, CharterApplication,
+                     CharterApplicationDocoment, CharterApplicationVehicle)
+from .views import (IntrimAuthorityViewset, UniversityProvisionalLicenseViewset, CharterApplicationViewset,
+                    IntrimAuthorityODIViewset, ODAIProvisionalLicenseViewset, ODICharterApplicationViewset)
+from .serializers import UniversityProvisionalLicenseSerializer, CharterApplicationSerializer
 
 
 class ProvisionalObjectiveTests(SimpleTestCase):
+    serializer_class = UniversityProvisionalLicenseSerializer
+
     def test_accepts_five_objectives_and_preserves_multiline_entries(self):
         rows = ['First line\nSecond line', 'Two', 'Three', 'Four', ' Five ']
-        serializer = UniversityProvisionalLicenseSerializer(data={'specific_objectives': json.dumps(rows)}, partial=True)
+        serializer = self.serializer_class(data={'specific_objectives': json.dumps(rows)}, partial=True)
         self.assertTrue(serializer.is_valid(), serializer.errors)
         self.assertEqual(json.loads(serializer.validated_data['specific_objectives']), [item.strip() for item in rows])
 
     def test_accepts_legacy_text_and_partial_updates_without_objectives(self):
-        serializer = UniversityProvisionalLicenseSerializer(data={'specific_objectives': ' First \n\n Second '}, partial=True)
+        serializer = self.serializer_class(data={'specific_objectives': ' First \n\n Second '}, partial=True)
         self.assertTrue(serializer.is_valid(), serializer.errors)
         self.assertEqual(json.loads(serializer.validated_data['specific_objectives']), ['First', 'Second'])
-        serializer = UniversityProvisionalLicenseSerializer(data={'vision': 'Updated vision'}, partial=True)
+        serializer = self.serializer_class(data={'vision': 'Updated vision'}, partial=True)
         self.assertTrue(serializer.is_valid(), serializer.errors)
         self.assertNotIn('specific_objectives', serializer.validated_data)
 
     def test_rejects_more_than_five_empty_or_invalid_objectives(self):
         for value in [json.dumps(['Objective'] * 6), 'One\nTwo\nThree\nFour\nFive\nSix', '[]', '[" "]', '[123]', '{}', '', None]:
             with self.subTest(value=value):
-                serializer = UniversityProvisionalLicenseSerializer(data={'specific_objectives': value}, partial=True)
+                serializer = self.serializer_class(data={'specific_objectives': value}, partial=True)
                 self.assertFalse(serializer.is_valid())
                 self.assertIn('specific_objectives', serializer.errors)
 
 
+class CharterObjectiveValidationTests(ProvisionalObjectiveTests):
+    serializer_class = CharterApplicationSerializer
+
+
 class ProvisionalVehicleValidationTests(SimpleTestCase):
+    serializer_class = UniversityProvisionalLicenseSerializer
+
     def test_accepts_json_and_multipart_vehicle_lists(self):
         rows = [{'make': ' Toyota ', 'registration_number': ' uba 123a '}]
         for payload in [rows, json.dumps(rows)]:
-            serializer = UniversityProvisionalLicenseSerializer(data={'vehicles': payload}, partial=True)
+            serializer = self.serializer_class(data={'vehicles': payload}, partial=True)
             self.assertTrue(serializer.is_valid(), serializer.errors)
             self.assertEqual(serializer._prepared_vehicles[0][1], {'make': 'Toyota', 'registration_number': 'UBA 123A'})
 
@@ -48,12 +60,18 @@ class ProvisionalVehicleValidationTests(SimpleTestCase):
         for payload in ['invalid json', '{}', None, [None], [{'make': '', 'registration_number': ''}],
                         [{'make': 'Toyota', 'registration_number': 'UBA 123A'}, {'make': 'Isuzu', 'registration_number': 'uba123a'}]]:
             with self.subTest(payload=payload):
-                serializer = UniversityProvisionalLicenseSerializer(data={'vehicles': payload}, partial=True)
+                serializer = self.serializer_class(data={'vehicles': payload}, partial=True)
                 self.assertFalse(serializer.is_valid())
                 self.assertIn('vehicles', serializer.errors)
 
 
+class CharterVehicleValidationTests(ProvisionalVehicleValidationTests):
+    serializer_class = CharterApplicationSerializer
+
+
 class InterimPromoterUploadTests(APITestCase):
+    viewset = IntrimAuthorityViewset
+
     def setUp(self):
         directory = TemporaryDirectory()
         self.addCleanup(directory.cleanup)
@@ -72,7 +90,7 @@ class InterimPromoterUploadTests(APITestCase):
             data['promoter_document_0'] = upload
         request = APIRequestFactory().post('/promoters/', data, format='multipart' if multipart else 'json')
         force_authenticate(request, self.user)
-        return IntrimAuthorityViewset.as_view({'post': 'promoters'})(request, pk=self.application.pk)
+        return self.viewset.as_view({'post': 'promoters'})(request, pk=self.application.pk)
 
     def promoter(self, **overrides):
         return {'name': 'Jane', 'phone': '+256772123456', 'email': '', 'nationality': self.nationality.pk, **overrides}
@@ -281,3 +299,189 @@ class ProvisionalVehicleTests(APITestCase):
             self.application.refresh_from_db()
             self.assertNotEqual(self.application.vision, 'Must not save')
             self.assertEqual(self.application.vehicles.count(), 1)
+
+
+class CharterSupportingDocumentTests(InterimSupportingDocumentTests):
+    application_model = CharterApplication
+    document_model = CharterApplicationDocoment
+    document_parent_field = 'application'
+    viewset = CharterApplicationViewset
+    application_defaults = {
+        'has_provisional_license': False, 'amount_of_land_owned': 20,
+        'land_in_use': 10, 'year_obtained': '2026',
+    }
+
+    def test_cannot_retain_another_applications_document(self):
+        other = self.application_model.objects.create(institution=self.application.institution, **self.application_defaults)
+        document = self.document_model.objects.create(application=other, name='Other', document=self.upload())
+        response = self.patch_documents([{'id': document.pk, 'title': 'Other'}])
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertEqual(self.application.documents.count(), 0)
+
+    def test_objectives_location_and_isp_persist_through_other_updates(self):
+        objectives = ['First objective\nWith details', 'Second objective']
+        response = self.patch_documents(extra={
+            'specific_objectives': json.dumps(objectives),
+            'geographical_location': 'rural', 'ISP_provider': 'Example ISP',
+        })
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(json.loads(response.data['specific_objectives']), objectives)
+        self.application.refresh_from_db()
+        self.assertEqual(self.application.geographical_location, 'rural')
+        self.assertEqual(self.application.ISP_provider, 'Example ISP')
+        response = self.patch_documents([{'title': 'Support'}], {'supporting_document_0': self.upload()})
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(json.loads(response.data['specific_objectives']), objectives)
+        self.assertEqual(response.data['geographical_location'], 'Rural')
+        self.assertEqual(response.data['ISP_provider'], 'Example ISP')
+
+    def test_legacy_objectives_and_documents_remain_readable(self):
+        self.application.specific_objectives = 'Original objective'
+        self.application.save()
+        old = self.document_model.objects.create(application=self.application, name='Legacy support', document=self.upload())
+        response = self.patch_documents(extra={'vision': 'Updated vision'})
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['specific_objectives'], 'Original objective')
+        self.assertEqual(response.data['supporting_documents'][0]['id'], old.pk)
+        self.assertEqual(response.data['supporting_documents'][0]['title'], 'Legacy support')
+
+    def test_new_application_accepts_charter_specific_fields_and_collections(self):
+        payload = {**self.application_defaults,
+                   'geographical_location': 'urban', 'ISP_provider': 'Example ISP',
+                   'specific_objectives': json.dumps(['An objective']),
+                   'vehicles': json.dumps([{'make': 'Toyota', 'registration_number': 'uba 123a'}]),
+                   'supporting_documents': json.dumps([{'title': 'Supporting evidence'}]),
+                   'supporting_document_0': self.upload()}
+        request = APIRequestFactory().post('/charter-application/', payload, format='multipart')
+        force_authenticate(request, self.user)
+        response = self.viewset.as_view({'post': 'create'})(request)
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data['geographical_location'], 'Urban')
+        self.assertEqual(response.data['number_of_vehicles'], 1)
+        self.assertEqual(response.data['vehicles'][0]['registration_number'], 'UBA 123A')
+        self.assertEqual(response.data['supporting_documents'][0]['title'], 'Supporting evidence')
+
+
+class CharterVehicleTests(ProvisionalVehicleTests):
+    application_model = CharterApplication
+    application_defaults = CharterSupportingDocumentTests.application_defaults
+    viewset = CharterApplicationViewset
+
+    def test_invalid_or_foreign_vehicle_ids_leave_application_unchanged(self):
+        self.patch_vehicles([{'make': 'Toyota', 'registration_number': 'UBA 123A'}])
+        other = self.application_model.objects.create(institution=self.application.institution, **self.application_defaults)
+        foreign = CharterApplicationVehicle.objects.create(application=other, make='Isuzu', registration_number='UBB 456B')
+        for rows in [[{'id': foreign.pk, 'make': 'Isuzu', 'registration_number': 'UBB 456B'}],
+                     [{'make': 'Toyota', 'registration_number': 'UBA 123A'}, {'make': 'Isuzu', 'registration_number': 'uba123a'}]]:
+            response = self.patch_vehicles(rows, vision='Must not save')
+            self.assertEqual(response.status_code, 400, response.data)
+            self.application.refresh_from_db()
+            self.assertNotEqual(self.application.vision, 'Must not save')
+            self.assertEqual(self.application.vehicles.count(), 1)
+
+
+class ODAIInterimPromoterUploadTests(InterimPromoterUploadTests):
+    viewset = IntrimAuthorityODIViewset
+
+    def setUp(self):
+        super().setUp()
+        self.application.is_odai = True
+        self.application.save(update_fields=['is_odai'])
+
+
+class ODAIInterimSupportingDocumentTests(InterimSupportingDocumentTests):
+    viewset = IntrimAuthorityODIViewset
+    application_defaults = {'has_title_deed': False, 'is_odai': True}
+
+    def test_geography_objectives_and_files_survive_other_draft_updates(self):
+        response = self.patch_documents(extra={
+            'geographical_location': 'rural', 'land_size': 25,
+            'objectives': 'First objective\nSecond objective',
+            'governance_structure': self.upload('governance.pdf'),
+            'human_resources': self.upload('staffing.pdf'),
+        })
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['geographical_location'], 'rural')
+        self.assertEqual(float(response.data['land_size']), 25)
+        self.assertEqual(response.data['objectives'].splitlines(), ['First objective', 'Second objective'])
+        governance = response.data['governance_structure']
+        self.assertTrue(governance.startswith('http://testserver/media/'))
+        response = self.patch_documents(extra={'vision': 'Updated vision'})
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['governance_structure'], governance)
+        self.assertEqual(response.data['objectives'].splitlines(), ['First objective', 'Second objective'])
+
+
+class ODAIProvisionalSupportingDocumentTests(ProvisionalSupportingDocumentTests):
+    viewset = ODAIProvisionalLicenseViewset
+    application_defaults = {**ProvisionalSupportingDocumentTests.application_defaults, 'is_odai': True}
+
+    def test_geography_and_isp_persist_and_validate(self):
+        response = self.patch_documents(extra={'geographical_location': 'urban', 'ISP_provider': 'Example ISP'})
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['geographical_location'], 'Urban')
+        self.assertEqual(response.data['ISP_provider'], 'Example ISP')
+        response = self.patch_documents(extra={'vision': 'Updated vision'})
+        self.assertEqual(response.data['ISP_provider'], 'Example ISP')
+        response = self.patch_documents(extra={'geographical_location': 'invalid'})
+        self.assertEqual(response.status_code, 400, response.data)
+
+
+class ODAIProvisionalVehicleTests(ProvisionalVehicleTests):
+    viewset = ODAIProvisionalLicenseViewset
+    application_defaults = ODAIProvisionalSupportingDocumentTests.application_defaults
+
+
+class ODAICharterSupportingDocumentTests(CharterSupportingDocumentTests):
+    viewset = ODICharterApplicationViewset
+    application_defaults = {**CharterSupportingDocumentTests.application_defaults, 'is_odai': True}
+
+
+class ODAICharterVehicleTests(CharterVehicleTests):
+    viewset = ODICharterApplicationViewset
+    application_defaults = ODAICharterSupportingDocumentTests.application_defaults
+
+
+class ODAIEndpointIsolationTests(APITestCase):
+    def test_odai_retrieve_rejects_university_and_other_institution_records(self):
+        owner = User.objects.create_user('odai-owner', 'odai-owner@example.test', is_active=True)
+        other = User.objects.create_user('odai-other', 'odai-other@example.test', is_active=True)
+        district = District.objects.create(name='ODAI District')
+        institution = Institution.objects.create(user=owner, name='ODAI Institution', district=district)
+        other_institution = Institution.objects.create(user=other, name='Other ODAI Institution', district=district)
+        cases = [
+            (IntrimAuthority, IntrimAuthorityODIViewset, {'has_title_deed': False}),
+            (UniversityProvisionalLicense, ODAIProvisionalLicenseViewset, ProvisionalSupportingDocumentTests.application_defaults),
+            (CharterApplication, ODICharterApplicationViewset, CharterSupportingDocumentTests.application_defaults),
+        ]
+        for model, viewset, defaults in cases:
+            with self.subTest(model=model.__name__):
+                own = model.objects.create(institution=institution, is_odai=True, **defaults)
+                university = model.objects.create(institution=institution, is_odai=False, **defaults)
+                foreign = model.objects.create(institution=other_institution, is_odai=True, **defaults)
+                view = viewset.as_view({'get': 'retrieve'})
+                for application, expected in [(own, 200), (university, 404), (foreign, 404)]:
+                    request = APIRequestFactory().get('/odai/')
+                    force_authenticate(request, owner)
+                    response = view(request, pk=application.pk)
+                    self.assertEqual(response.status_code, expected, response.data)
+                response = view(APIRequestFactory().get('/odai/'), pk=own.pk)
+                self.assertIn(response.status_code, [401, 403])
+
+    def test_create_uses_odai_classification_and_code_for_each_application_type(self):
+        owner = User.objects.create_user('odai-create', 'odai-create@example.test', is_active=True)
+        district = District.objects.create(name='ODAI Create District')
+        Institution.objects.create(user=owner, name='ODAI New Institution', district=district)
+        for model, viewset, defaults, prefix in [
+            (IntrimAuthority, IntrimAuthorityODIViewset, {'has_title_deed': False}, 'ODAI/'),
+            (UniversityProvisionalLicense, ODAIProvisionalLicenseViewset, ProvisionalSupportingDocumentTests.application_defaults, 'ODAP/'),
+            (CharterApplication, ODICharterApplicationViewset, CharterSupportingDocumentTests.application_defaults, 'ODAC/'),
+        ]:
+            with self.subTest(model=model.__name__):
+                request = APIRequestFactory().post('/odai/', {**defaults, 'is_odai': False}, format='json')
+                force_authenticate(request, owner)
+                response = viewset.as_view({'post': 'create'})(request)
+                self.assertEqual(response.status_code, 201, response.data)
+                saved = model.objects.get(pk=response.data['id'])
+                self.assertTrue(saved.is_odai)
+                self.assertTrue(saved.application_code.startswith(prefix), saved.application_code)
