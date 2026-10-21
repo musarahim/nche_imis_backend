@@ -4,7 +4,7 @@ from django.db import transaction
 from payments.models import ApplicationPRNS
 from rest_framework import serializers
 
-from .models import (CertificationAndClassification, CharterApplication,
+from .models import (CertificationAndClassification, CharterApplication, CharterApplicationDocoment, CharterApplicationVehicle,
                      InterimDiscussion, InterimPromoters, IntrimAuthority,
                      IntrimAuthorityObjective, IntrimAuthorityDocument, OTIProvisional,
                      OTIProvisionalAward, UniversityProvisionalLicense, UniversityProvisionalLicenseDocument,
@@ -313,7 +313,7 @@ class UniversityProvisionalLicenseSerializer(SupportingDocumentMixin, serializer
                     raise serializers.ValidationError({'vehicles': 'An existing vehicle is invalid or repeated.'})
                 if previous:
                     seen_ids.add(previous.pk)
-                serializer = UniversityProvisionalLicenseVehicleSerializer(data={
+                serializer = self.fields['vehicles'].child.__class__(data={
                     'make': row.get('make', ''), 'registration_number': row.get('registration_number', ''),
                 })
                 if not serializer.is_valid():
@@ -351,7 +351,7 @@ class UniversityProvisionalLicenseSerializer(SupportingDocumentMixin, serializer
     def create(self, validated_data):
         objectives = validated_data.pop('specific_objectives', None)
         instance = super().create(validated_data)
-        self._sync_provisional_objectives(instance, objectives)
+        self._sync_objectives(instance, objectives)
         self._sync_supporting_documents(instance)
         self._sync_vehicles(instance)
         return instance
@@ -360,12 +360,12 @@ class UniversityProvisionalLicenseSerializer(SupportingDocumentMixin, serializer
     def update(self, instance, validated_data):
         objectives = validated_data.pop('specific_objectives', None)
         instance = super().update(instance, validated_data)
-        self._sync_provisional_objectives(instance, objectives)
+        self._sync_objectives(instance, objectives)
         self._sync_supporting_documents(instance)
         self._sync_vehicles(instance)
         return instance
 
-    def _sync_provisional_objectives(self, instance, objectives):
+    def _sync_objectives(self, instance, objectives):
         if objectives is None:
             return
         instance.university_provisional_objective_items.all().delete()
@@ -412,26 +412,51 @@ class UniversityProvisionalLicenseSerializer(SupportingDocumentMixin, serializer
         return response
     
 
-class CharterApplicationSerializer(serializers.ModelSerializer):
-    '''Serializer for CharterApplication model.'''
+class CharterSupportingDocumentSerializer(InterimSupportingDocumentSerializer):
+    title = serializers.CharField(source='name', max_length=255, allow_blank=False)
 
     class Meta:
-        '''Meta class for CharterApplication Serializer'''
+        model = CharterApplicationDocoment
+        fields = ['id', 'title', 'document']
+        read_only_fields = ['id']
+
+
+class CharterApplicationVehicleSerializer(UniversityProvisionalLicenseVehicleSerializer):
+    class Meta(UniversityProvisionalLicenseVehicleSerializer.Meta):
+        model = CharterApplicationVehicle
+
+
+class CharterApplicationSerializer(UniversityProvisionalLicenseSerializer):
+    """Use the same validated collections as provisional licences, retaining charter data."""
+    supporting_documents = CharterSupportingDocumentSerializer(source='documents', many=True, read_only=True)
+    vehicles = CharterApplicationVehicleSerializer(many=True, read_only=True)
+
+    class Meta:
         model = CharterApplication
-        fields = "__all__"
+        fields = '__all__'
         read_only_fields = ['id', 'application_code']
 
+    def _sync_objectives(self, instance, objectives):
+        if objectives is not None:
+            instance.specific_objectives = objectives
+            instance.save(update_fields=['specific_objectives'])
 
     def to_representation(self, instance):
-        '''Custom representation to include institution name'''
-        response = super().to_representation(instance)
+        response = serializers.ModelSerializer.to_representation(self, instance)
+        # Keep existing plain-text objectives readable until edited.
+        response['specific_objectives'] = instance.specific_objectives
+        if response['vehicles']:
+            response['number_of_vehicles'] = len(response['vehicles'])
+            response['vehicle_registration'] = '\n'.join(
+                f"{row['make']} - {row['registration_number']}" for row in response['vehicles']
+            )
         response['institution'] = instance.institution.name
         response['status'] = instance.get_status_display()
+        response['geographical_location'] = instance.get_geographical_location_display()
         response['prn'] = ApplicationPRNS.objects.filter(referenceNo=instance.application_code).last().prn if ApplicationPRNS.objects.filter(referenceNo=instance.application_code).exists() else None
         return response
-    
 
-    
+
 class OTIProvisionalSerializer(serializers.ModelSerializer):
     '''Serializer for OTIProvisional model.'''
 

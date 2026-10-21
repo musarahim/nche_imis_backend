@@ -9,11 +9,16 @@ from .models import Institution, LicenseType, OtherDocuments
 
 class InstitutionSerializer(serializers.ModelSerializer):
     '''Serializer for Institution model.'''
+    county_name = serializers.CharField(source='county.name', read_only=True, default=None)
+    sub_county_name = serializers.CharField(source='sub_county.name', read_only=True, default=None)
+    parish_name = serializers.CharField(source='parish.name', read_only=True, default=None)
+    village_name = serializers.CharField(source='village.name', read_only=True, default=None)
    
     class Meta:
         '''Meta class for Institution Serializer'''
         model = Institution
         fields = [
+            'county_name', 'sub_county_name', 'parish_name', 'village_name',
             'id', 'user', 'name','acroynm','region', 'district','county','sub_county','parish','village', 'institution_type',"alternative_email",
             'landline','website','postal_address', 'contact_person', 'contact_person_phone',
             'alternative_contact_person', 'alternative_contact_person_phone','location','tin','is_closed',

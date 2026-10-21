@@ -399,7 +399,7 @@ class IntrimAuthorityODIViewset(viewsets.ModelViewSet):
     '''ODI Interim Authority Application'''
     queryset = IntrimAuthority.objects.filter(is_odai=True)
     serializer_class = IntrimAuthoritySerializer
-    permissions_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['application_code','institution__name','status','application_date']
     def get_queryset(self):
@@ -435,39 +435,12 @@ class IntrimAuthorityODIViewset(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get', 'post'], url_path='promoters')
     def promoters(self, request, pk=None):
-        """Retrieve or replace promoters for an ODAI Interim Authority application."""
-        application = self.get_object()
+        """Share promoter upload/retention validation using this ODAI queryset."""
+        return IntrimAuthorityViewset.promoters(self, request, pk=pk)
 
-        if request.method == 'GET':
-            queryset = InterimPromoters.objects.filter(application=application).order_by('id')
-            serializer = InterimPromotersSerializer(queryset, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        promoters_payload = request.data.get('promoters')
-        if not isinstance(promoters_payload, list) or len(promoters_payload) == 0:
-            return Response(
-                {"error": "Provide at least one promoter in the promoters list."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        serializer = InterimPromotersSerializer(data=promoters_payload, many=True)
-        serializer.is_valid(raise_exception=True)
-
-        InterimPromoters.objects.filter(application=application).delete()
-        InterimPromoters.objects.bulk_create(
-            [
-                InterimPromoters(application=application, **promoter)
-                for promoter in serializer.validated_data
-            ]
-        )
-
-        updated_promoters = InterimPromoters.objects.filter(application=application).order_by('id')
-        response_serializer = InterimPromotersSerializer(updated_promoters, many=True)
-        return Response(response_serializer.data, status=status.HTTP_200_OK)
-    
     def create(self, request):
         '''Set institution to the logged in user's institution'''
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         
         if serializer.is_valid():
             user = self.request.user
@@ -483,7 +456,7 @@ class IntrimAuthorityODIViewset(viewsets.ModelViewSet):
     def partial_update(self, request, pk=None):
         '''Partial update of the Interim Authority Application'''
         instance = self.get_object()
-        serializer = self.serializer_class(instance, data=request.data, partial=True)
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
         
         if serializer.is_valid():
             if serializer.validated_data.get('status') == 'submitted':
@@ -702,7 +675,7 @@ class ODAIProvisionalLicenseViewset(viewsets.ModelViewSet):
     
     def create(self, request):
         '''Set institution to the logged in user's institution'''
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         
         if serializer.is_valid():
             user = self.request.user
@@ -719,7 +692,7 @@ class ODAIProvisionalLicenseViewset(viewsets.ModelViewSet):
     def partial_update(self, request, pk=None):
         '''Partial update of the University Provisional License Application'''
         instance = self.get_object()
-        serializer = self.serializer_class(instance, data=request.data, partial=True)
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
         
         if serializer.is_valid():
             if serializer.validated_data.get('status') == 'submitted':
@@ -808,7 +781,7 @@ class CharterApplicationViewset(viewsets.ModelViewSet):
     
     def create(self, request):
         '''Set institution to the logged in user's institution'''
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         
         if serializer.is_valid():
             user = self.request.user
@@ -823,7 +796,7 @@ class CharterApplicationViewset(viewsets.ModelViewSet):
     def partial_update(self, request, pk=None):
         '''Partial update of the Charter Application'''
         instance = self.get_object()
-        serializer = self.serializer_class(instance, data=request.data, partial=True)
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
         
         if serializer.is_valid():
             if serializer.validated_data.get('status') == 'submitted':
@@ -894,7 +867,7 @@ class ODICharterApplicationViewset(viewsets.ModelViewSet):
     '''University Grant Charter Application'''
     queryset = CharterApplication.objects.filter(is_odai=True)
     serializer_class = CharterApplicationSerializer
-    permissions_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['application_code','institution__name','status','application_date']
     
@@ -912,7 +885,7 @@ class ODICharterApplicationViewset(viewsets.ModelViewSet):
     
     def create(self, request):
         '''Set institution to the logged in user's institution'''
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         
         if serializer.is_valid():
             user = self.request.user
@@ -926,7 +899,7 @@ class ODICharterApplicationViewset(viewsets.ModelViewSet):
     def partial_update(self, request, pk=None):
         '''Partial update of the Charter Application'''
         instance = self.get_object()
-        serializer = self.serializer_class(instance, data=request.data, partial=True)
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
         
         if serializer.is_valid():
             if serializer.validated_data.get('status') == 'submitted':

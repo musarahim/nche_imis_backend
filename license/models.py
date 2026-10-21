@@ -755,6 +755,7 @@ class CharterApplication(TimeStampedModel):
     has_provisional_license = models.BooleanField(null=False, blank=False)
     provisional_license = models.FileField(null=False, blank=True)
     provisional_license_issue_date = models.DateField(null=True, blank=False)
+    geographical_location = models.CharField(max_length=10, choices=GEOGRAPHICAL_CHOICES, null=True, blank=False)
     # LOCATION AND LAND
     amount_of_land_owned = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=True)
     land_title = models.FileField(upload_to='land_titles/', null=False, blank=True)
@@ -807,6 +808,7 @@ class CharterApplication(TimeStampedModel):
     #State whether students will access computers to locate reading materials in the library
     students_have_access = models.BooleanField(null=True, blank=True)
     has_internet_access = models.BooleanField(null=True, blank=True)
+    ISP_provider = models.CharField(null=True, blank=True)
     library_seats = models.IntegerField(null=True, blank=True)
     classroom_seats = models.IntegerField(null=True, blank=True)
     laboratories_seats = models.IntegerField(null=True, blank=True)
@@ -942,10 +944,19 @@ class CharterApplication(TimeStampedModel):
     
 
 class CharterApplicationDocoment(models.Model):
-    application = models.ForeignKey(CharterApplication, on_delete=models.CASCADE)
+    application = models.ForeignKey(CharterApplication, on_delete=models.CASCADE, related_name="documents")
     name = models.CharField(max_length=255, null=False, blank=False)
     document = models.FileField(null=False, blank=False)
 
     def __str__(self):
         return f"{self.name}"
     
+
+
+class CharterApplicationVehicle(TimeStampedModel):
+    application = models.ForeignKey(CharterApplication, on_delete=models.CASCADE, related_name='vehicles')
+    make = models.CharField(max_length=255)
+    registration_number = models.CharField(max_length=50)
+
+    class Meta:
+        ordering = ['id']
