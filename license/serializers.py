@@ -3,6 +3,7 @@ from django.db import transaction
 
 from payments.models import ApplicationPRNS
 from rest_framework import serializers
+from accounts.serializers import UserReviewerSerializer
 
 from .models import (CertificationAndClassification, CharterApplication, CharterApplicationDocoment, CharterApplicationVehicle,
                      InterimDiscussion, InterimPromoters, IntrimAuthority,
@@ -11,8 +12,18 @@ from .models import (CertificationAndClassification, CharterApplication, Charter
                      UniversityProvisionalObjective, UniversityProvisionalLicenseVehicle)
 
 
+class LicensingReviewerWorkloadSerializer(UserReviewerSerializer):
+    assigned_application_count = serializers.IntegerField(read_only=True)
+
+    class Meta(UserReviewerSerializer.Meta):
+        fields = ['id', 'name', 'assigned_application_count']
+        ref_name = 'Licensing reviewer workload'
+
+
 class CertificationAndClassificationSerializer(serializers.ModelSerializer):
     '''Serializer for CertificationAndClassification model.'''
+    desk_reviewer = serializers.PrimaryKeyRelatedField(read_only=True)
+    desk_reviewer_name = serializers.CharField(source='desk_reviewer.username', read_only=True, default=None)
     class Meta:
         '''Meta class for CertificationAndClassification Serializer'''
         model = CertificationAndClassification
@@ -124,6 +135,8 @@ class SupportingDocumentMixin:
 
 class IntrimAuthoritySerializer(SupportingDocumentMixin, serializers.ModelSerializer):
     '''Serializer for IntrimAuthority model.'''
+    desk_reviewer = serializers.PrimaryKeyRelatedField(read_only=True)
+    desk_reviewer_name = serializers.CharField(source='desk_reviewer.username', read_only=True, default=None)
     promoters_details = InterimPromotersSerializer(source='interimpromoters_set', many=True, read_only=True)
     objective_items = IntrimAuthorityObjectiveSerializer(many=True, read_only=True)
     supporting_documents = InterimSupportingDocumentSerializer(source='documents', many=True, read_only=True)
@@ -286,6 +299,8 @@ class UniversityProvisionalLicenseVehicleSerializer(serializers.ModelSerializer)
 
 class UniversityProvisionalLicenseSerializer(SupportingDocumentMixin, serializers.ModelSerializer):
     '''Serializer for UniversityProvisionalLicense model.'''
+    desk_reviewer = serializers.PrimaryKeyRelatedField(read_only=True)
+    desk_reviewer_name = serializers.CharField(source='desk_reviewer.username', read_only=True, default=None)
     supporting_documents = ProvisionalSupportingDocumentSerializer(source='documents', many=True, read_only=True)
     specific_objectives = serializers.CharField(required=False, write_only=True)
     vehicles = UniversityProvisionalLicenseVehicleSerializer(many=True, read_only=True)
@@ -459,6 +474,8 @@ class CharterApplicationSerializer(UniversityProvisionalLicenseSerializer):
 
 class OTIProvisionalSerializer(serializers.ModelSerializer):
     '''Serializer for OTIProvisional model.'''
+    desk_reviewer = serializers.PrimaryKeyRelatedField(read_only=True)
+    desk_reviewer_name = serializers.CharField(source='desk_reviewer.username', read_only=True, default=None)
 
     class Meta:
         '''Meta class for OTIProvisional Serializer'''

@@ -16,6 +16,7 @@ class OTIProvisional(TimeStampedModel):
         ('draft', 'Draft'),
         ('submitted', 'Submitted'),
         ('pending', 'Pending'),
+        ('prelim_review', 'Under Preliminary Review'),
     )
     code = models.CharField(max_length=30, null=True, blank=True, unique=True)
     application_date = models.DateField(null=True, blank=True, auto_now=True)
@@ -148,6 +149,13 @@ class OTIProvisional(TimeStampedModel):
     detailed_programmes = models.FileField(null=True, blank=False)
     physical_education_facilities = models.FileField(null=True, blank=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', blank=False)
+    desk_reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='desk_review_oti_provisional')
+
+    class Meta:
+        permissions = [
+            ('can_assign_oti_provisional_reviewer', 'Can assign OTI provisional reviewers'),
+            ('can_review_oti_provisional_application', 'Can review OTI provisional applications'),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.code:
@@ -348,8 +356,15 @@ class CertificationAndClassification(TimeStampedModel):
     detailed_programmes = models.FileField(null=True, blank=True)
     physical_education_facilities = models.FileField(null=True, blank=True)
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='draft', blank=False)
+    desk_reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='desk_review_classification')
     application_date = models.DateField(null=True, blank=True, auto_now=True)
     # payment, integrate URA
+    class Meta:
+        permissions = [
+            ('can_assign_classification_reviewer', 'Can assign classification reviewers'),
+            ('can_review_classification_application', 'Can review classification applications'),
+        ]
+
     def __str__(self):
         """
         Returns the institution name as a string representation of the model.
@@ -435,6 +450,8 @@ class IntrimAuthority(TimeStampedModel):
         permissions =[
             ("can_review_application", "Can review application"),
             ("can_assign_interim_authority_reviewer", "Can assign interim authority reviewer"),
+            ('can_assign_reviewers', 'Can assign reviewers across institution licensing'),
+            ('can_review_institutional_licensing', 'Can review institution licensing applications'),
         ]
 
         
@@ -662,6 +679,7 @@ class UniversityProvisionalLicense(TimeStampedModel):
     application_date = models.DateField(null=True, blank=True, auto_now=True)
      # ODI application (add ODI specific fields)
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='draft', blank=False)
+    desk_reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='desk_review_provisional_licenses')
     is_odai = models.BooleanField(default=False)
 
     class Meta:
@@ -897,6 +915,7 @@ class CharterApplication(TimeStampedModel):
     facilities = models.FileField(null=True, blank=True)
     member_cvs = models.FileField(null=True, blank=True)
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='draft', blank=False)
+    desk_reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='desk_review_charters')
     application_date = models.DateField(null=True, blank=True, auto_now=True)
      # ODI application
     is_odai = models.BooleanField(default=False)

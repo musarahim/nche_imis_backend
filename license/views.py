@@ -18,11 +18,14 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+from .reviewer_assignment import LicensingReviewMixin, eligible_reviewers, reviewers_with_workload, REVIEW_PERMISSIONS
+
 from .models import (CertificationAndClassification, CharterApplication,
                      InterimDiscussion, InterimPromoters, IntrimAuthority,
                      OTIProvisional, OTIProvisionalAward,
                      UniversityProvisionalLicense)
 from .serializers import (CertificationAndClassificationSerializer,
+                          LicensingReviewerWorkloadSerializer,
                           CharterApplicationSerializer,
                           InterimDiscussionSerializer,
                           InterimPromotersSerializer,
@@ -51,25 +54,19 @@ def _safe_check_prn_status(prn_object):
 
 # Create your views here.
 
-class CertificationAndClassificationViewset(viewsets.ModelViewSet):
+class CertificationAndClassificationViewset(LicensingReviewMixin, viewsets.ModelViewSet):
     '''Institution certification and classification'''
     queryset = CertificationAndClassification.objects.all()
     serializer_class = CertificationAndClassificationSerializer
+    assignment_permission = 'can_assign_classification_reviewer'
+    review_permission = 'can_review_classification_application'
+    review_portal_path = '/license/oti/classification-registration'
     permission_classes = [permissions.IsAuthenticated]
     parsers_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser] 
 
     def get_queryset(self):
-        '''return documents for the logged in institution'''
-        queryset = self.queryset
-        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
-            data = queryset
-        else:
-            if hasattr(self.request.user, 'institution'):
-                data = queryset.filter(institution=self.request.user.institution)
-            else:
-                data = None
-        return data
-    
+        return self.review_queryset()
+
     def create(self, request):
         '''Set institution to the logged in user's institution'''
         serializer = self.get_serializer(data=request.data)
@@ -152,100 +149,20 @@ class CertificationAndClassificationViewset(viewsets.ModelViewSet):
         return Response(response_serializer.data, status=status.HTTP_200_OK)
     
 
-class IntrimAuthorityViewset(viewsets.ModelViewSet):
+class IntrimAuthorityViewset(LicensingReviewMixin, viewsets.ModelViewSet):
     '''Interim Authority Application'''
     queryset = IntrimAuthority.objects.filter(is_odai=False)
     serializer_class = IntrimAuthoritySerializer
-    permissions_classes = [permissions.IsAuthenticated]
+    assignment_permission = 'can_assign_interim_authority_reviewer'
+    review_permission = 'can_review_application'
+    review_portal_path = '/license/university/interim-authority'
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['application_code','institution__name','status','application_date']
 
     def get_queryset(self):
-        '''return documents for the logged in institution'''
-        queryset = self.queryset
-        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
-            data = queryset
-        else:
-            if hasattr(self.request.user, 'institution'):
-                data = queryset.filter(institution=self.request.user.institution)
-            else:
-                data = None
-        return data
-    
-    def retrieve(self, request, pk=None):
-        '''Retrieve an Interim Authority Application by ID'''
-        queryset = IntrimAuthority.objects.filter(is_odai=False)
-        application = get_object_or_404(queryset, pk=pk)
-        serializer = self.get_serializer(application)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
-    @action(detail=False, methods=['get'], url_path='submitted-applications')
-    def submitted_applications(self, request, pk=None):
-        """
-        GET applications submitted by the logged in user.
-        """
-        queryset = self.queryset.filter(status='submitted')
-        if queryset is None or not queryset.exists():
-            return Response([], status=status.HTTP_200_OK)
-        
-        # Apply pagination manually for custom actions
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
+        return self.review_queryset()
 
-        # Fallback if pagination is not configured
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-        
-        # Fallback if pagination is not configured
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-
-    # assign reviewer
-    @action(detail=False, methods=['post'], url_path='assign-desk-reviewer')
-    def assign_reviewer(self, request, pk=None):
-        '''assign multiple applications to a reviewer
-            applications come as a list of application ids and reviewer is the user id of the reviewer'''
-        application_ids = request.data.get('applications', [])
-        reviewer_id = request.data.get('userId')
-        
-        if not application_ids or not reviewer_id:
-            return Response({'error': 'applications and userId are required.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            reviewer = User.objects.get(id=reviewer_id)
-        except User.DoesNotExist:
-            return Response({'error': 'Reviewer not found.'}, status=status.HTTP_404_NOT_FOUND)
-        
-        applications =   IntrimAuthority.objects.filter(id__in=application_ids)
-
-        
-        for application in applications:
-            application.desk_reviewer=reviewer
-            if application.status != 'prelim_review':
-                application.status = 'prelim_review'
-                application.save()
-            #send emails to reviewers
-        print('sending email notification')
-        html_message = render_to_string('emails/assign_reviewer_notification.html', {
-                'applications': applications,
-                'reviewer': reviewer,
-                'protocol': 'https',
-                'domain': 'portal.unche.or.ug/license/university/interim-authority/review',
-                'site_name': 'UNCHE IMIS',
-                })
-        email = EmailMessage(
-                subject='Interim Authority Application Preliminary Review Notification',
-                body=html_message,
-                to=[reviewer.email],
-                )
-        email.content_subtype = 'html'  # Main content is now text/html
-        email.send(fail_silently=True)
-        
-        return Response({'message': f'{len(applications)} applications assigned to reviewer {reviewer.username}.'}, status=status.HTTP_200_OK)
-    
     def create(self, request):
         '''Set institution to the logged in user's institution'''
         serializer = self.serializer_class(data=request.data)
@@ -395,43 +312,18 @@ class IntrimAuthorityViewset(viewsets.ModelViewSet):
 
 
 # intrim authority ODI
-class IntrimAuthorityODIViewset(viewsets.ModelViewSet):
+class IntrimAuthorityODIViewset(LicensingReviewMixin, viewsets.ModelViewSet):
     '''ODI Interim Authority Application'''
     queryset = IntrimAuthority.objects.filter(is_odai=True)
     serializer_class = IntrimAuthoritySerializer
+    assignment_permission = 'can_assign_interim_authority_reviewer'
+    review_permission = 'can_review_application'
+    review_portal_path = '/license/odai/interim-authority'
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['application_code','institution__name','status','application_date']
     def get_queryset(self):
-        '''return documents for the logged in institution'''
-        queryset = self.queryset
-        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
-            data = queryset
-        else:
-            if hasattr(self.request.user, 'institution'):
-                data = queryset.filter(institution=self.request.user.institution)
-            else:
-                data = None
-        return data
-
-    @action(detail=False, methods=['get'], url_path='submitted-applications')
-    def submitted_applications(self, request, pk=None):
-        """
-        GET applications submitted by the logged in user.
-        """
-        queryset = IntrimAuthority.objects.filter(status='submitted', is_odai=True)
-        if queryset is None or not queryset.exists():
-            return Response([], status=status.HTTP_200_OK)
-        
-        # Apply pagination manually for custom actions
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        # Fallback if pagination is not configured
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return self.review_queryset()
 
     @action(detail=True, methods=['get', 'post'], url_path='promoters')
     def promoters(self, request, pk=None):
@@ -547,26 +439,20 @@ class InterimDiscussionViewset(viewsets.ModelViewSet):
         return data
     
     
-class UniversityProvisionalLicenseViewset(viewsets.ModelViewSet):
+class UniversityProvisionalLicenseViewset(LicensingReviewMixin, viewsets.ModelViewSet):
     '''University Provisional License Application'''
     queryset = UniversityProvisionalLicense.objects.filter(is_odai=False)
     serializer_class = UniversityProvisionalLicenseSerializer
+    assignment_permission = 'can_assign_university_provisional_reviewer'
+    review_permission = 'can_review_provisional_license_application'
+    review_portal_path = '/license/university/provisional-license'
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['application_code','institution__name','status','application_date']
     
     def get_queryset(self):
-        '''return documents for the logged in institution'''
-        queryset = self.queryset
-        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists() or self.request.user.has_perm('license.can_review_provisional_license_application'):
-            data = queryset
-        else:
-            if hasattr(self.request.user, 'institution'):
-                data = queryset.filter(institution=self.request.user.institution)
-            else:
-                data = None
-        return data
-    
+        return self.review_queryset()
+
     def create(self, request):
         '''Set institution to the logged in user's institution'''
         serializer = self.get_serializer(data=request.data)
@@ -653,26 +539,20 @@ class UniversityProvisionalLicenseViewset(viewsets.ModelViewSet):
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
 # provisional license ODI
-class ODAIProvisionalLicenseViewset(viewsets.ModelViewSet):
+class ODAIProvisionalLicenseViewset(LicensingReviewMixin, viewsets.ModelViewSet):
     '''University Provisional License Application'''
     queryset = UniversityProvisionalLicense.objects.filter(is_odai=True)
     serializer_class = UniversityProvisionalLicenseSerializer
+    assignment_permission = 'can_assign_university_provisional_reviewer'
+    review_permission = 'can_review_provisional_license_application'
+    review_portal_path = '/license/odai/provisional-license'
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['application_code','institution__name','status','application_date']
     
     def get_queryset(self):
-        '''return documents for the logged in institution'''
-        queryset = self.queryset
-        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists() or self.request.user.has_perm('license.can_review_provisional_license_application'):
-            data = queryset
-        else:
-            if hasattr(self.request.user, 'institution'):
-                data = queryset.filter(institution=self.request.user.institution)
-            else:
-                data = None
-        return data
-    
+        return self.review_queryset()
+
     def create(self, request):
         '''Set institution to the logged in user's institution'''
         serializer = self.get_serializer(data=request.data)
@@ -759,26 +639,20 @@ class ODAIProvisionalLicenseViewset(viewsets.ModelViewSet):
         return Response(response_serializer.data, status=status.HTTP_200_OK)       
 
 
-class CharterApplicationViewset(viewsets.ModelViewSet):
+class CharterApplicationViewset(LicensingReviewMixin, viewsets.ModelViewSet):
     '''University Grant Charter Application'''
     queryset = CharterApplication.objects.filter(is_odai=False)
     serializer_class = CharterApplicationSerializer
-    permissions_classes = [permissions.IsAuthenticated]
+    assignment_permission = 'can_assign_charter_reviewer'
+    review_permission = 'can_review_charter_application'
+    review_portal_path = '/license/university/charter'
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['application_code','institution__name','status','application_date']
     
     def get_queryset(self):
-        '''return documents for the logged in institution'''
-        queryset = self.queryset
-        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists() or self.request.user.has_perm('license.can_review_charter_application'):
-            data = queryset
-        else:
-            if hasattr(self.request.user, 'institution'):
-                data = queryset.filter(institution=self.request.user.institution)
-            else:
-                data = None
-        return data
-    
+        return self.review_queryset()
+
     def create(self, request):
         '''Set institution to the logged in user's institution'''
         serializer = self.get_serializer(data=request.data)
@@ -863,26 +737,20 @@ class CharterApplicationViewset(viewsets.ModelViewSet):
     
 
 # ODI charter application
-class ODICharterApplicationViewset(viewsets.ModelViewSet):
+class ODICharterApplicationViewset(LicensingReviewMixin, viewsets.ModelViewSet):
     '''University Grant Charter Application'''
     queryset = CharterApplication.objects.filter(is_odai=True)
     serializer_class = CharterApplicationSerializer
+    assignment_permission = 'can_assign_charter_reviewer'
+    review_permission = 'can_review_charter_application'
+    review_portal_path = '/license/odai/charter'
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['application_code','institution__name','status','application_date']
     
     def get_queryset(self):
-        '''return documents for the logged in institution'''
-        queryset = self.queryset
-        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
-            data = queryset
-        else:
-            if hasattr(self.request.user, 'institution'):
-                data = queryset.filter(institution=self.request.user.institution)
-            else:
-                data = None
-        return data
-    
+        return self.review_queryset()
+
     def create(self, request):
         '''Set institution to the logged in user's institution'''
         serializer = self.get_serializer(data=request.data)
@@ -965,26 +833,22 @@ class ODICharterApplicationViewset(viewsets.ModelViewSet):
         response_serializer = PRNGenerationResponseSerializer(prn)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
-class OTIProvisionalViewset(viewsets.ModelViewSet):
+class OTIProvisionalViewset(LicensingReviewMixin, viewsets.ModelViewSet):
     '''OTI Provisional License Application'''
     queryset = OTIProvisional.objects.all()
     serializer_class = OTIProvisionalSerializer
-    permissions_classes = [permissions.IsAuthenticated]
+    assignment_permission = 'can_assign_oti_provisional_reviewer'
+    review_permission = 'can_review_oti_provisional_application'
+    review_portal_path = '/license/oti/provisional-license'
+    institution_field = 'institute'
+    code_field = 'code'
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['application_code','institute__name','status','application_date']
     
     def get_queryset(self):
-        '''return documents for the logged in institution'''
-        queryset = self.queryset
-        if self.request.user.is_superuser or self.request.user.groups.filter(name='System Administrator').exists():
-            data = queryset
-        else:
-            if hasattr(self.request.user, 'institution'):
-                data = queryset.filter(institute=self.request.user.institution)
-            else:
-                data = None
-        return data
-    
+        return self.review_queryset()
+
     def create(self, request):
         '''Set institution to the logged in user's institution'''
         serializer = self.serializer_class(data=request.data)
@@ -1093,10 +957,16 @@ class OTIProvisionalAwardViewset(viewsets.ModelViewSet):
 
 # Desk Reviewer
 class DeskReviewersViewset(viewsets.ReadOnlyModelViewSet):
-    '''Programme Accreditation Reviewers'''
-    queryset = User.objects.filter(groups__name='ILA Desk Review Officer').order_by('username')
-    serializer_class = UserReviewerSerializer
+    '''Institution licensing reviewers and their current preliminary-review workloads.'''
+    queryset = eligible_reviewers()
+    serializer_class = LicensingReviewerWorkloadSerializer
     pagination_class = None
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['username','email','first_name','last_name','other_names']
+
+    def get_queryset(self):
+        permission = self.request.query_params.get('review_permission')
+        if permission and permission not in REVIEW_PERMISSIONS:
+            return self.queryset.none()
+        return reviewers_with_workload(permission)
