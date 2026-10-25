@@ -59,6 +59,18 @@ class LicensingReviewMixin:
     code_field = 'application_code'
     review_portal_path = ''
 
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        if self.action in ['update', 'partial_update', 'destroy'] or (self.action == 'promoters' and request.method == 'POST'):
+            application = self.get_object()
+            institution = getattr(application, self.institution_field)
+            if not institution or institution.user_id != request.user.pk:
+                raise PermissionDenied('Only the applicant can edit application information.')
+            if application.status != 'draft':
+                raise PermissionDenied('Submitted application information is locked; record processing evidence through the workflow.')
+            if request.data.get('status', 'draft') not in ['draft', 'submitted']:
+                raise ValidationError({'status': 'Use the backoffice workflow to change processing status.'})
+
     def can_assign_reviews(self):
         user = self.request.user
         return user.is_authenticated and user.is_active and (
@@ -72,6 +84,9 @@ class LicensingReviewMixin:
         user = self.request.user
         if not user.is_authenticated:
             return queryset.none()
+        from .processing import can_process
+        if self.action in ['processing', 'processing_queue', 'application_status'] and can_process(user):
+            return queryset
         if self.can_assign_reviews():
             return queryset
         scope = Q(pk__in=[])
@@ -82,6 +97,8 @@ class LicensingReviewMixin:
         return queryset.filter(scope)
 
     def _review_queue(self, queryset):
+        from .status_tracking import status_summary
+        can_review = eligible_reviewers().filter(pk=self.request.user.pk).exists()
         institution = self.request.query_params.get('institution')
         if institution:
             institution_id = serializers.IntegerField(min_value=1).run_validation(institution)
@@ -111,10 +128,11 @@ class LicensingReviewMixin:
                 'institution': institution.name if institution else '',
                 'institution_id': institution.pk if institution else None,
                 'application_date': application.application_date,
-                'status': application.get_status_display(),
+                'status': status_summary(application)['status'],
                 'status_code': application.status,
                 'desk_reviewer': reviewer.pk if reviewer else None,
                 'desk_reviewer_name': self._reviewer_name(reviewer) if reviewer else None,
+                'can_open_review': bool(self.can_assign_reviews() or (can_review and reviewer and reviewer.pk == self.request.user.pk)),
             })
         if page is not None:
             response = self.get_paginated_response(rows)
@@ -129,7 +147,68 @@ class LicensingReviewMixin:
 
     @action(detail=False, methods=['get'], url_path='under-review')
     def under_review(self, request):
-        return self._review_queue(self.get_queryset().filter(status='prelim_review'))
+        status = 'prelim_feedback' if request.query_params.get('review_status') == 'completed' else 'prelim_review'
+        return self._review_queue(self.get_queryset().filter(status=status))
+
+    @action(detail=True, methods=['get', 'post'], url_path='preliminary-review')
+    def preliminary_review(self, request, pk=None):
+        from .preliminary_review import preliminary_review
+        return preliminary_review(self, request, pk)
+
+    @action(detail=True, methods=['get'], url_path='application-status')
+    def application_status(self, request, pk=None):
+        from .status_tracking import tracking_response
+        return Response(tracking_response(self.get_object()))
+
+    @action(detail=True, methods=['get', 'post'], url_path='processing')
+    def processing(self, request, pk=None):
+        from .processing import processing
+        return processing(self, request, pk)
+
+    @action(detail=False, methods=['get'], url_path='processing-queue')
+    def processing_queue(self, request):
+        from .processing import can_process, family
+        from .models import LicensingProcessing
+        from .preliminary_review import review_type
+        family(self)
+        if not (can_process(request.user) or self.can_assign_reviews()):
+            raise PermissionDenied('Licensing processing access is required.')
+        states = {row.application_id: row for row in LicensingProcessing.objects.filter(application_type=review_type(self))}
+        queryset = self.get_queryset().filter(Q(status__in=['submitted', 'prelim_review', 'prelim_feedback']) | Q(pk__in=states))
+        queues = {
+            'all': [],
+            'preliminary': ['awaiting_preliminary', 'preliminary_feedback', 'clarification'],
+            'vetting': ['vetting', 'vetting_report'],
+            'council': ['council_decision', 'final_council', 'hearing', 'hearing_decision'],
+            'verification': ['verification_invoice', 'verification_appointment', 'verification', 'verification_report'],
+            'external': ['attorney_general', 'minister', 'president'],
+            'publication': ['publication_pending'],
+            'completed': ['issued', 'refused', 'deferred'],
+        }
+        queue = request.query_params.get('queue', 'all')
+        if queue not in queues:
+            raise ValidationError({'queue': 'Select a valid processing queue.'})
+        if queue != 'all':
+            selected = Q(pk__in=[pk for pk, state in states.items() if state.stage in queues[queue]])
+            if queue == 'preliminary':
+                selected |= Q(status__in=['submitted', 'prelim_review', 'prelim_feedback'])
+            queryset = queryset.filter(selected)
+        search = request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(Q(**{self.code_field + '__icontains': search}) | Q(**{self.institution_field + '__name__icontains': search}))
+        ordering = request.query_params.get('ordering', '-id')
+        order_fields = {'id': 'id', 'institution': self.institution_field + '__name',
+                        'application_code': self.code_field, 'application_date': 'application_date'}
+        if ordering.lstrip('-') not in order_fields:
+            raise ValidationError({'ordering': 'Select a valid processing sort column.'})
+        order_field = ('-' if ordering.startswith('-') else '') + order_fields[ordering.lstrip('-')]
+        queryset = queryset.select_related(self.institution_field).order_by(order_field, '-pk')
+        page = self.paginate_queryset(queryset)
+        rows = [{'id': app.pk, 'application_code': getattr(app, self.code_field),
+                 'institution': getattr(app, self.institution_field).name,
+                 'application_date': app.application_date,
+                 'stage': ('preliminary_feedback' if app.status == 'prelim_feedback' else states[app.pk].stage if app.pk in states else 'awaiting_preliminary')} for app in (page if page is not None else queryset)]
+        return self.get_paginated_response(rows) if page is not None else Response({'results': rows, 'count': len(rows), 'next': None, 'previous': None})
 
     @action(detail=False, methods=['get'], url_path='assignment-candidates')
     def assignment_candidates(self, request):

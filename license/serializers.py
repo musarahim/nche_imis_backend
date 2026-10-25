@@ -20,7 +20,17 @@ class LicensingReviewerWorkloadSerializer(UserReviewerSerializer):
         ref_name = 'Licensing reviewer workload'
 
 
-class CertificationAndClassificationSerializer(serializers.ModelSerializer):
+class LicensingStatusSerializerMixin:
+    def to_representation(self, instance):
+        from .status_tracking import status_summary
+        response = super().to_representation(instance)
+        summary = status_summary(instance)
+        response['tracking_status'] = summary['status']
+        response['tracking_status_code'] = summary['status_code']
+        return response
+
+
+class CertificationAndClassificationSerializer(LicensingStatusSerializerMixin, serializers.ModelSerializer):
     '''Serializer for CertificationAndClassification model.'''
     desk_reviewer = serializers.PrimaryKeyRelatedField(read_only=True)
     desk_reviewer_name = serializers.CharField(source='desk_reviewer.username', read_only=True, default=None)
@@ -133,7 +143,7 @@ class SupportingDocumentMixin:
         instance.documents.exclude(pk__in=retained_ids).delete()
 
 
-class IntrimAuthoritySerializer(SupportingDocumentMixin, serializers.ModelSerializer):
+class IntrimAuthoritySerializer(LicensingStatusSerializerMixin, SupportingDocumentMixin, serializers.ModelSerializer):
     '''Serializer for IntrimAuthority model.'''
     desk_reviewer = serializers.PrimaryKeyRelatedField(read_only=True)
     desk_reviewer_name = serializers.CharField(source='desk_reviewer.username', read_only=True, default=None)
@@ -297,7 +307,7 @@ class UniversityProvisionalLicenseVehicleSerializer(serializers.ModelSerializer)
         return value.upper()
 
 
-class UniversityProvisionalLicenseSerializer(SupportingDocumentMixin, serializers.ModelSerializer):
+class UniversityProvisionalLicenseSerializer(LicensingStatusSerializerMixin, SupportingDocumentMixin, serializers.ModelSerializer):
     '''Serializer for UniversityProvisionalLicense model.'''
     desk_reviewer = serializers.PrimaryKeyRelatedField(read_only=True)
     desk_reviewer_name = serializers.CharField(source='desk_reviewer.username', read_only=True, default=None)
@@ -472,7 +482,7 @@ class CharterApplicationSerializer(UniversityProvisionalLicenseSerializer):
         return response
 
 
-class OTIProvisionalSerializer(serializers.ModelSerializer):
+class OTIProvisionalSerializer(LicensingStatusSerializerMixin, serializers.ModelSerializer):
     '''Serializer for OTIProvisional model.'''
     desk_reviewer = serializers.PrimaryKeyRelatedField(read_only=True)
     desk_reviewer_name = serializers.CharField(source='desk_reviewer.username', read_only=True, default=None)
