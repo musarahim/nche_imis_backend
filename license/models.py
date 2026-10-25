@@ -17,6 +17,7 @@ class OTIProvisional(TimeStampedModel):
         ('submitted', 'Submitted'),
         ('pending', 'Pending'),
         ('prelim_review', 'Under Preliminary Review'),
+        ('prelim_feedback', 'Preliminary Feedback Issued'),
     )
     code = models.CharField(max_length=30, null=True, blank=True, unique=True)
     application_date = models.DateField(null=True, blank=True, auto_now=True)
@@ -979,3 +980,72 @@ class CharterApplicationVehicle(TimeStampedModel):
 
     class Meta:
         ordering = ['id']
+
+
+class LicensingPreliminaryReview(models.Model):
+    """A field-based review round for any institution licensing application."""
+    application_type = models.CharField(max_length=80)
+    application_id = models.PositiveBigIntegerField()
+    reviewer = models.ForeignKey(User, on_delete=models.PROTECT, related_name='licensing_preliminary_reviews')
+    application_snapshot = models.JSONField(default=list)
+    snapshot_hash = models.CharField(max_length=64)
+    observations = models.JSONField(default=dict)
+    summary = models.TextField(blank=True)
+    outcome = models.CharField(max_length=32, blank=True, choices=[
+        ('no_concerns', 'No concerns identified'), ('clarification_required', 'Clarification required'),
+    ])
+    revision = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+        indexes = [models.Index(fields=['application_type', 'application_id'], name='lic_prelim_application_idx')]
+
+
+class LicensingProcessing(models.Model):
+    """Authoritative backoffice state, scoped to the application route and ID."""
+    application_type = models.CharField(max_length=80)
+    application_id = models.PositiveBigIntegerField()
+    stage = models.CharField(max_length=40, default='preliminary_feedback')
+    revision = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['application_type', 'application_id'], name='lic_processing_application_uniq')]
+        permissions = [
+            ('can_process_licensing', 'Can record licensing processing evidence'),
+            ('can_forward_licensing', 'Can record Executive Director forwarding'),
+            ('can_decide_licensing', 'Can record National Council licensing decisions'),
+            ('can_record_charter_authorities', 'Can record external charter authority decisions'),
+        ]
+
+
+class LicensingProcessingEvent(models.Model):
+    processing = models.ForeignKey(LicensingProcessing, on_delete=models.PROTECT, related_name='events')
+    revision = models.PositiveIntegerField()
+    action = models.CharField(max_length=50)
+    from_stage = models.CharField(max_length=40)
+    to_stage = models.CharField(max_length=40)
+    actor = models.ForeignKey(User, on_delete=models.PROTECT)
+    occurred_on = models.DateField()
+    notes = models.TextField()
+    evidence = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['revision']
+        constraints = [models.UniqueConstraint(fields=['processing', 'revision'], name='lic_processing_event_revision')]
+
+
+class LicensingStatusHistory(models.Model):
+    """Institution-visible status changes, separate from internal review evidence."""
+    application_type = models.CharField(max_length=80)
+    application_id = models.PositiveBigIntegerField()
+    status = models.CharField(max_length=50)
+    recorded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['recorded_at', 'id']
+        indexes = [models.Index(fields=['application_type', 'application_id'], name='lic_status_application_idx')]
